@@ -203,6 +203,10 @@ Die Karten sind zunächst Spezifikationen. Ihre ausführbaren Szenariodaten werd
 - **Dann:** Beobachtbar sind Aufbau, Forschung, physischer Transport, Raumkampf, eine Bodeninvasion, vorbereitete Verteidigung, Anpassung der KI und ein erfülltes Szenarioziel. Im kooperativen Durchlauf setzt ein Partner eine konkrete Zusage um und gewinnt gemeinsam mit dem Spieler.
 - **Zusatz:** KI-Fraktionen handeln auch untereinander. Ein Konvoiverlust erlaubt wirtschaftlichen Wiederaufbau, sofern die eigene Grundversorgung erhalten blieb. Subjektive Verständlichkeit und taktische Wahlmöglichkeiten werden separat protokolliert.
 
+## Ausgeführter M3 Nachweis vom 23. November 2026
+
+P06/P07 sind in Version 1.0.2 geprüft. Der vollständige Aufbau, die realen Befehle, Testbestände, Ergebniszuordnung und Grenzen stehen in [M3_NACHWEIS](M3_NACHWEIS.md). 43 Core-Tests (15 neue M3-Fälle), Windows-Build und 71 grafische Einzelprüfungen sind bestanden; sieben Renderbilder wurden kontrolliert. Tatsächliche Maus-/Tastatureingaben bestätigen Gefecht auf zwei Wegen, Reserve/Rückzug, Auswahlrahmen und Gruppen sowie eine Stellung mit zwei Verteidigungslinien und unterbrochenem Nachschub. TEST-007 und der P06-Anteil von TEST-011 sind damit nachgewiesen; militärische Speicherung erweitert den aktuellen Umfang von TEST-020. Reguläre Träger und vollständige Invasionen bleiben den späteren Szenarien vorbehalten.
+
 ## Zuordnung zusätzlicher Fachtests
 
 Die detaillierten Beispiele `AI-T01` bis `AI-T05`, `DIP-T01` bis `DIP-T05`, `WIN-T01` bis `WIN-T04` und `SYS-T01` in [AI_DIPLOMACY](AI_DIPLOMACY.md) ergänzen diese Szenarien. Sie dürfen dieselben ausführbaren Fixtures verwenden. Die Anforderungs-IDs bleiben die fachliche Referenz; Testnamen werden bei der Enginewahl auf das tatsächliche Testwerkzeug abgebildet.

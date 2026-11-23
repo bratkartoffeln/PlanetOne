@@ -94,7 +94,7 @@ namespace PlanetOne.Core
             // Copy the intent. The presentation cannot change an already queued command afterwards.
             State.PendingCommands.Add(new SimCommand { Id = command.Id, IssuerId = command.IssuerId,
                 Kind = command.Kind, PlanetId = command.PlanetId, X = command.X, Y = command.Y,
-                Building = command.Building, TargetId = command.TargetId, IntValue = command.IntValue, BoolValue = command.BoolValue });
+                Building = command.Building, TargetId = command.TargetId, ActorId = command.ActorId, IntValue = command.IntValue, BoolValue = command.BoolValue });
             State.LastMessage = State.Paused ? "Befehl für die Fortsetzung vorgemerkt." : "Befehl vorgemerkt.";
             return true;
         }
@@ -135,6 +135,7 @@ namespace PlanetOne.Core
                 DispatchDeliveries(planet);
                 TickShipments(planet);
                 FinishDeconstruction(planet);
+                TickMilitary(planet);
             }
             State.Tick++;
         }
@@ -175,7 +176,7 @@ namespace PlanetOne.Core
             if (!Enum.IsDefined(typeof(BuildingKind), kind) || kind == BuildingKind.Headquarters)
                 return "Dieser Gebäudetyp kann hier nicht gebaut werden.";
             int index = y * p.Width + x;
-            if (p.Roads[index]) return "Auf dieser Fläche liegt bereits eine Straße.";
+            if (p.Roads[index] && kind != BuildingKind.Gate) return "Auf dieser Fläche liegt bereits eine Straße.";
             if (kind == BuildingKind.Mine && p.Terrain[index] != 2) return "Erzminen benötigen ein Erzvorkommen.";
             if (kind != BuildingKind.Mine && p.Terrain[index] == 2) return "Dieses Feld ist für den Erzabbau reserviert.";
             var headquarters = p.Buildings.Find(b => b.Kind == BuildingKind.Headquarters && b.Built);
@@ -211,6 +212,7 @@ namespace PlanetOne.Core
             if (!State.Factions.Exists(f => f.Id == command.IssuerId))
             { Report(command, false, "UnknownFaction", "Unbekannte Fraktion."); return; }
             if (p == null) { Report(command, false, "UnknownPlanet", "Unbekannter Planet."); return; }
+            if (command.Kind >= CommandKind.RecruitUnit) { ApplyMilitary(p, command); return; }
             if (p.OwnerId != command.IssuerId || p.OwnerId == 0)
             { Report(command, false, "PermissionDenied", "Keine eigene Kolonie an diesem Ort."); return; }
             string error;
@@ -264,6 +266,7 @@ namespace PlanetOne.Core
             if (error != null) { Report(command, false, PlacementCode(error), error); return; }
             var building = new BuildingState { Id = State.NextEntityId++, PlanetId = p.Id,
                 Kind = command.Building, X = command.X, Y = command.Y,
+                Health = Definitions.BuildingHealth(command.Building),
                 Priority = command.Building == BuildingKind.Farm ? 2 : 1 };
             p.Buildings.Add(building);
             var definition = Definitions.Get(command.Building);

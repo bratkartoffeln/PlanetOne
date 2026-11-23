@@ -37,6 +37,7 @@ internal static class CoreTests
         Run("Version 1 migration preserves stocks ids and returning couriers", LegacyMigration);
         Run("Original prototype v1 save migrates without losing real state", ActualLegacyFixture);
         Run("Twenty minute colony sustains population and pays expansion from local production", SustainableColony);
+        MilitaryTests.Register(Run);
         Console.WriteLine(failures == 0 ? "All " + checks + " core tests passed." : failures + " test(s) failed.");
         return failures == 0 ? 0 : 1;
     }
@@ -539,7 +540,7 @@ internal static class CoreTests
         var after = migrated.GetShipmentPosition(migrated.FindPlanet(1).Shipments.Find(s => s.Id == returning.Id));
         Assert(before.X == after.X && before.Y == after.Y && ActualAmount(migrated.FindPlanet(1), ResourceKind.Metal) == metal,
             "Legacy migration changed returning courier position or stock.");
-        Assert(migrated.State.Version == 2 && migrated.State.Factions.Count == 2 && migrated.FindPlanet(1).Population == 16,
+        Assert(migrated.State.Version == SaveCodec.CurrentVersion && migrated.State.Factions.Count == 2 && migrated.FindPlanet(1).Population == 16,
             "Legacy migration did not initialize current schema.");
         migrated.Step(1000); SaveCodec.Validate(migrated.State);
     }

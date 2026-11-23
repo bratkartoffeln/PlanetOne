@@ -1,6 +1,6 @@
 # PlanetOne Implementierungsplan
 
-Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0, M1 und M2 sind technisch abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen zusätzlichen Maustest. Ein Paket gilt erst nach nachvollziehbarer Prüfung seiner Abnahmekriterien als abgeschlossen. P08 enthält bisher nur den Ansichts-/Orbitanteil.
+Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0 bis M3 sind umgesetzt und abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen vollständigen zusätzlichen Maustest. M3 ist mit Core-Tests, Windows-Build, Grafiklauf und gezielten tatsächlichen Maus-/Tastatureingaben geprüft; siehe [M3_NACHWEIS](M3_NACHWEIS.md). P08 enthält bisher nur den Ansichts-/Orbitanteil.
 
 ## Verbindliche Grundlagen
 
@@ -133,7 +133,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P06 Bewegliche Bodentruppen und Sicht
 
-- **Status:** Offen. **Abhängigkeit:** P05.
+- **Status:** Abgeschlossen in 1.0.2. Reguläre Rekrutierung, sechs Bodenrollen, Bewegung, Sicht, Deckung, Angriff, Halten und Rückzug; Core-, Grafik- und echte Bediennachweise in [M3_NACHWEIS](M3_NACHWEIS.md). **Abhängigkeit:** P05 erfüllt.
 - **Module:** Bodennavigation, Auswahl, Befehle, Sicht, Kampf, Einheitenproduktion.
 - **Umfang:** Infanterie, Panzerabwehr, Kampfpanzer, Artillerie sowie Pionier-/Versorgungsfahrzeug in einfachen Ausprägungen. Bewegung, Angriff, Halten und Rückzug; Deckung, Reichweite und Sicht. Einheiten entstehen durch reguläre Produktionsaufträge.
 - **Nicht enthalten:** Komplexe Spezialfähigkeiten oder separate Luftkampfmechaniken.
@@ -142,7 +142,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P07 Türme, Mauern und militärische Versorgung
 
-- **Status:** Offen. **Abhängigkeit:** P06.
+- **Status:** Abgeschlossen in 1.0.2. Vier Stellungen, zerstörbare Mauern/Tore, Szenario-Torrechte, Depots, endliche Vorräte, Energiepuffer, Pionierversorgung und Reparatur; Flugabwehr gegen Übergangsziele automatisiert geprüft. Reguläre Landung bleibt P12. Nachweise in [M3_NACHWEIS](M3_NACHWEIS.md). **Abhängigkeit:** P06 abgeschlossen.
 - **Module:** Verteidigungsanlagen, Navigation, lokale Logistik, Munition, Reparatur.
 - **Umfang:** Vier Grundstellungen, zerstörbare Mauern, berechtigte Torpassage, Versorgungsdepots, lokale Munitionsvorräte, Reparatur und mobile Flugabwehr. Flugabwehr besitzt bereits ihre Zielregeln; reguläre Landungstransporter folgen mit P12.
 - **Nicht enthalten:** Kostenlos erzeugte Angriffswellen, globale Turmlimits oder fortgeschrittene Schilde.

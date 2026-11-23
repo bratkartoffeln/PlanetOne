@@ -203,6 +203,34 @@ namespace PlanetOne.Runtime
             yield return null;
             yield return Capture("surface-restored.png");
             Require(captureFailure == null, captureFailure ?? "Restored surface screenshot written");
+            controller.StartMilitaryFixture();
+            Require(controller.Simulation.State.MilitaryTestFixture && controller.Simulation.State.Paused, "M3 fixture is explicitly labelled and initially paused");
+            PlanetState battlefield = controller.Simulation.FindPlanet(1);
+            UnitState tank = battlefield.Units.Find(u => u.OwnerId == 1 && u.Kind == UnitKind.Tank);
+            Require(controller.SelectUnit(tank.Id) && controller.SelectedUnitCount == 1, "Military selection uses the controller adapter");
+            yield return null;
+            Require(controller.RenderedUnitCount >= 6, "Own troops are visibly rendered");
+            yield return Capture("military-defense.png");
+            Require(captureFailure == null, captureFailure ?? "Defense screenshot written");
+            Require(controller.RequestUnitOrder(tank.Id, CommandKind.MoveUnit, 8, 2), "Reserve movement queued through normal input adapter");
+            AdvanceSeconds(12);
+            Require(Math.Abs(tank.X - 8) < 0.01 && Math.Abs(tank.Y - 2) < 0.01, "Mobile reserve reaches the northern approach around existing buildings");
+            MilitaryFixture.OrderAttack(controller.Simulation, true);
+            MilitaryFixture.OrderAttack(controller.Simulation, false);
+            AdvanceSeconds(10);
+            Require(battlefield.Units.Exists(u => u.Health < Definitions.Get(u.Kind).Health), "Both finite attack groups produce real combat damage");
+            Require(controller.RequestUnitOrder(tank.Id, CommandKind.RetreatUnit, 5, 3), "Retreat command accepted");
+            AdvanceSeconds(6);
+            Require(tank.Destroyed || (tank.X == 5 && tank.Y == 3), "Retreat follows a physical route or records a real casualty");
+            yield return null;
+            yield return Capture("military-combat.png");
+            Require(captureFailure == null, captureFailure ?? "Combat screenshot written");
+            Require(controller.SaveGame(), "Military state saves through normal storage adapter");
+            string militaryJson = SaveCodec.ToJson(controller.Simulation.State);
+            Require(controller.LoadGame() && SaveCodec.ToJson(controller.Simulation.State) == militaryJson, "Military load preserves exact state and orders");
+            yield return null;
+            yield return Capture("military-restored.png");
+            Require(captureFailure == null, captureFailure ?? "Restored military screenshot written");
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)

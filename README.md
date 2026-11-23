@@ -14,6 +14,8 @@ Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung
 
 ## Dokumente und Zuständigkeiten
 
+Das vollständige Spielkonzept als zusammenhängende Übersicht steht in [SPIELKONZEPT](docs/SPIELKONZEPT.md). Es unterscheidet das geplante Gesamtspiel vom bereits geprüften Prototyp und verweist auf die verbindlichen Detailregeln.
+
 | Dokument | Verbindlicher Inhalt |
 |---|---|
 | [GAME_DESIGN](docs/GAME_DESIGN.md) | Welt, Aufbau, Güter, Transporte, Forschung, Gefechte, Invasionen, Tower Defense und Bedienung |
@@ -46,6 +48,8 @@ Die Koloniewirtschaft ist um Wohnraum, Bevölkerung, Nahrungsverbrauch, Arbeitsk
 Ein reproduzierbarer Core-Test baut drei Minuten auf und betreibt die Kolonie weitere 20 Simulationsminuten ohne Hunger. Er erreicht 28 Bewohner und finanziert insgesamt 116 Metall und 26 Bauteile Baukosten aus dokumentierten Startvorräten von 100 Metall und 20 Bauteilen sowie eigener Produktion. Speicherformat 2 übernimmt auch einen echten Spielstand des ursprünglichen Prototyps.
 
 ## Entwicklungsmeilensteine
+
+**M3 in Version 1.0.2:** Bodentruppen werden mit real angeliefertem Material rekrutiert. Sicht, Deckung, Gefechte, Rückzug, vier Geschützstellungen, Mauern, Tore, Depots und Pioniernachschub sind umgesetzt. Die Systemübersicht bietet eine ausdrücklich gekennzeichnete Gefechtsprüfkarte. Bedienung, Testbestände und Nachweise stehen in [M3_NACHWEIS](docs/M3_NACHWEIS.md).
 
 | Meilenstein | Spielbares beziehungsweise überprüfbares Ergebnis |
 |---|---|
@@ -93,7 +97,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\Test-Core.ps1
 powershell -ExecutionPolicy Bypass -File .\tools\Test-Prototype.ps1 -Visible
 ```
 
-Der Core-Test nutzt Roslyn aus Visual Studio Build Tools; dafür ist kein dotnet-SDK erforderlich. Der grafische Test startet den gebauten Player in einem sichtbaren Fenster und schreibt Prüfprotokoll sowie vier Renderbilder nach `TestResults/Smoke/<Zeitstempel>`. `-Visible` ist erforderlich, da der Grafikkontext des versteckten Fensters den Bildnachweis auf dieser Umgebung nicht zuverlässig liefert.
+Der Core-Test nutzt Roslyn aus Visual Studio Build Tools; dafür ist kein dotnet-SDK erforderlich. Der grafische Test startet den gebauten Player in einem sichtbaren Fenster und schreibt Prüfprotokoll sowie sieben Renderbilder nach `TestResults/Smoke/<Zeitstempel>`. `-Visible` ist erforderlich, da der Grafikkontext des versteckten Fensters den Bildnachweis auf dieser Umgebung nicht zuverlässig liefert.
 
 ## Versionierung und Git-Abschluss
 
@@ -135,9 +139,9 @@ Die obere Leiste bietet zusätzlich Pause, Spieltempo **1× / 2×**, Speichern u
 ## Aktueller Stand
 
 - **M0 abgeschlossen:** Unity importiert das Projekt; Vorbereitung und Windows-Mono-Build enden erfolgreich.
-- **28 Core-Tests bestanden:** einschließlich Fraktionsrechten, Zeit/Pause/Tempo, Baukapazität, Versorgung, Prioritäten, Frachtunterbrechung, Rückbau, Save/Load und V1-Migration.
-- **Grafischer Integrationstest bestanden:** 58 Prüfbedingungen und vier visuell kontrollierte Renderbilder; einschließlich der normalen Controller-Bedienpfade. Die zusätzliche echte Mausbedienungsprüfung bleibt offen.
+- **43 Core-Tests bestanden:** einschließlich Wirtschaft, militärischer Produktion, Sichtgrenzen, Kampf, Toren, Nachschub, Zerstörung, Save/Load und Migration aus V1/V2 in Speicherformat 3.
+- **Grafischer Integrationstest bestanden:** 71 Einzelprüfungen und sieben visuell kontrollierte Renderbilder. M3 wurde zusätzlich mit echten Maus-/Tastatureingaben geprüft; siehe [M3-Nachweis](docs/M3_NACHWEIS.md).
 - **Versionswerkzeuge geprüft:** 12 Tests mit 19 isolierten Fixtures, einschließlich Rücknahme eines fehlgeschlagenen Schreibvorgangs. Produktversion, Playeranzeige und Versionsbranch sind synchron.
 - **Vorläufiges Testszenario:** zwei eigene Kolonien und ein neutraler Mond; je Oberfläche 18 × 14 Felder und vier Kuriere pro Kolonie.
-- **Funktionsstand:** M1 und M2 technisch abgenommen nach der in [DECISIONS, T-006](docs/DECISIONS.md) dokumentierten Prüfmethode; der zusätzliche physische Maustest bleibt offen. P08 enthält weiterhin nur Ansicht und Orbits. Schiffsbau, Forschung, Gefechte, KI und Diplomatie folgen in den späteren Paketen.
+- **Funktionsstand:** M1/M2 technisch abgenommen nach [T-006](docs/DECISIONS.md), M3 einschließlich gezielter echter Bedienprüfung abgeschlossen. Die vollständige ältere Wirtschaftsbedienungsabnahme bleibt separat offen. P08 enthält weiterhin nur Ansicht und Orbits. Schiffsbau, Forschung, Raumkampf, Landung, KI und Diplomatie folgen später.
 - **Plattformstatus:** Windows-Player und programmatische Eingabeadapter sind geprüft. Weitere Desktop-, Web-, Mobil- und Konsolenexporte sowie eine vollständige manuelle Bedienungsabnahme sind ungeprüft. Der kleine Prototyp liefert noch keine Performancegarantie für das vollständige Spiel.

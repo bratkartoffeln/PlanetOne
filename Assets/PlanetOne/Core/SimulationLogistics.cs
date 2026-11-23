@@ -14,6 +14,16 @@ namespace PlanetOne.Core
             {
                 if (!target.Built || !target.Enabled || target.Deconstructing) continue;
                 var definition = Definitions.Get(target.Kind);
+                if (target.RecruitKind >= 0)
+                {
+                    var cost = Definitions.Get((UnitKind)target.RecruitKind).Cost;
+                    if (!target.RecruitPaid) for (int r = 0; r < 6; r++) if (cost[r] > 0) PlanInput(p, target, r, cost[r]);
+                }
+                if (target.Kind == BuildingKind.MilitaryDepot || Definitions.IsTower(target.Kind))
+                {
+                    PlanInput(p, target, (int)ResourceKind.Food, 8);
+                    PlanInput(p, target, (int)ResourceKind.Parts, target.Kind == BuildingKind.MilitaryDepot ? 24 : 8);
+                }
                 for (int r = 0; r < 6; r++)
                     if (definition.Inputs[r] > 0) PlanInput(p, target, r, definition.Inputs[r] * 3);
             }
