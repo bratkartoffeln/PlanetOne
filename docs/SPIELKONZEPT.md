@@ -227,19 +227,21 @@ Kosten, Produktionsraten, Reichweiten, Schaden, Schildstärke, Vorräte, Sicheru
 
 ## 17 Entwicklungsstand und Reihenfolge
 
+Aktueller Stand nach dem nächsten Meilenstein: **M4 ist in Produktversion 1.0.3 abgeschlossen.** Schiffsbau, freie Erkundung, bewegte Ziele, Eskorte, bezahlte Koloniegründung, physische Frachter, automatische Hafenversorgung, feste Routen, Kristalle, Elektronik und fünf verzweigte Technologien sind vorhanden. 58 Core-Tests, Windows-Build, 91 grafische Einzelprüfungen, elf kontrollierte Renderbilder und gezielte native Eingaben sind nachgewiesen. [M4_NACHWEIS](M4_NACHWEIS.md) unterscheidet Bedienprüfung, automatisierten Wirtschaftsdurchlauf und verbleibende Grenzen. Die folgenden Angaben zu M3 und 1.0.1 bleiben historisch.
+
 Aktualisierung nach dem anschließenden M3-Auftrag: Produktversion **1.0.2** ergänzt reguläre Rekrutierung, Bodengefechte, Sicht, Mauern/Tore, vier Stellungen, Depots und Pioniernachschub. **43 Core-Tests**, Windows-Build, **71 grafische Einzelprüfungen**, sieben Renderbilder und gezielte echte Maus-/Tastaturprüfungen sind erfolgreich. Umfang, vorläufige Balance und Grenzen stehen in [M3_NACHWEIS](M3_NACHWEIS.md). Die nachfolgenden Angaben zu 1.0.1 halten den Ausgangsstand der Rekonstruktion fest.
 
 Der dokumentierte Ausgangsstand ist Produktversion 1.0.1. M0 ist abgeschlossen; M1 und M2 sind nach T-006 technisch abgenommen. Vorhanden sind gemeinsame Welt und Zeit, Sonnensystem und Oberflächen, Bau, lokale Transporte, Erz-/Metall-/Bauteilwirtschaft, Nahrung, Bevölkerung, Arbeitskräfte, Energiepuffer, Betriebsprioritäten, Straßenunterbrechung, Rückbau, Pause und Save/Load. Die Prüfkarte hat zwei eigene Kolonien und einen neutralen Mond.
 
 Dokumentierte Nachweise: Windows-Build, 28 Core-Tests und 58 programmatische Prüfbedingungen im sichtbaren Player mit vier kontrollierten Renderbildern. Der zusätzliche physische Mausbedienungstest und andere Plattformen bleiben offen. Diese Übersicht behauptet keine neue Testausführung.
 
-| Meilenstein | Inhalt | Stand nach M3 |
+| Meilenstein | Inhalt | Stand nach M4 |
 |---|---|---|
 | M0 | Unity und Werkzeuge | Abgeschlossen |
 | M1 | Gemeinsame Simulation, Befehle und Speichergrundlage | Technisch abgenommen nach T-006 |
 | M2 | Lokale Koloniewirtschaft | Technisch abgenommen nach T-006 |
 | M3 | Bodentruppen, Gefechte, Türme, Mauern und Nachschub | P06 und P07 in 1.0.2 abgeschlossen |
-| M4 | Schiffsbau, Kolonisierung, Frachter und Forschung | Offen; P08 besitzt bereits Ansicht und Orbits |
+| M4 | Schiffsbau, Kolonisierung, Frachter und Forschung | P08–P10 in 1.0.3 abgeschlossen |
 | M5 | Raumkampf, Landung und durchgängige Invasion | Offen |
 | M6 | Eigenständige wirtschaftliche und militärische KI | Offen |
 | M7 | Verträge, Koalitionen und gemeinsamer Sieg | Offen |

@@ -6,10 +6,10 @@ namespace PlanetOne.Core
 {
     public enum ResourceKind { Food, Ore, Metal, Parts, Crystals, Electronics }
     public enum BuildingKind { Headquarters, Mine, Smelter, SolarPlant, Warehouse, Workshop, Farm, Housing,
-        Barracks, VehicleFactory, MilitaryDepot, GunTower, AntiTankTower, FlakTower, ArtilleryTower, Wall, Gate }
+        Barracks, VehicleFactory, MilitaryDepot, GunTower, AntiTankTower, FlakTower, ArtilleryTower, Wall, Gate, Spaceport, Laboratory, CrystalMine, ElectronicsFactory }
     public enum CommandKind { PlaceBuilding, PlaceRoad, RemoveRoad, CancelConstruction, DemolishBuilding,
         SetBuildingEnabled, SetBuildingPriority, SetPaused, SetTimeScale,
-        RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget }
+        RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget, BuildShip, FlyShip, GuardPlanet, EscortShip, Colonize, StartResearch, SetSupplyPolicy, AssignFreight, CancelFreight, SetAutoSupply, SetTradeRoute, MoveShipPosition }
     public enum ShipmentPhase { Loading, InTransit, Unloading, Returning, Recovering }
     public enum RelationKind { Peace, War }
 
@@ -19,6 +19,7 @@ namespace PlanetOne.Core
         [DataMember] public int Id;
         [DataMember] public string Name;
         [DataMember] public bool IsPlayer;
+        [DataMember] public ResearchState Research = new ResearchState();
     }
 
     [DataContract, Serializable]
@@ -80,12 +81,18 @@ namespace PlanetOne.Core
         [DataMember] public int IntValue;
         [DataMember] public bool BoolValue;
         [DataMember] public long ActorId;
+        [DataMember] public int Amount, Minimum, Reserve;
     }
 
     [DataContract, Serializable]
     public sealed class GameState
     {
-        [DataMember] public int Version = 3;
+        [DataMember] public int Version = 4;
+        [DataMember] public List<ShipState> Ships = new List<ShipState>();
+        [DataMember] public List<TradeRoute> Routes = new List<TradeRoute>();
+        [DataMember] public List<SpaceSighting> SpaceSightings = new List<SpaceSighting>();
+        [DataMember] public int[] SpaceLostTotals = new int[6];
+        [DataMember] public bool SpaceTestFixture;
         [DataMember] public bool MilitaryTestFixture;
         [DataMember] public int Seed;
         [DataMember] public long Tick;
@@ -183,6 +190,10 @@ namespace PlanetOne.Core
         [DataMember] public int RecruitKind = -1;
         [DataMember] public bool RecruitPaid;
         [DataMember] public double RecruitProgress;
+        [DataMember] public int ShipBuildKind = -1;
+        [DataMember] public bool ShipBuildPaid;
+        [DataMember] public double ShipBuildProgress;
+        [DataMember] public SupplyPolicy Supply = new SupplyPolicy();
     }
 
     [DataContract, Serializable]

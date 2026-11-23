@@ -179,8 +179,8 @@ internal static class MilitaryTests
     }
     private static void Migration()
     {
-        var s = GameSimulation.CreateDefault(); string json = SaveCodec.ToJson(s.State).Replace("\"Version\":3", "\"Version\":2");
-        var migrated = SaveCodec.FromJson(json); Check(migrated.Version == 3 && migrated.Planets[0].Units.Count == 0 && migrated.Planets[0].Buildings[0].Health == 160, "V2 migration failed");
+        var s = GameSimulation.CreateDefault(); string json = SaveCodec.ToJson(s.State).Replace("\"Version\":" + SaveCodec.CurrentVersion, "\"Version\":2");
+        var migrated = SaveCodec.FromJson(json); Check(migrated.Version == SaveCodec.CurrentVersion && migrated.Planets[0].Units.Count == 0 && migrated.Planets[0].Buildings[0].Health == 160, "V2 migration failed");
         var u = Unit(s, UnitKind.Tank, 1, 2, 2); u.Ammunition = 999;
         try { SaveCodec.Validate(s.State); throw new Exception("Invalid ammunition accepted"); } catch (InvalidDataException) { }
     }

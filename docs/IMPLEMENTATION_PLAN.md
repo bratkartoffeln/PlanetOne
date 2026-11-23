@@ -1,6 +1,6 @@
 # PlanetOne Implementierungsplan
 
-Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0 bis M3 sind umgesetzt und abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen vollständigen zusätzlichen Maustest. M3 ist mit Core-Tests, Windows-Build, Grafiklauf und gezielten tatsächlichen Maus-/Tastatureingaben geprüft; siehe [M3_NACHWEIS](M3_NACHWEIS.md). P08 enthält bisher nur den Ansichts-/Orbitanteil.
+Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0 bis M4 sind umgesetzt und abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen vollständigen zusätzlichen Maustest. M3 ist mit Core-Tests, Windows-Build, Grafiklauf und gezielten tatsächlichen Maus-/Tastatureingaben geprüft; siehe [M3_NACHWEIS](M3_NACHWEIS.md). P08–P10 sind in Version 1.0.3 abgeschlossen; Nachweise und konkrete Grenzen stehen in [M4_NACHWEIS](M4_NACHWEIS.md).
 
 ## Verbindliche Grundlagen
 
@@ -153,7 +153,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P08 Sonnensystem und Ansichtswechsel
 
-- **Status:** Ansichts-/Orbitanteil umgesetzt und im ersten Goal geprüft. Schiffsbau, Koloniegründung, Schiffsbewegung, Aufklärung und vollständige Paketabnahme bleiben offen. **Abhängigkeit:** P02 für vorgezogene Ansicht, P05 für den übrigen Umfang.
+- **Status:** Abgeschlossen in 1.0.3. Bezahlter Schiffsbau, freie Flüge, bewegte Ziele, Eskorte, Bewachen, Sensorwissen und eindeutige Koloniegründung. Core-, Grafik- und native Bediennachweise in [M4_NACHWEIS](M4_NACHWEIS.md). **Abhängigkeit:** P02/P05 erfüllt.
 - **Module:** Orbitbewegung, Raumnavigation, Sensoren, Raumdarstellung, Kamera.
 - **Umfang:** Stern, Planeten, Mond, vorhersehbare Bahnen, frei bewegliche Schiffe und Wechsel zu bestehenden Oberflächen. Flüge zu bewegten Zielen und dauerhafte Eskorte beziehungsweise Planetenverteidigung. Ein Raumhafen baut aus lokalen Waren einfache Frachter und Kolonisationsschiffe; ein Gründungsbefehl prüft Standort und Besitz und überführt genau ein Schiff samt tatsächlicher Ausrüstung in eine neue Kolonie. Die zugehörigen Basistechnologien sind bis P10 in der Prüfkarte ausdrücklich vorab freigeschaltet.
 - **Nicht enthalten:** Mehrere Sonnensysteme, freie dreidimensionale Kampfbewegung oder realistische Himmelsmechanik.
@@ -162,7 +162,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P09 Frachter und automatische Bedarfsversorgung
 
-- **Status:** Offen. **Abhängigkeit:** P08.
+- **Status:** Abgeschlossen in 1.0.3. Reservierte physische Fracht, Hafenleistung, Exportreserve, Nachfüllschwellen, feste Route und automatisches Netz; Abbruch, volle Lager und Verlust geprüft. Details in [M4_NACHWEIS](M4_NACHWEIS.md). **Abhängigkeit:** P08 abgeschlossen.
 - **Module:** Transportaufträge, Inventarreservierung, Raumhafen, Routen, Warnungen.
 - **Umfang:** Reale Frachtkapazität, Be- und Entladung, Mindestbestände, Exportschutz, bereits unterwegs befindliche Ware und Lieferprioritäten. Feste Route und automatisch versorgtes Kolonienetz.
 - **Nicht enthalten:** Handel mit fremden Fraktionen; dieser folgt mit P16.
@@ -171,7 +171,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P10 Forschung und vollständige Warenketten
 
-- **Status:** Offen. **Abhängigkeit:** P09.
+- **Status:** Abgeschlossen in 1.0.3. Endlicher Kristallabbau, Elektronik und fünf verzweigte Technologien mit lokalen Proben, reichsweiten Freigaben und Wiederaufnahme nach Laborverlust. Durchgängiger Wirtschaftsnachweis in [M4_NACHWEIS](M4_NACHWEIS.md). **Abhängigkeit:** P09 abgeschlossen.
 - **Module:** Forschung, Freischaltungen, Entdeckungen, Produktionsdefinitionen.
 - **Umfang:** Kristallabbau, Elektronik und eine kurze verzweigte Forschungsfolge mit Voraussetzungen, Materialverbrauch und reichsweiten Bauplänen. Technologiedaten werden auf ungültige Verweise und Zyklen geprüft.
 - **Nicht enthalten:** Der endgültige Umfang des Forschungsbaums oder seltene narrative Entdeckungen.

@@ -14,6 +14,7 @@ namespace PlanetOne.Core
             {
                 if (!target.Built || !target.Enabled || target.Deconstructing) continue;
                 var definition = Definitions.Get(target.Kind);
+                PlanSpaceInputs(p, target);
                 if (target.RecruitKind >= 0)
                 {
                     var cost = Definitions.Get((UnitKind)target.RecruitKind).Cost;
@@ -70,7 +71,7 @@ namespace PlanetOne.Core
             foreach (var source in p.Buildings)
             {
                 if ((!source.Built && !source.Deconstructing) || source.Id == target.Id ||
-                    (!source.Deconstructing && !IsStorage(source) && Definitions.Get(source.Kind).Outputs[resource] == 0)) continue;
+                    (!source.Deconstructing && !IsStorage(source) && source.Kind != BuildingKind.Spaceport && Definitions.Get(source.Kind).Outputs[resource] == 0)) continue;
                 // Local factories may use every uncommitted item; export reserves do not apply here.
                 int available = source.Inventory[resource] - source.ReservedOutgoing[resource];
                 int amount = Math.Min(needed, Math.Min(available, Definitions.CourierCapacity));

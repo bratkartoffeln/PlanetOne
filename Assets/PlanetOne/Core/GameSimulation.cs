@@ -10,6 +10,7 @@ namespace PlanetOne.Core
 
         public GameSimulation(GameState state)
         {
+            Definitions.ValidateTechnologies(Definitions.Technologies);
             SaveCodec.Validate(state);
             State = state;
         }
@@ -23,7 +24,10 @@ namespace PlanetOne.Core
             state.Planets.Add(CreatePlanet(state, 1, "Aster", -1, 1, 10, 240, 0.2));
             state.Planets.Add(CreatePlanet(state, 2, "Nereid", -1, 1, 18, 420, 2.5));
             state.Planets.Add(CreatePlanet(state, 3, "Khepri", 2, 0, 3, 60, 0));
-            return new GameSimulation(state);
+            state.Planets[2].Terrain[9 * 18 + 13] = 3;
+            var simulation = new GameSimulation(state);
+            simulation.UpdateSpaceKnowledge();
+            return simulation;
         }
 
         private static PlanetState CreatePlanet(GameState state, int id, string name, int parent,
@@ -94,7 +98,7 @@ namespace PlanetOne.Core
             // Copy the intent. The presentation cannot change an already queued command afterwards.
             State.PendingCommands.Add(new SimCommand { Id = command.Id, IssuerId = command.IssuerId,
                 Kind = command.Kind, PlanetId = command.PlanetId, X = command.X, Y = command.Y,
-                Building = command.Building, TargetId = command.TargetId, ActorId = command.ActorId, IntValue = command.IntValue, BoolValue = command.BoolValue });
+                Building = command.Building, TargetId = command.TargetId, ActorId = command.ActorId, IntValue = command.IntValue, BoolValue = command.BoolValue, Amount = command.Amount, Minimum = command.Minimum, Reserve = command.Reserve });
             State.LastMessage = State.Paused ? "Befehl für die Fortsetzung vorgemerkt." : "Befehl vorgemerkt.";
             return true;
         }
@@ -137,6 +141,7 @@ namespace PlanetOne.Core
                 FinishDeconstruction(planet);
                 TickMilitary(planet);
             }
+            TickSpace();
             State.Tick++;
         }
 
@@ -175,7 +180,11 @@ namespace PlanetOne.Core
             if (error != null) return error;
             if (!Enum.IsDefined(typeof(BuildingKind), kind) || kind == BuildingKind.Headquarters)
                 return "Dieser Gebäudetyp kann hier nicht gebaut werden.";
+            string technologyError = BuildingTechnologyError(kind, factionId);
+            if (technologyError != null) return technologyError;
             int index = y * p.Width + x;
+            if (kind == BuildingKind.CrystalMine && p.Terrain[index] != 3) return "Kristallminen benötigen ein Kristallvorkommen.";
+            if (kind != BuildingKind.CrystalMine && p.Terrain[index] == 3) return "Dieses Feld ist für Kristallabbau reserviert.";
             if (p.Roads[index] && kind != BuildingKind.Gate) return "Auf dieser Fläche liegt bereits eine Straße.";
             if (kind == BuildingKind.Mine && p.Terrain[index] != 2) return "Erzminen benötigen ein Erzvorkommen.";
             if (kind != BuildingKind.Mine && p.Terrain[index] == 2) return "Dieses Feld ist für den Erzabbau reserviert.";
@@ -212,6 +221,7 @@ namespace PlanetOne.Core
             if (!State.Factions.Exists(f => f.Id == command.IssuerId))
             { Report(command, false, "UnknownFaction", "Unbekannte Fraktion."); return; }
             if (p == null) { Report(command, false, "UnknownPlanet", "Unbekannter Planet."); return; }
+            if (command.Kind >= CommandKind.BuildShip) { ApplySpace(command); return; }
             if (command.Kind >= CommandKind.RecruitUnit) { ApplyMilitary(p, command); return; }
             if (p.OwnerId != command.IssuerId || p.OwnerId == 0)
             { Report(command, false, "PermissionDenied", "Keine eigene Kolonie an diesem Ort."); return; }
@@ -230,7 +240,7 @@ namespace PlanetOne.Core
                 if (error != null) { Report(command, false, "InvalidPlacement", error); return; }
                 int index = command.Y * p.Width + command.X;
                 if (p.Roads[index]) { Report(command, false, "Occupied", "Hier liegt bereits eine Straße."); return; }
-                if (p.Terrain[index] == 2) { Report(command, false, "InvalidTerrain", "Erzvorkommen für den Bergbau freihalten."); return; }
+                if (p.Terrain[index] >= 2) { Report(command, false, "InvalidTerrain", "Erzvorkommen für den Bergbau freihalten."); return; }
                 p.Roads[index] = true;
                 Report(command, true, "RoadPlaced", "Straße angelegt. Straßenbau ist vorläufig kostenfrei.");
                 return;

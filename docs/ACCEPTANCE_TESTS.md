@@ -203,6 +203,10 @@ Die Karten sind zunächst Spezifikationen. Ihre ausführbaren Szenariodaten werd
 - **Dann:** Beobachtbar sind Aufbau, Forschung, physischer Transport, Raumkampf, eine Bodeninvasion, vorbereitete Verteidigung, Anpassung der KI und ein erfülltes Szenarioziel. Im kooperativen Durchlauf setzt ein Partner eine konkrete Zusage um und gewinnt gemeinsam mit dem Spieler.
 - **Zusatz:** KI-Fraktionen handeln auch untereinander. Ein Konvoiverlust erlaubt wirtschaftlichen Wiederaufbau, sofern die eigene Grundversorgung erhalten blieb. Subjektive Verständlichkeit und taktische Wahlmöglichkeiten werden separat protokolliert.
 
+## Ausgeführter M4 Nachweis vom 23. November 2026
+
+P08–P10 sind in Version 1.0.3 abgeschlossen. [M4_NACHWEIS](M4_NACHWEIS.md) dokumentiert die 58 Core-Tests, erfolgreichen Windows-Build, 91 grafischen Einzelprüfungen, elf kontrollierten Renderbilder und nativen Eingabeschritte. TEST-003/004 prüfen konkurrierende Reservierungen, Teilmengen, volle Lager, Abbruch und Verlust; der P08/P09-Anteil von TEST-005 prüft bewegte Ziele und Hintergrundsimulation. Die regulär finanzierte Kette bis Außenposten, Kristallimport, Elektronik und Sensorschiff erweitert TEST-006. TEST-011 und TEST-020 erhalten Raumaufklärung und militärisch-wirtschaftliche Save/Load-Fortsetzung einschließlich V3-Migration. Reale Konvoikämpfe aus P11, KI und vollständige Partie bleiben offen.
+
 ## Ausgeführter M3 Nachweis vom 23. November 2026
 
 P06/P07 sind in Version 1.0.2 geprüft. Der vollständige Aufbau, die realen Befehle, Testbestände, Ergebniszuordnung und Grenzen stehen in [M3_NACHWEIS](M3_NACHWEIS.md). 43 Core-Tests (15 neue M3-Fälle), Windows-Build und 71 grafische Einzelprüfungen sind bestanden; sieben Renderbilder wurden kontrolliert. Tatsächliche Maus-/Tastatureingaben bestätigen Gefecht auf zwei Wegen, Reserve/Rückzug, Auswahlrahmen und Gruppen sowie eine Stellung mit zwei Verteidigungslinien und unterbrochenem Nachschub. TEST-007 und der P06-Anteil von TEST-011 sind damit nachgewiesen; militärische Speicherung erweitert den aktuellen Umfang von TEST-020. Reguläre Träger und vollständige Invasionen bleiben den späteren Szenarien vorbehalten.
