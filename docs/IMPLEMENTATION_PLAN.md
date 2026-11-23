@@ -1,6 +1,6 @@
 # PlanetOne Implementierungsplan
 
-Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0 und das erste vertikale Prototyp-Goal sind abgeschlossen. Ein Paket gilt erst nach nachvollziehbarer Prüfung seiner vollständigen Abnahmekriterien als abgeschlossen. Der Prototyp erfüllt Teile mehrerer größerer Pakete; diese bleiben entsprechend als teilweise umgesetzt ausgewiesen.
+Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0, M1 und M2 sind technisch abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen zusätzlichen Maustest. Ein Paket gilt erst nach nachvollziehbarer Prüfung seiner Abnahmekriterien als abgeschlossen. P08 enthält bisher nur den Ansichts-/Orbitanteil.
 
 ## Verbindliche Grundlagen
 
@@ -46,7 +46,7 @@ Die Teilumsetzung des vertikalen Prototyps schließt P02–P05 oder P08 nicht au
 
 Status: am 23. November 2026 definiert und anschließend vom Nutzer als aktives Goal gestartet. Umfang sind die offenen Anforderungen von P02–P05. Die bestehende gemeinsame Sonnensystem-/Oberflächensimulation und der minimalistische Stil bleiben erhalten. Zum Abschluss gehört der beauftragte versionsbasierte Commit-/PR-Ablauf nach `main`.
 
-Implementiert und automatisiert geprüft in Produktversion 1.0.1: 28 Core-Tests, Windows-Build und 58 Prüfbedingungen im sichtbaren Player mit vier visuell kontrollierten Renderbildern. Der 20-Minuten-Nachweis umfasst selbst erzeugte Nahrung sowie Ausbaukosten von 116 Metall/26 Bauteilen gegenüber Startvorräten von 100/20. Bedienungsrückmeldung des Nutzers und abschließende Git-Integration werden separat nachgeführt.
+Technisch abgenommen in Produktversion 1.0.1 nach T-006: 28 Core-Tests, Windows-Build und 58 Prüfbedingungen im sichtbaren Player mit vier visuell kontrollierten Renderbildern. Der 20-Minuten-Nachweis umfasst selbst erzeugte Nahrung sowie Ausbaukosten von 116 Metall/26 Bauteilen gegenüber Startvorräten von 100/20. Der zusätzliche physische Maustest bleibt offen; der Git-Abschluss erfolgt über [PR #1](https://github.com/bratkartoffeln/PlanetOne/pull/1).
 
 ### Abschlusskriterien
 
@@ -113,21 +113,21 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P04 Gelände, Bau und lokale Wege
 
-- **Status:** Implementiert und automatisiert geprüft in 1.0.1: Platzierung, Materialanlieferung, zwei priorisierte Bauplätze, Straßenabbau, Umleitung, Unterbrechung und Reparatur sowie Abbruch/Rückbau. Die zusätzliche echte Mausbedienungsabnahme ist beim Nutzer angefragt. **Abhängigkeit:** P03 abgeschlossen.
+- **Status:** Technisch abgeschlossen in 1.0.1 nach T-006: Platzierung, Materialanlieferung, zwei priorisierte Bauplätze, Straßenabbau, Umleitung, Unterbrechung und Reparatur sowie Abbruch/Rückbau. Der zusätzliche physische Maustest bleibt separat offen. **Abhängigkeit:** P03 abgeschlossen.
 - **Module:** Oberfläche, Gebäude, Bauaufträge, Navigation, Eingabe.
 - **Umfang:** Eine überschaubare Kolonieregion mit bebaubaren und gesperrten Bereichen; Platzierungsvorschau, Bauzeit, Materialbedarf, Lager, Straßen und lokale Transportverbindungen. Zunächst lesbare Platzhaltergrafik verwenden.
 - **Nicht enthalten:** Gesamte Planetenkugeln, umfangreiche Geländeeditoren oder endgültige Grafik.
 - **Abnahme:** Ein Gebäude kann nicht in gesperrtem Gelände oder über einem bestehenden Gebäude errichtet werden. Ohne angeliefertes Material wird es nicht fertig. Ein unterbrochener Weg verhindert die betroffene Lieferung und zeigt den Grund an.
-- **Prüfung:** Automatisierte Bau- und Erreichbarkeitsregeln; manueller Aufbau einer kurzen Lieferkette einschließlich einer absichtlichen Wegeunterbrechung.
+- **Prüfung:** Automatisierte Bau- und Erreichbarkeitsregeln; Aufbau einer Lieferkette einschließlich absichtlicher Wegeunterbrechung über die normalen Controller-Bedienpfade im sichtbaren Player und visuelle Bildkontrolle. T-006 hält die gesonderte, zusätzliche Mausprüfung fest.
 
 ### P05 Produktion, Versorgung und Wiederaufbau
 
-- **Status:** Implementiert und fachlich geprüft in 1.0.1: lokale Produktion, Nahrung, Bevölkerung/Wohnraum/Arbeitskräfte, Energiepuffer, Betriebsprioritäten und Wiederaufbau. Der 20-Minuten-Test weist Selbstversorgung und Ausbau aus eigener Metall- und Bauteilproduktion nach. Manuelle Bedienungsabnahme wird zusammen mit P04 nachgeführt; Balancingwerte bleiben vorläufig. **Abhängigkeit:** P04 für vollständigen Paketabschluss.
+- **Status:** Technisch abgeschlossen in 1.0.1 nach T-006: lokale Produktion, Nahrung, Bevölkerung/Wohnraum/Arbeitskräfte, Energiepuffer, Betriebsprioritäten und Wiederaufbau. Der 20-Minuten-Test weist Selbstversorgung und Ausbau aus eigener Metall- und Bauteilproduktion nach. Die zusätzliche Mausprüfung bleibt offen; Balancingwerte bleiben vorläufig. **Abhängigkeit:** P04 technisch abgeschlossen.
 - **Module:** Inventare, Produktion, Bevölkerung, Energie, Wirtschaftsoberfläche.
 - **Umfang:** Nahrung, Erz, Metall und Bauteile als erste Kette; lokale Energie, Arbeitskräfte, Lagerkapazität und nachvollziehbare Engpassanzeigen. Definitionen sehen die sechs vereinbarten Handelsgüter vor; Kristalle und Elektronik werden mit P10 produktiv genutzt.
 - **Nicht enthalten:** Geldmarkt, Treibstoffwirtschaft oder zusätzliche Warenklassen.
 - **Abnahme:** Fehlende Eingänge, Energie oder Arbeitskräfte stoppen beziehungsweise begrenzen die betroffene Produktion nach den Spielregeln. Eine abgeschlossene Produktion verbraucht genau ihre Eingänge und liefert genau ihre Ausgänge. Eine Heimatkolonie kann Grundgebäude und grundlegende Logistik ohne Kristallimporte herstellen.
-- **Prüfung:** Automatisierte Mengenerhaltung, Kapazitätsgrenzen und Wiederaufbaukette. Ein manueller Engpassdurchlauf zeigt nicht nur „Mangel“, sondern dessen lokale Ursache.
+- **Prüfung:** Automatisierte Mengenerhaltung, Kapazitätsgrenzen und Wiederaufbaukette. Der sichtbare Engpassdurchlauf über normale Controller-Bedienpfade zeigt nicht nur „Mangel“, sondern dessen lokale Ursache; ergänzende Bildkontrolle nach T-006.
 
 ## M3 Bodengefechte und Tower Defense
 

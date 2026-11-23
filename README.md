@@ -136,8 +136,8 @@ Die obere Leiste bietet zusätzlich Pause, Spieltempo **1× / 2×**, Speichern u
 
 - **M0 abgeschlossen:** Unity importiert das Projekt; Vorbereitung und Windows-Mono-Build enden erfolgreich.
 - **28 Core-Tests bestanden:** einschließlich Fraktionsrechten, Zeit/Pause/Tempo, Baukapazität, Versorgung, Prioritäten, Frachtunterbrechung, Rückbau, Save/Load und V1-Migration.
-- **Grafischer Integrationstest bestanden:** 58 Prüfbedingungen und vier visuell kontrollierte Renderbilder; einschließlich der normalen Controller-Bedienpfade. Die zusätzliche echte Mausbedienungsprüfung ist beim Nutzer angefragt.
+- **Grafischer Integrationstest bestanden:** 58 Prüfbedingungen und vier visuell kontrollierte Renderbilder; einschließlich der normalen Controller-Bedienpfade. Die zusätzliche echte Mausbedienungsprüfung bleibt offen.
 - **Versionswerkzeuge geprüft:** 12 Tests mit 19 isolierten Fixtures, einschließlich Rücknahme eines fehlgeschlagenen Schreibvorgangs. Produktversion, Playeranzeige und Versionsbranch sind synchron.
 - **Vorläufiges Testszenario:** zwei eigene Kolonien und ein neutraler Mond; je Oberfläche 18 × 14 Felder und vier Kuriere pro Kolonie.
-- **Funktionsstand:** M1 umgesetzt und geprüft; M2 fachlich umgesetzt und automatisiert geprüft, zusätzliche manuelle Bedienungsabnahme ausstehend. P08 enthält weiterhin nur Ansicht und Orbits. Schiffsbau, Forschung, Gefechte, KI und Diplomatie folgen in den späteren Paketen.
-- **Plattformstatus:** Windows mit Maus/Tastatur ist geprüft. Weitere Desktop-, Web-, Mobil- und Konsolenexporte sind ungeprüft. Der kleine Prototyp liefert noch keine Performancegarantie für das vollständige Spiel.
+- **Funktionsstand:** M1 und M2 technisch abgenommen nach der in [DECISIONS, T-006](docs/DECISIONS.md) dokumentierten Prüfmethode; der zusätzliche physische Maustest bleibt offen. P08 enthält weiterhin nur Ansicht und Orbits. Schiffsbau, Forschung, Gefechte, KI und Diplomatie folgen in den späteren Paketen.
+- **Plattformstatus:** Windows-Player und programmatische Eingabeadapter sind geprüft. Weitere Desktop-, Web-, Mobil- und Konsolenexporte sowie eine vollständige manuelle Bedienungsabnahme sind ungeprüft. Der kleine Prototyp liefert noch keine Performancegarantie für das vollständige Spiel.
