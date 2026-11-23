@@ -165,12 +165,12 @@ namespace PlanetOne.Core
                     { SetStatus(p, b, "AwaitingInput", "Wartet auf Rohstoffe"); return; }
                 if (Total(b.Inventory) - Total(definition.Inputs) + Total(b.ReservedIncoming) + b.ReservedReturnSpace + Total(definition.Outputs) > StorageCapacity(b))
                 { SetStatus(p, b, "StorageFull", "Lager voll"); return; }
-                if (b.Kind == BuildingKind.Mine)
+                if (b.Kind == BuildingKind.Mine || b.Kind == BuildingKind.CrystalMine)
                 {
                     int index = b.Y * p.Width + b.X;
-                    if (p.OreRemaining[index] < definition.Outputs[(int)ResourceKind.Ore])
+                    if (p.OreRemaining[index] < definition.Outputs[b.Kind == BuildingKind.CrystalMine ? 4 : 1])
                     { SetStatus(p, b, "DepositExhausted", "Vorkommen erschöpft"); return; }
-                    p.OreRemaining[index] -= definition.Outputs[(int)ResourceKind.Ore];
+                    p.OreRemaining[index] -= definition.Outputs[b.Kind == BuildingKind.CrystalMine ? 4 : 1];
                 }
                 for (int r = 0; r < 6; r++)
                 { b.Inventory[r] -= definition.Inputs[r]; p.ConsumedTotals[r] += definition.Inputs[r]; }
@@ -207,6 +207,8 @@ namespace PlanetOne.Core
             }
             if (building.CycleActive)
                 for (int r = 0; r < 6; r++) result[r] += definition.Inputs[r];
+            if (building.ShipBuildKind >= 0 && building.ShipBuildPaid && !building.Destroyed)
+            { var cost = Definitions.Ships[building.ShipBuildKind].Cost; for (int r = 0; r < 6; r++) result[r] += cost[r]; }
             if (building.RecruitKind >= 0 && building.RecruitPaid)
             { var cost = Definitions.Get((UnitKind)building.RecruitKind).Cost; for (int r = 0; r < 6; r++) result[r] += cost[r]; }
             return result;
@@ -214,6 +216,7 @@ namespace PlanetOne.Core
 
         private void BeginDeconstruction(PlanetState p, BuildingState building)
         {
+            CancelPortWork(p, building);
             var recovery = GetRecoveryPreview(building);
             if (building.RecruitKind >= 0 && building.RecruitPaid) p.Population += Definitions.Get((UnitKind)building.RecruitKind).Crew;
             building.RecruitKind = -1; building.RecruitPaid = false; building.RecruitProgress = 0;
@@ -221,8 +224,8 @@ namespace PlanetOne.Core
             building.Deconstructing = true; building.Enabled = false;
             for (int r = 0; r < 6; r++) p.RecoveredTotals[r] += recovery[r] - building.Inventory[r];
             building.Inventory = recovery;
-            if (building.CycleActive && building.Kind == BuildingKind.Mine)
-                p.OreRemaining[building.Y * p.Width + building.X] += definition.Outputs[(int)ResourceKind.Ore];
+            if (building.CycleActive && (building.Kind == BuildingKind.Mine || building.Kind == BuildingKind.CrystalMine))
+                p.OreRemaining[building.Y * p.Width + building.X] += definition.Outputs[building.Kind == BuildingKind.CrystalMine ? 4 : 1];
             building.CycleActive = false; building.CycleProgress = 0; building.ProductionReservedSpace = 0;
             building.CapacityOverride = Math.Max(definition.Capacity, Total(recovery) + Total(building.ReservedIncoming) +
                 building.ReservedReturnSpace + Total(definition.Cost));

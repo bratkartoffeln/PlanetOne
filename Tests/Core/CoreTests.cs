@@ -37,7 +37,7 @@ internal static class CoreTests
         Run("Version 1 migration preserves stocks ids and returning couriers", LegacyMigration);
         Run("Original prototype v1 save migrates without losing real state", ActualLegacyFixture);
         Run("Twenty minute colony sustains population and pays expansion from local production", SustainableColony);
-        MilitaryTests.Register(Run);
+        MilitaryTests.Register(Run); SpaceTests.Register(Run);
         Console.WriteLine(failures == 0 ? "All " + checks + " core tests passed." : failures + " test(s) failed.");
         return failures == 0 ? 0 : 1;
     }

@@ -1,6 +1,16 @@
 # Entscheidungen und Plattformstrategie
 
-Stand: 23. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.2 ergänzt die Koloniewirtschaft um M3-Bodengefechte und versorgte Verteidigung. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
+Stand: 23. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.3 ergänzt M4-Raumfahrt, physische interplanetare Versorgung und Forschung. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
+
+## Ergänzungen für M4
+
+- **D-021, Vorgabe:** Nach abgeschlossenem M3 den nächsten Meilenstein umsetzen; Nutzerauftrag vom 23. November 2026. M4 umfasst P08–P10, einschließlich Prüfungen und beauftragter Versionsintegration.
+- **T-012, entschieden:** Speicherformat 4 ergänzt Schiffe, Frachtaufträge, Routen, Hafenregeln, Forschung und Raumaufklärung. Migration erfolgt V1 → V2 → V3 → V4. Produktversion 1.0.3 bleibt unabhängig.
+- **T-013, Arbeitsannahme:** Ein Schiffsbauauftrag je Hafen, ein Forschungsvorhaben je Fraktion, vier zivile Bewohner als Rekrutierungsuntergrenze. Ein Kolonieschiff kostet inklusive Startladung 44 Nahrung/100 Metall/32 Bauteile und zwölf Bewohner; übertragen werden 40 Nahrung/80 Metall/20 Bauteile und seine tatsächliche Besatzung. Gründung bei (8,6) mit Verwaltung und entfalteten Grundstraßen. Alle Kosten und Zeiten stehen in zentralen Definitionen.
+- **T-014, Arbeitsannahme:** Hafenpuffer konkretisieren die Kolonie-Versorgung je Gut. Mindestbestand, Ziel, Exportreserve und Priorität; lokale und interplanetare Zusagen zählen mit. Frachter tragen bis zu 40 Waren eines Typs, Hafenanschluss transferiert eine Ware je 0,5 Sekunden und bedient ein Schiff zugleich. Abgebrochene beladene Aufträge suchen den nächsten eigenen Rücknahmehafen mit Platz; ohne solchen bleibt die Ware an Bord. Gefahrenauswertung mit realem Raumkampf folgt P11.
+- **T-015, Arbeitsannahme:** Kurzer zirkelfreier Forschungsgraph: Raumtransport → Koloniemodule/Kristallabbau → Elektronik → Sensoren. Unbewaffnetes Sensorschiff als tatsächliche spätere Freischaltung; keine Kriegsschiffproduktion aus P11 vorgezogen. Laborverlust erhält Fortschritt und bezahlte Proben, neuer Standort wird ausdrücklich zugeordnet.
+- **T-016, entschieden:** Die M4-Demonstration wird aus normalen Anfangsbeständen ausschließlich durch reguläre Simulationsbefehle vorbereitet. Keine eingesetzten Zusatzschiffe, Forschungsfreigaben oder Rohstoffe. Eigener Speicherpfad und Rückkehr zur vorherigen Sitzung; normale Starts bleiben unverändert bis auf das endliche Kristallvorkommen des neutralen Mondes.
+- **T-017, Nachweis:** 58 Core-Tests, Windows-Build, 91 grafische Einzelprüfungen und elf kontrollierte Renderbilder unter `TestResults/Smoke/20261123-202734`. Native Prüfung bestätigt Flug, Ansicht, Gründung, Save/Load, Forschungsauftrag, Hafenregel, freie Erkundungsbewegung und Rahmenauswahl. Vollständige Kristall-/Elektronikkette im Core nachgewiesen. Details und Grenzen in [M4_NACHWEIS](M4_NACHWEIS.md).
 
 ## Ergänzungen für M3
 
@@ -53,7 +63,7 @@ Stand: 23. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.2 er
 | T-005 | Unity-Editor für Projektbuild; `tools/Unity.ps1` für Prepare, Build und Open; `tools/Test-Core.ps1` für Kernregeln; `tools/Test-Prototype.ps1 -Visible` für den Player | Produktversion 1.0.1: Build Exitcode 0, 28 Core-Tests bestanden; sichtbarer Integrationstest mit 58 Prüfbedingungen und vier Renderbildern bestanden | Koloniewirtschaft automatisiert nachgewiesen |
 | T-006 | Technische Abnahme von M1/M2 über Core-Regeltests, normale Controller-Bedienpfade im sichtbaren Player und visuelle Kontrolle der Renderbilder | Lokale Arbeitsentscheidung: Der native Desktopzugriff fehlt trotz Wiederholungsversuchen. Der zusätzliche physische Maus-/Tastaturtest wird als offene Praxisprüfung weitergeführt und nicht als bestanden behauptet. Diese Entscheidung ändert keine Spielregeln und ist keine angenommene Nutzerbestätigung. | 1.0.1; zusätzliche Praxisprüfung spätestens in M8 |
 
-M0 sowie M1 und M2 sind technisch abgenommen; für M1/M2 gilt die ausdrücklich dokumentierte Prüfmethode T-006. Die zusätzliche manuelle Bedienungsprüfung bleibt offen. P08 enthält weiterhin nur den Ansichts-/Orbitanteil. Abhängige Pakete erhalten ihren Abschlussstatus erst nach ihren eigenen Nachweisen; weitere Freigaberunden für bereits beauftragte Arbeit sind daraus nicht abzuleiten.
+M0 sowie M1 und M2 sind technisch abgenommen; für M1/M2 gilt die ausdrücklich dokumentierte Prüfmethode T-006. Die zusätzliche manuelle Bedienungsprüfung bleibt offen. Historischer Stand nach T-006: P08 enthielt nur den Ansichts-/Orbitanteil; P08–P10 sind inzwischen nach T-017 abgeschlossen. Abhängige Pakete erhalten ihren Abschlussstatus erst nach ihren eigenen Nachweisen; weitere Freigaberunden für bereits beauftragte Arbeit sind daraus nicht abzuleiten.
 
 Die Editorwerkzeuge verwenden die statischen Einstiegspunkte `PlanetOne.Editor.BuildTools.PrepareProject` und `PlanetOne.Editor.BuildTools.BuildWindows`. Beide wurden erfolgreich ausgeführt. Der Player liegt unter `Builds/Windows/PlanetOne.exe`.
 

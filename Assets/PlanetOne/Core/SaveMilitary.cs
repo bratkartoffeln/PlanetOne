@@ -20,7 +20,7 @@ namespace PlanetOne.Core
                     b.RecruitKind = -1; b.RecruitPaid = false; b.RecruitProgress = 0;
                 }
             }
-            state.MilitaryTestFixture = false; state.Version = CurrentVersion;
+            state.MilitaryTestFixture = false; state.Version = 3;
         }
 
         private static void ValidateMilitary(GameState state, PlanetState p, HashSet<int> factions, HashSet<long> entities)

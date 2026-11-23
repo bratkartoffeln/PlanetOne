@@ -420,8 +420,8 @@ namespace PlanetOne.Core
             // Military destruction has zero building-cost recovery; real courier cargo survives.
             var stock = (int[])b.Inventory.Clone();
             int recruits = b.RecruitKind >= 0 && b.RecruitPaid ? Definitions.Get((UnitKind)b.RecruitKind).Crew : 0;
-            int minedOre = b.CycleActive && b.Kind == BuildingKind.Mine ? Definitions.Get(b.Kind).Outputs[(int)ResourceKind.Ore] : 0;
-            BeginDeconstruction(p, b);
+            int minedOre = b.CycleActive && (b.Kind == BuildingKind.Mine || b.Kind == BuildingKind.CrystalMine) ? Definitions.Get(b.Kind).Outputs[b.Kind == BuildingKind.CrystalMine ? 4 : 1] : 0;
+            b.Destroyed = true; BeginDeconstruction(p, b);
             p.Population -= recruits;
             p.OreRemaining[b.Y * p.Width + b.X] -= minedOre;
             for (int r = 0; r < 6; r++)

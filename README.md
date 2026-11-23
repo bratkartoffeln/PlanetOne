@@ -49,6 +49,8 @@ Ein reproduzierbarer Core-Test baut drei Minuten auf und betreibt die Kolonie we
 
 ## Entwicklungsmeilensteine
 
+**M4 in Version 1.0.3:** Schiffsbau, freie Erkundungsflüge, Eskorte, Koloniegründung, interplanetare Fracht mit Reservierungen, feste Routen und automatische Hafenversorgung sowie Kristalle, Elektronik und ein verzweigter Forschungsbaum sind umgesetzt. Einstieg über **Raumfahrt und Forschung** oder **M4 Aufbau und Raumfahrt**. Regeln, Bedienung, Balance und Nachweise stehen in [M4_NACHWEIS](docs/M4_NACHWEIS.md).
+
 **M3 in Version 1.0.2:** Bodentruppen werden mit real angeliefertem Material rekrutiert. Sicht, Deckung, Gefechte, Rückzug, vier Geschützstellungen, Mauern, Tore, Depots und Pioniernachschub sind umgesetzt. Die Systemübersicht bietet eine ausdrücklich gekennzeichnete Gefechtsprüfkarte. Bedienung, Testbestände und Nachweise stehen in [M3_NACHWEIS](docs/M3_NACHWEIS.md).
 
 | Meilenstein | Spielbares beziehungsweise überprüfbares Ergebnis |
@@ -97,7 +99,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\Test-Core.ps1
 powershell -ExecutionPolicy Bypass -File .\tools\Test-Prototype.ps1 -Visible
 ```
 
-Der Core-Test nutzt Roslyn aus Visual Studio Build Tools; dafür ist kein dotnet-SDK erforderlich. Der grafische Test startet den gebauten Player in einem sichtbaren Fenster und schreibt Prüfprotokoll sowie sieben Renderbilder nach `TestResults/Smoke/<Zeitstempel>`. `-Visible` ist erforderlich, da der Grafikkontext des versteckten Fensters den Bildnachweis auf dieser Umgebung nicht zuverlässig liefert.
+Der Core-Test nutzt Roslyn aus Visual Studio Build Tools; dafür ist kein dotnet-SDK erforderlich. Der grafische Test startet den gebauten Player in einem sichtbaren Fenster und schreibt Prüfprotokoll sowie elf Renderbilder nach `TestResults/Smoke/<Zeitstempel>`. `-Visible` ist erforderlich, da der Grafikkontext des versteckten Fensters den Bildnachweis auf dieser Umgebung nicht zuverlässig liefert.
 
 ## Versionierung und Git-Abschluss
 
@@ -139,9 +141,9 @@ Die obere Leiste bietet zusätzlich Pause, Spieltempo **1× / 2×**, Speichern u
 ## Aktueller Stand
 
 - **M0 abgeschlossen:** Unity importiert das Projekt; Vorbereitung und Windows-Mono-Build enden erfolgreich.
-- **43 Core-Tests bestanden:** einschließlich Wirtschaft, militärischer Produktion, Sichtgrenzen, Kampf, Toren, Nachschub, Zerstörung, Save/Load und Migration aus V1/V2 in Speicherformat 3.
-- **Grafischer Integrationstest bestanden:** 71 Einzelprüfungen und sieben visuell kontrollierte Renderbilder. M3 wurde zusätzlich mit echten Maus-/Tastatureingaben geprüft; siehe [M3-Nachweis](docs/M3_NACHWEIS.md).
+- **58 Core-Tests bestanden:** Wirtschaft und M3 sowie Schiffsbau, Erkundung, Gründung, Frachten, Reservierungen, Forschung, Kristall-/Elektronikkette und Speicherformat 4 mit Migration aus V1/V2/V3.
+- **Grafischer Integrationstest bestanden:** 91 Einzelprüfungen und elf visuell kontrollierte Renderbilder. M3 und M4 wurden zusätzlich gezielt mit echten Maus-/Tastatureingaben geprüft; siehe [M3-Nachweis](docs/M3_NACHWEIS.md) und [M4-Nachweis](docs/M4_NACHWEIS.md).
 - **Versionswerkzeuge geprüft:** 12 Tests mit 19 isolierten Fixtures, einschließlich Rücknahme eines fehlgeschlagenen Schreibvorgangs. Produktversion, Playeranzeige und Versionsbranch sind synchron.
 - **Vorläufiges Testszenario:** zwei eigene Kolonien und ein neutraler Mond; je Oberfläche 18 × 14 Felder und vier Kuriere pro Kolonie.
-- **Funktionsstand:** M1/M2 technisch abgenommen nach [T-006](docs/DECISIONS.md), M3 einschließlich gezielter echter Bedienprüfung abgeschlossen. Die vollständige ältere Wirtschaftsbedienungsabnahme bleibt separat offen. P08 enthält weiterhin nur Ansicht und Orbits. Schiffsbau, Forschung, Raumkampf, Landung, KI und Diplomatie folgen später.
+- **Funktionsstand:** M1/M2 technisch abgenommen nach [T-006](docs/DECISIONS.md); M3 und M4 einschließlich gezielter echter Bedienprüfung abgeschlossen. Die vollständige ältere Wirtschaftsbedienungsabnahme bleibt separat offen. Als Nächstes folgt M5 mit Raumkampf, Landung und Invasion; KI und Diplomatie folgen danach.
 - **Plattformstatus:** Windows-Player und programmatische Eingabeadapter sind geprüft. Weitere Desktop-, Web-, Mobil- und Konsolenexporte sowie eine vollständige manuelle Bedienungsabnahme sind ungeprüft. Der kleine Prototyp liefert noch keine Performancegarantie für das vollständige Spiel.

@@ -14,6 +14,8 @@ Implementierungsstand M1/M2, Produktversion 1.0.1: `GameSimulation` verarbeitet 
 
 Ergänzung M3, Produktversion 1.0.2: `MilitaryState.cs` enthält serialisierbare Verbände, Sichtungen und Szenario-Torrechte sowie zentrale Einheiten-/Turmdefinitionen. `SimulationMilitary.cs` ergänzt den gemeinsamen Tick und Befehlspfad um Rekrutierung, Bodenwege, Sicht, Gefecht, Reparatur und Versorgung. `SaveMilitary.cs` prüft Speicherformat 3 und übernimmt V2; V1 durchläuft weiterhin seine bestehende Migration. `PrototypeMilitary.cs` ist ausschließlich Darstellung/Eingabe, die gekennzeichnete `MilitaryFixture` ausschließlich Testaufbau. 43 Core-Tests und die Laufzeitnachweise stehen in [M3_NACHWEIS](M3_NACHWEIS.md). Die schnelle Rahmenauswahl verwendet die Positionen einzelner Unity-Mausereignisse, damit Down/Up innerhalb eines Renderframes nicht verloren gehen.
 
+Ergänzung M4, Produktversion 1.0.3: `SpaceState.cs` definiert Schiffe, Frachten, Hafenregeln, Forschungsgraph und Sichtungen. `SimulationSpace.cs` erweitert denselben Befehlspfad und festen Tick; `SaveSpace.cs` prüft Format 4 einschließlich gemeinsamer lokaler/raumbezogener Reservierungen. `PrototypeSpace.cs` stellt Flotte, Forschung und Logistik dar. Die explizite `SpaceFixture` entwickelt ihre Demonstration aus regulärem Startzustand durch bezahlte Befehle. Nachweise in [M4_NACHWEIS](M4_NACHWEIS.md).
+
 ## Visuelle Leitlinien
 
 Der vom Nutzer gewünschte minimalistische Stil verwendet dunkle Hintergründe, zurückhaltende Geländeoberflächen und klare Silhouetten. Gebäude erhalten wenige charakteristische Formen; Auswahl, Baufortschritt, fehlende Versorgung und laufende Produktion bleiben deutlich unterscheidbar. Akzentfarben unterstützen Text, Symbole und Form statt sie zu ersetzen.

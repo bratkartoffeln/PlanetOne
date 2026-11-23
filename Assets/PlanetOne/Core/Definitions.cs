@@ -82,7 +82,11 @@ namespace PlanetOne.Core
             new BuildingDefinition(BuildingKind.FlakTower, "Flugabwehrstellung", 12, 4, 6, 1, 0, 1, 24, energyStorageCapacity: 10),
             new BuildingDefinition(BuildingKind.ArtilleryTower, "Artilleriestellung", 18, 5, 8, 2, 0, 2, 24, energyStorageCapacity: 10),
             new BuildingDefinition(BuildingKind.Wall, "Mauer", 3, 0, 3, 0, 0, 0, 12),
-            new BuildingDefinition(BuildingKind.Gate, "Tor", 5, 1, 4, 0, 0, 0, 12)
+            new BuildingDefinition(BuildingKind.Gate, "Tor", 5, 1, 4, 0, 0, 0, 12),
+            new BuildingDefinition(BuildingKind.Spaceport, "Raumhafen", 18, 5, 8, 2, 0, 2, 240),
+            new BuildingDefinition(BuildingKind.Laboratory, "Forschungslabor", 12, 4, 6, 2, 0, 2, 40),
+            new BuildingDefinition(BuildingKind.CrystalMine, "Kristallmine", 12, 4, 6, 2, 0, 2, 40, 5, null, Goods(ResourceKind.Crystals, 1)),
+            new BuildingDefinition(BuildingKind.ElectronicsFactory, "Elektronikwerk", 16, 6, 8, 3, 0, 3, 50, 6, new[] {0,0,2,0,1,0}, Goods(ResourceKind.Electronics, 1))
         };
 
         public static BuildingDefinition Get(BuildingKind kind)

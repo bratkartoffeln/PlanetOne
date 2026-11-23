@@ -9,7 +9,7 @@ namespace PlanetOne.Core
     /// <summary>Portable JSON snapshot codec. File locations and atomic writes belong to the platform adapter.</summary>
     public static partial class SaveCodec
     {
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
         private const int MaximumJsonLength = 4 * 1024 * 1024;
 
         public static string ToJson(GameState state)
@@ -33,6 +33,7 @@ namespace PlanetOne.Core
                     var state = (GameState)new DataContractJsonSerializer(typeof(GameState)).ReadObject(stream);
                     if (state != null && state.Version == 1) MigrateVersionOne(state);
                     if (state != null && state.Version == 2) MigrateMilitary(state);
+                    if (state != null && state.Version == 3) MigrateSpace(state);
                     Validate(state);
                     return state;
                 }
@@ -100,7 +101,7 @@ namespace PlanetOne.Core
                     p.Terrain.Length == p.Width * p.Height && p.OreRemaining.Length == p.Terrain.Length &&
                     p.Roads.Length == p.Terrain.Length, "Unvollständiges Gelände.");
                 for (int i = 0; i < p.Terrain.Length; i++)
-                    Require(p.Terrain[i] >= 0 && p.Terrain[i] <= 2 && p.OreRemaining[i] >= 0 &&
+                    Require(p.Terrain[i] >= 0 && p.Terrain[i] <= 3 && p.OreRemaining[i] >= 0 &&
                         !(p.Roads[i] && p.Terrain[i] == 1), "Ungültiger Geländezustand.");
                 Require(p.Buildings != null && p.Deliveries != null && p.Shipments != null, "Koloniezustand fehlt.");
                 Require(p.Buildings.Count <= p.Width * p.Height && p.Shipments.Count <= Definitions.CouriersPerColony,
@@ -176,6 +177,7 @@ namespace PlanetOne.Core
                     if (shipment.Phase == ShipmentPhase.InTransit || shipment.Phase == ShipmentPhase.Unloading)
                         expectedReturn[shipment.SourceId] += shipment.Amount;
                 }
+                AddSpaceReservations(state, p, expectedOutgoing, expectedIncoming);
                 foreach (var b in p.Buildings)
                 {
                     Require(expectedReturn[b.Id] == b.ReservedReturnSpace, "Falsche Rücknahmereservierung.");
@@ -184,6 +186,7 @@ namespace PlanetOne.Core
                             "Verwaiste oder falsche Reservierung.");
                 }
             }
+            ValidateSpace(state, factionIds, entityIds);
             foreach (long id in entityIds) Require(id < state.NextEntityId, "Nächste Entitätskennung ist bereits belegt.");
             foreach (var p in state.Planets)
             {

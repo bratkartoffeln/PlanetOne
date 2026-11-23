@@ -19,7 +19,7 @@ namespace PlanetOne.Runtime
 
         public void StartMilitaryFixture()
         {
-            if (!simulation.State.MilitaryTestFixture) priorSession = simulation;
+            if (!simulation.State.MilitaryTestFixture && !simulation.State.SpaceTestFixture) priorSession = simulation;
             simulation = MilitaryFixture.Create(); foodRates.Clear(); controlGroups.Clear();
             BuildSpace(); SetView(1); showingMilitary = true;
             Notify(simulation.State.LastMessage);
