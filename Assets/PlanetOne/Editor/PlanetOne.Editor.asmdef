@@ -1,0 +1,14 @@
+{
+  "name": "PlanetOne.Editor",
+  "rootNamespace": "PlanetOne.Editor",
+  "references": ["PlanetOne.Runtime", "PlanetOne.Core"],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

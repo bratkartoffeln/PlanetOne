@@ -1,0 +1,8 @@
+# Keep text consistent across Windows and other development platforms.
+* text=auto eol=lf
+
+# Unity writes empty YAML values with a trailing space on every serialization.
+# Preserve that generated format while checking handwritten code normally.
+*.meta whitespace=-blank-at-eol
+*.asset whitespace=-blank-at-eol
+*.unity whitespace=-blank-at-eol

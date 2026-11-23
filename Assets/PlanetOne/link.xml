@@ -1,0 +1,4 @@
+<linker>
+  <!-- Serialized simulation DTOs are also needed by AOT builds. -->
+  <assembly fullname="PlanetOne.Core" preserve="all" />
+</linker>
