@@ -5,9 +5,11 @@ using System.Runtime.Serialization;
 namespace PlanetOne.Core
 {
     public enum ResourceKind { Food, Ore, Metal, Parts, Crystals, Electronics }
-    public enum BuildingKind { Headquarters, Mine, Smelter, SolarPlant, Warehouse, Workshop, Farm, Housing }
+    public enum BuildingKind { Headquarters, Mine, Smelter, SolarPlant, Warehouse, Workshop, Farm, Housing,
+        Barracks, VehicleFactory, MilitaryDepot, GunTower, AntiTankTower, FlakTower, ArtilleryTower, Wall, Gate }
     public enum CommandKind { PlaceBuilding, PlaceRoad, RemoveRoad, CancelConstruction, DemolishBuilding,
-        SetBuildingEnabled, SetBuildingPriority, SetPaused, SetTimeScale }
+        SetBuildingEnabled, SetBuildingPriority, SetPaused, SetTimeScale,
+        RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget }
     public enum ShipmentPhase { Loading, InTransit, Unloading, Returning, Recovering }
     public enum RelationKind { Peace, War }
 
@@ -77,12 +79,14 @@ namespace PlanetOne.Core
         [DataMember] public long TargetId;
         [DataMember] public int IntValue;
         [DataMember] public bool BoolValue;
+        [DataMember] public long ActorId;
     }
 
     [DataContract, Serializable]
     public sealed class GameState
     {
-        [DataMember] public int Version = 2;
+        [DataMember] public int Version = 3;
+        [DataMember] public bool MilitaryTestFixture;
         [DataMember] public int Seed;
         [DataMember] public long Tick;
         [DataMember] public long NextEntityId = 100;
@@ -139,6 +143,10 @@ namespace PlanetOne.Core
         [DataMember] public int[] ProducedTotals = new int[6];
         [DataMember] public int[] ConsumedTotals = new int[6];
         [DataMember] public int[] RecoveredTotals = new int[6];
+        [DataMember] public int[] LostTotals = new int[6];
+        [DataMember] public List<UnitState> Units = new List<UnitState>();
+        [DataMember] public List<SightingState> Sightings = new List<SightingState>();
+        [DataMember] public List<GatePermission> GatePermissions = new List<GatePermission>();
     }
 
     [DataContract, Serializable]
@@ -167,6 +175,14 @@ namespace PlanetOne.Core
         [DataMember] public int ReservedReturnSpace;
         [DataMember] public int LegacyCapacityAllowance;
         [DataMember] public bool PowerBlocked;
+        [DataMember] public double Health = 160;
+        [DataMember] public bool Destroyed;
+        [DataMember] public bool Operational;
+        [DataMember] public int Ammunition;
+        [DataMember] public double FireCooldown;
+        [DataMember] public int RecruitKind = -1;
+        [DataMember] public bool RecruitPaid;
+        [DataMember] public double RecruitProgress;
     }
 
     [DataContract, Serializable]

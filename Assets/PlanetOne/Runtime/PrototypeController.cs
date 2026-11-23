@@ -7,7 +7,7 @@ using UnityEngine;
 namespace PlanetOne.Runtime
 {
     /// <summary>Presentation and input adapter. All gameplay state lives in GameSimulation.</summary>
-    public sealed class PrototypeController : MonoBehaviour
+    public sealed partial class PrototypeController : MonoBehaviour
     {
         private static readonly Color Background = new Color(0.025f, 0.041f, 0.065f);
         private static readonly Color Panel = new Color(0.043f, 0.065f, 0.093f);
@@ -81,7 +81,7 @@ namespace PlanetOne.Runtime
         public int RenderedShipmentCount { get { return shipmentViews.Count; } }
         public int PlayerFactionId { get { return simulation.State.PlayerFactionId; } }
         public static string SavePath { get { return Path.Combine(Application.persistentDataPath, "prototype-save.json"); } }
-        public string ActiveSavePath { get { return smokeSavePath ?? SavePath; } }
+        public string ActiveSavePath { get { return smokeSavePath ?? (simulation.State.MilitaryTestFixture ? Path.Combine(Application.persistentDataPath, "military-fixture-save.json") : SavePath); } }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureBootstrap()
@@ -140,6 +140,7 @@ namespace PlanetOne.Runtime
             if (Input.GetKeyDown(KeyCode.F9)) LoadGame();
             if (Input.GetKeyDown(KeyCode.Escape)) CancelPlacement();
             if (Input.GetKeyDown(KeyCode.Tab) && openPlanetId != 0) SetView(0);
+            HandleMilitaryKeyboard();
             if (openPlanetId != 0)
             {
                 Vector3 pan = Vector3.zero;
@@ -196,6 +197,7 @@ namespace PlanetOne.Runtime
             hoverY = Mathf.FloorToInt(hit.z + 0.5f);
             PlanetState planetState = simulation.FindPlanet(openPlanetId);
             bool inside = hoverX >= 0 && hoverY >= 0 && hoverX < planetState.Width && hoverY < planetState.Height;
+            if (!placement.HasValue && !placingRoad && !removingRoad && HandleMilitaryPointer(planetState, inside)) return;
             if (placement.HasValue || placingRoad || removingRoad)
             {
                 bool valid = inside && planetState.OwnerId == PlayerFactionId;
@@ -312,6 +314,7 @@ namespace PlanetOne.Runtime
             buildingIndicators.Clear();
             buildingPickIds.Clear();
             shipmentViews.Clear();
+            unitViews.Clear(); selectedUnits.Clear(); militaryTargetMode = null;
             sidebarScroll = Vector2.zero;
             if (planetId != 0)
             {
@@ -415,6 +418,7 @@ namespace PlanetOne.Runtime
             BuildingState selected = FindSelected(planet);
             selectedMarker.gameObject.SetActive(selected != null);
             if (selected != null) selectedMarker.position = new Vector3(selected.X, 0.14f, selected.Y);
+            UpdateMilitaryViews(planet);
         }
 
         private Transform BuildBuilding(BuildingState building)
@@ -432,6 +436,15 @@ namespace PlanetOne.Runtime
             buildingIndicators[building.Id] = status.GetComponent<Renderer>();
             switch (building.Kind)
             {
+                case BuildingKind.Wall:
+                    MakePrimitive(PrimitiveType.Cube, "Mauer", root, new Vector3(0, 0.4f, 0), new Vector3(0.8f, 0.8f, 0.8f), Muted); break;
+                case BuildingKind.Gate:
+                    MakePrimitive(PrimitiveType.Cube, "Torpfosten", root, new Vector3(-0.35f, 0.4f, 0), new Vector3(0.15f, 0.8f, 0.6f), Cyan);
+                    MakePrimitive(PrimitiveType.Cube, "Torpfosten", root, new Vector3(0.35f, 0.4f, 0), new Vector3(0.15f, 0.8f, 0.6f), Cyan);
+                    MakePrimitive(PrimitiveType.Cube, "Tor", root, new Vector3(0, 0.85f, 0), new Vector3(0.8f, 0.12f, 0.6f), Cyan); break;
+                case BuildingKind.GunTower: case BuildingKind.AntiTankTower: case BuildingKind.FlakTower: case BuildingKind.ArtilleryTower:
+                    MakePrimitive(PrimitiveType.Cylinder, "Geschützsockel", root, new Vector3(0, 0.4f, 0), new Vector3(0.65f, 0.35f, 0.65f), Muted);
+                    MakePrimitive(PrimitiveType.Cube, "Geschütz", root, new Vector3(0.25f, 0.8f, 0), new Vector3(0.9f, 0.12f, 0.15f), Amber); break;
                 case BuildingKind.Headquarters:
                     MakePrimitive(PrimitiveType.Cube, "Zentrale", root, new Vector3(0, 0.42f, 0), new Vector3(0.63f, 0.65f, 0.63f), accent);
                     MakePrimitive(PrimitiveType.Cube, "Antenne", root, new Vector3(0.16f, 0.96f, 0.16f), new Vector3(0.06f, 0.45f, 0.06f), Ink);
@@ -490,6 +503,7 @@ namespace PlanetOne.Runtime
         private void OnGUI()
         {
             if (simulation == null) return;
+            HandleSelectionEvents();
             EnsureStyles();
             float scale = UiScale;
             Matrix4x4 original = GUI.matrix;
@@ -500,7 +514,7 @@ namespace PlanetOne.Runtime
             DrawSidebar(width, height);
             DrawBottomBar(width, height);
             if (openPlanetId == 0) DrawPlanetLabels(scale);
-            else DrawBuildingLabels(scale);
+            else { DrawBuildingLabels(scale); DrawMilitaryLabels(scale); }
             GUI.matrix = original;
         }
 
@@ -561,6 +575,10 @@ namespace PlanetOne.Runtime
                 GUILayout.Label("Sichere zuerst Nahrung und Energie. Mine, Schmelze und Werkstatt liefern anschließend eigene Baumaterialien. Wohnmodule schaffen Platz für mehr Bevölkerung.", mutedStyle);
                 GUILayout.Space(14);
                 GUILayout.Label("Beide Kolonien arbeiten weiter, während du die Ansicht wechselst.", mutedStyle);
+                GUILayout.Space(16);
+                GUILayout.Label("GEFECHTSPRÜFUNG", headingStyle);
+                if (GUILayout.Button("M3 Prüfkarte öffnen", buttonStyle, GUILayout.Height(34))) StartMilitaryFixture();
+                GUILayout.Label("Separate Testarmeen und Vorräte. Deine laufende Kolonie bleibt im Speicher erhalten.", smallStyle);
             }
             else
             {
@@ -575,6 +593,10 @@ namespace PlanetOne.Runtime
                 }
                 else
                 {
+                    if (GUILayout.Button(showingMilitary ? "Wirtschaft anzeigen" : "Militär und Einheiten", buttonStyle, GUILayout.Height(32)))
+                    { showingMilitary = !showingMilitary; sidebarScroll = Vector2.zero; }
+                    if (showingMilitary)
+                    { DrawMilitaryPanel(planet); GUILayout.EndScrollView(); GUILayout.EndArea(); return; }
                     DrawColonySummary(planet);
                     GUILayout.Space(14);
                     GUILayout.BeginHorizontal();
@@ -615,6 +637,8 @@ namespace PlanetOne.Runtime
         {
             GUILayout.Label(Definitions.Get(building.Kind).Name.ToUpperInvariant(), headingStyle);
             GUILayout.Label(building.Status ?? (building.Built ? "Betriebsbereit" : "Im Bau"), mutedStyle);
+            GUILayout.Label("Struktur: " + building.Health.ToString("0") + " / " + Definitions.BuildingHealth(building.Kind), smallStyle);
+            DrawRecruitment(building);
             if (!building.Built)
                 GUILayout.Label("Baufortschritt  " + Mathf.RoundToInt((float)(100 * building.BuildProgress / Math.Max(0.01, Definitions.Get(building.Kind).BuildSeconds))) + " %", smallStyle);
             GUILayout.Space(6);
@@ -702,6 +726,7 @@ namespace PlanetOne.Runtime
             DrawBuildButton(BuildingKind.Workshop);
             DrawBuildButton(BuildingKind.Housing);
             DrawBuildButton(BuildingKind.Warehouse);
+            for (int kind = (int)BuildingKind.Barracks; kind <= (int)BuildingKind.Gate; kind++) DrawBuildButton((BuildingKind)kind);
             GUILayout.Space(4);
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Straße bauen", placingRoad ? selectedButtonStyle : buttonStyle, GUILayout.Height(30)))

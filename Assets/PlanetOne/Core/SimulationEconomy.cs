@@ -32,9 +32,18 @@ namespace PlanetOne.Core
             ordered.Sort((a, b) => a.Priority != b.Priority ? b.Priority.CompareTo(a.Priority) : a.Id.CompareTo(b.Id));
             foreach (var b in ordered)
             {
+                b.Operational = false;
                 if (b.Deconstructing)
                 { SetStatus(p, b, "RecoveringMaterials", connected.Contains(b.Id) ? "Rückbau: Material wird abgeholt" : "Rückbau: Straßenanschluss fehlt"); continue; }
-                if (!connected.Contains(b.Id)) { SetStatus(p, b, "NoRoad", "Kein Straßenanschluss"); continue; }
+                if (!connected.Contains(b.Id))
+                {
+                    var isolated = Definitions.Get(b.Kind);
+                    if (b.Built && b.Enabled && Definitions.IsTower(b.Kind) && b.EnergyStored >= isolated.EnergyUse * Definitions.TickSeconds)
+                    { b.EnergyStored = Math.Max(0, b.EnergyStored - isolated.EnergyUse * Definitions.TickSeconds); b.Operational = true;
+                        SetStatus(p, b, "LocalReserve", "Versorgungsweg unterbrochen; örtlicher Energiepuffer"); }
+                    else SetStatus(p, b, "NoRoad", "Kein Straßenanschluss");
+                    continue;
+                }
                 var definition = Definitions.Get(b.Kind);
                 if (!b.Built)
                 {
@@ -53,6 +62,7 @@ namespace PlanetOne.Core
                 p.EnergyUsed += definition.EnergyUse;
                 b.PowerBlocked = false;
                 p.WorkersUsed += definition.WorkerUse;
+                b.Operational = true;
                 p.HousingCapacity += definition.HousingCapacity;
                 if (definition.CycleSeconds <= 0) { SetStatus(p, b, "Ready", "Bereit"); continue; }
                 TickProduction(p, b, definition);
@@ -197,12 +207,16 @@ namespace PlanetOne.Core
             }
             if (building.CycleActive)
                 for (int r = 0; r < 6; r++) result[r] += definition.Inputs[r];
+            if (building.RecruitKind >= 0 && building.RecruitPaid)
+            { var cost = Definitions.Get((UnitKind)building.RecruitKind).Cost; for (int r = 0; r < 6; r++) result[r] += cost[r]; }
             return result;
         }
 
         private void BeginDeconstruction(PlanetState p, BuildingState building)
         {
             var recovery = GetRecoveryPreview(building);
+            if (building.RecruitKind >= 0 && building.RecruitPaid) p.Population += Definitions.Get((UnitKind)building.RecruitKind).Crew;
+            building.RecruitKind = -1; building.RecruitPaid = false; building.RecruitProgress = 0;
             var definition = Definitions.Get(building.Kind);
             building.Deconstructing = true; building.Enabled = false;
             for (int r = 0; r < 6; r++) p.RecoveredTotals[r] += recovery[r] - building.Inventory[r];
@@ -256,6 +270,7 @@ namespace PlanetOne.Core
                     p.Deliveries.Exists(d => d.SourceId == b.Id || d.TargetId == b.Id) ||
                     p.Shipments.Exists(s => s.SourceId == b.Id || s.TargetId == b.Id)) continue;
                 p.Buildings.RemoveAt(i);
+                p.GatePermissions.RemoveAll(g => g.GateId == b.Id);
                 Emit(p.OwnerId, p.Id, b.Id, "BuildingRemoved", "Rückbau abgeschlossen; Baufläche ist wieder frei.");
             }
         }

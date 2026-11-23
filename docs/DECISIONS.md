@@ -1,6 +1,15 @@
 # Entscheidungen und Plattformstrategie
 
-Stand: 23. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.1 erweitert den Windows-Prototyp um die tragfähige Koloniewirtschaft. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
+Stand: 23. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.2 ergänzt die Koloniewirtschaft um M3-Bodengefechte und versorgte Verteidigung. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
+
+## Ergänzungen für M3
+
+- **D-020, Vorgabe:** Nach Rekonstruktion und Dokumentation des vollständigen Spielkonzepts direkt M3 mit P06/P07 umsetzen. Nutzerauftrag vom 23. November 2026; [SPIELKONZEPT](SPIELKONZEPT.md) bündelt die erhaltenen Fachregeln, ohne ein Chattranskript zu behaupten.
+- **T-007, entschieden:** Speicherformat 3 erweitert Einheiten, Aufträge, Sichtungen, Schäden, Rekrutierung, Vorräte und Szenario-Torrechte. V1 wird über die bestehende V2-Migration übernommen; V2 erhält leere Militärzustände und intakte Gebäude. Produktversion 1.0.2 bleibt davon unabhängig.
+- **T-008, Arbeitsannahme:** Eine Rekrutierung je Kaserne/Fahrzeugwerk; reale Anlieferung, Zeit und Verbrauch von Bewohnern bis zur verbleibenden Vier-Personen-Basis. Startmunition und Rationen sind in den Rekrutierungskosten enthalten. Freiwilliger Abbruch durch Rückbau führt investierte Rekrutierungsgüter lokal und Bewohner zur Kolonie zurück; Zerstörung erstattet sie nicht.
+- **T-009, Arbeitsannahme:** Bodennavigation über vier Nachbarfelder, keine individuelle Kollisions-/Formationssimulation. Infanterie nutzt benachbarte Felsen und Gebäude als Deckung und darf eigene fertige zivile Gebäude betreten. Gegnerbesetzung bleibt P13. Türme haben zehn Einheiten lokalen Energiespeicher und bei Netzausfall eine vorhandene örtliche Besatzung; Nachschub und Reparatur bleiben endlich. Werte stehen in zentralen Definitionen.
+- **T-010, entschieden:** Die separat gestartete M3-Prüfkarte kennzeichnet fertige Gebäude, Armeen und Vorräte ausdrücklich als endliche Testfixture. Sie nutzt einen getrennten Speicherpfad und hält die vorherige Koloniesitzung im Speicher. Die normalen Spielstarts erhalten keine kostenlosen Militärkräfte. Flugabwehr prüft bereits `Ground`, `LandingTransition` und `Space`; reguläre Träger folgen P12.
+- **T-011, Nachweis:** 43 Core-Tests, erfolgreicher Windows-Build, 71 grafische Einzelprüfungen und sieben kontrollierte Renderbilder in `TestResults/Smoke/20261123-181956`. Echte Maus-/Tastaturprüfung auf Windows bestätigt Auswahl, korrigierten Auswahlrahmen, Gruppen, beide Angriffsrouten, Rückzug, F5/F9 und Straßenunterbrechung mit anschließend erschöpftem Turmpuffer. Details in [M3_NACHWEIS](M3_NACHWEIS.md). Dies ergänzt T-006; die vollständige manuelle ältere Wirtschaftsabnahme und andere Plattformen bleiben offen.
 
 ## Statusbedeutung
 

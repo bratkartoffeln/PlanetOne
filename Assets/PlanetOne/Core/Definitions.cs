@@ -32,7 +32,7 @@ namespace PlanetOne.Core
         }
     }
 
-    public static class Definitions
+    public static partial class Definitions
     {
         public const double TickSeconds = 0.05;
         public const int CourierCapacity = 8;
@@ -73,7 +73,16 @@ namespace PlanetOne.Core
             new BuildingDefinition(BuildingKind.Farm, "Hydroponik", 8, 2, 3, 2, 0, 2, 40, 4,
                 null, Goods(ResourceKind.Food, 2)),
             new BuildingDefinition(BuildingKind.Housing, "Wohnhabitat", 18, 4, 5, 1, 0, 0, 40,
-                housingCapacity: 12)
+                housingCapacity: 12),
+            new BuildingDefinition(BuildingKind.Barracks, "Kaserne", 16, 4, 6, 2, 0, 2, 60),
+            new BuildingDefinition(BuildingKind.VehicleFactory, "Fahrzeugwerk", 22, 6, 8, 3, 0, 3, 80),
+            new BuildingDefinition(BuildingKind.MilitaryDepot, "Militärdepot", 12, 4, 5, 1, 0, 1, 80),
+            new BuildingDefinition(BuildingKind.GunTower, "Schnellfeuerturm", 10, 3, 5, 1, 0, 1, 24, energyStorageCapacity: 10),
+            new BuildingDefinition(BuildingKind.AntiTankTower, "Panzerabwehrstellung", 14, 4, 6, 1, 0, 1, 24, energyStorageCapacity: 10),
+            new BuildingDefinition(BuildingKind.FlakTower, "Flugabwehrstellung", 12, 4, 6, 1, 0, 1, 24, energyStorageCapacity: 10),
+            new BuildingDefinition(BuildingKind.ArtilleryTower, "Artilleriestellung", 18, 5, 8, 2, 0, 2, 24, energyStorageCapacity: 10),
+            new BuildingDefinition(BuildingKind.Wall, "Mauer", 3, 0, 3, 0, 0, 0, 12),
+            new BuildingDefinition(BuildingKind.Gate, "Tor", 5, 1, 4, 0, 0, 0, 12)
         };
 
         public static BuildingDefinition Get(BuildingKind kind)

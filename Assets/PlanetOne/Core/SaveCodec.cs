@@ -7,9 +7,9 @@ using System.Text;
 namespace PlanetOne.Core
 {
     /// <summary>Portable JSON snapshot codec. File locations and atomic writes belong to the platform adapter.</summary>
-    public static class SaveCodec
+    public static partial class SaveCodec
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
         private const int MaximumJsonLength = 4 * 1024 * 1024;
 
         public static string ToJson(GameState state)
@@ -32,6 +32,7 @@ namespace PlanetOne.Core
                 {
                     var state = (GameState)new DataContractJsonSerializer(typeof(GameState)).ReadObject(stream);
                     if (state != null && state.Version == 1) MigrateVersionOne(state);
+                    if (state != null && state.Version == 2) MigrateMilitary(state);
                     Validate(state);
                     return state;
                 }
@@ -131,6 +132,7 @@ namespace PlanetOne.Core
                     Require(used <= GameSimulation.StorageCapacity(b), "Überbuchtes Lager.");
                     buildings.Add(b.Id, b);
                 }
+                ValidateMilitary(state, p, factionIds, entityIds);
                 var expectedOutgoing = new Dictionary<long, int[]>();
                 var expectedIncoming = new Dictionary<long, int[]>();
                 var expectedReturn = new Dictionary<long, int>();
@@ -262,7 +264,7 @@ namespace PlanetOne.Core
                 for (int b = a + 1; b < state.Factions.Count; b++)
                     state.Relations.Add(new FactionRelation { FirstId = state.Factions[a].Id, SecondId = state.Factions[b].Id, Relation = RelationKind.Peace });
             state.CommandResults = new List<CommandResult>(); state.Events = new List<SimulationEvent>();
-            state.Version = CurrentVersion;
+            state.Version = 2;
             state.LastMessage = "Spielstand übernommen. Bevölkerung und Versorgung sind nun aktiv; vorhandene Waren bleiben erhalten.";
         }
 
