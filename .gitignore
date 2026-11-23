@@ -1,0 +1,38 @@
+# Unity generated data
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/MemoryCaptures/
+/Recordings/
+
+# Local tooling, installers and test outputs
+/.tools/
+/TestResults/
+/.planetone-version.lock
+/VERSION.version-*
+/ProjectSettings/ProjectSettings.asset.version-*
+**/bin/
+**/obj/
+/.vs/
+/.vscode/
+*.csproj
+*.sln
+*.slnx
+*.user
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity transient files
+*.unitypackage
+*.unitypackage.meta
+crashlytics-build.properties
+/sysinfo.txt

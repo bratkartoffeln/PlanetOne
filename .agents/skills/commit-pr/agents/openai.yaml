@@ -1,0 +1,6 @@
+interface:
+  display_name: "PlanetOne Commit und PR"
+  short_description: "Version erhöhen, committen und per PR integrieren"
+  default_prompt: "Nutze $commit-pr, um die abgeschlossene PlanetOne-Arbeit zu versionieren, zu committen und per PR nach main zu mergen."
+policy:
+  allow_implicit_invocation: true
