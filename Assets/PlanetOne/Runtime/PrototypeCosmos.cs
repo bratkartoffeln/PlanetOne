@@ -14,6 +14,7 @@ namespace PlanetOne.Runtime
         private float lastPlanetClick;
         private int lastClickedPlanet;
         public int SelectedPlanetId {get{return selectedPlanetId;}}
+        internal Transform CelestialView(int id){return planetViews[id];}
         public bool SelectPlanet(int id)
         {
             if(simulation.FindPlanet(id)==null || !simulation.IsPlanetKnown(PlayerFactionId,id))return false;
@@ -45,13 +46,6 @@ namespace PlanetOne.Runtime
             if(coronaMaterial==null){coronaMaterial=new Material(Resources.Load<Shader>("AtmosphereGlow"));coronaMaterial.color=new Color(1,0.36f,0.035f,0.8f);coronaMaterial.SetFloat("_Star",1);}
             var glow=MakePrimitive(PrimitiveType.Sphere,"Korona",star,Vector3.zero,Vector3.one*1.9f,Color.white);glow.GetComponent<Renderer>().sharedMaterial=coronaMaterial;
         }
-        private void AlignNebula()
-        {
-            if(nebulaView==null)return;
-            nebulaView.position=sceneCamera.transform.position+sceneCamera.transform.forward*120;
-            nebulaView.rotation=sceneCamera.transform.rotation;
-            nebulaView.localScale=new Vector3(sceneCamera.orthographicSize*2*sceneCamera.aspect,sceneCamera.orthographicSize*2,1);
-        }
         private float PlanetScreenRadius(int id)
         {return planetViews[id].localScale.x*0.5f*sceneCamera.pixelHeight/(sceneCamera.orthographicSize*2);}
         private void DrawPlanetNameplates(float scale)
@@ -63,8 +57,9 @@ namespace PlanetOne.Runtime
                 if(!sceneCamera.pixelRect.Contains(screen))continue;
                 float radius=PlanetScreenRadius(p.Id)/scale,x=screen.x/scale,y=(Screen.height-screen.y)/scale;
                 if(p.Id==selectedPlanetId && selectedShips.Count==0)DrawTargetBrackets(new Rect(x-radius-7,y-radius-7,radius*2+14,radius*2+14),Cyan);
-                var label=new Rect(x-65,y+radius+9,130,25);Fill(label,new Color(0.015f,0.035f,0.05f,0.9f));
-                GUI.Label(label,p.Name.ToUpperInvariant(),centerStyle);
+                string name=p.Name.ToUpperInvariant();float labelWidth=centerStyle.CalcSize(new GUIContent(" "+name+" ")).x;
+                var label=new Rect(x-labelWidth/2,y+radius+9,labelWidth,22);Fill(label,new Color(0.015f,0.035f,0.05f,0.9f));
+                GUI.Label(label,name,centerStyle);
             }
         }
         private void DrawTargetBrackets(Rect r,Color color)

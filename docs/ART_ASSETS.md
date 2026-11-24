@@ -22,6 +22,14 @@ Die Layoutstudie im Chat ist ein Vorschauartefakt und wird nicht als Laufzeitgra
 
 Diese beiden zusätzlichen Tafeln sind Modellreferenzen, keine im Player verwendeten Sprites. Die vollständigen ursprünglichen Generierungsprompts dieser beiden Studien sind im Repository nicht archiviert; die obige Beschreibung ist eine Zusammenfassung. Laufzeitmodelle entstehen als echte Meshes in `PrototypeModels3D.cs` und `PrototypeModelGeometry.cs`; Glas nutzt `HabitatGlass.shader`, der unbeleuchtete Weltraumhintergrund `SpaceBackdrop.shader`. Keine Grafikdateien der genannten Referenzspiele wurden übernommen.
 
+## Sternfreier Nebel für 1.0.12
+
+Gespeichert unter [Assets/PlanetOne/Runtime/Resources/StarlessNebula.png](../Assets/PlanetOne/Runtime/Resources/StarlessNebula.png). Am 24. November 2026 mit dem eingebauten Imagegen-Werkzeug erzeugt und visuell als sternfreie Gas-/Staubtextur geprüft. Kein CLI-Fallback. `SpaceBackdrop.shader` legt die Textur richtungsabhängig auf eine ortsfeste Innenkugel; `BackgroundStars.shader` rendert sämtliche sichtbaren Sterne separat an ihren räumlichen Positionen. Die ältere `NebulaBackdrop.png` gehört zum historischen Stand 1.0.11 und wird vom aktuellen Hintergrund nicht mehr verwendet.
+
+Vollständiger Generierungsprompt:
+
+> Use case: stylized-concept. A production starless nebula environment texture for the original space strategy game PlanetOne. Wide panoramic 2:1 composition, target 2048x1024. Dark sophisticated astrophotographic blue-violet molecular nebula, delicate detailed dust filaments, wispy cobalt gas clouds and soft violet edges in deep almost-black navy interstellar space. Broad asymmetric cloud formations sweep diagonally from lower left to upper right, with restrained luminous ridges and vast very dark clear regions. Fine organic cloud detail, no pixel noise. The texture will be wrapped onto the inside of a 3D celestial sphere; avoid a bright central focal object, hard borders, or straight lines. IMPORTANT: absolutely NO STARS, NO star points, NO white dots, NO tiny bright specks, NO point lights of any size, NO sparkles, NO galaxies, NO planets, NO sun, NO objects, NO text, NO UI, NO lens flare. This is diffuse interstellar dust and gas ONLY. All stars will be rendered separately as genuine 3D objects by the game. Realistic restrained colors, graceful high quality space opera atmosphere matching a dark navy strategy-game interface.
+
 ## Laufzeitgrafiken für 1.0.11
 
 Beide PNGs wurden am 24. November 2026 mit dem eingebauten Imagegen-Werkzeug erzeugt, anschließend visuell geprüft und in den Unity-Player eingebunden. Kein CLI-Fallback, keine übernommenen Grafikdateien der Referenzspiele. Die Auflösungen im Prompt sind Generatorvorgaben; Unity importiert mit maximal 2048 Pixeln. Die Planeten bleiben dreidimensionale Kugeln, auf die der Atlas als Oberflächentextur gelegt wird. Der Nebel enthält keine vorgerenderten Spielobjekte.

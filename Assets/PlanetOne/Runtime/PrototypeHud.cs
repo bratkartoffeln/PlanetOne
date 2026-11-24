@@ -48,7 +48,7 @@ namespace PlanetOne.Runtime
             if(HudButton(new Rect(right,5,106,34),simulation.State.Paused?"Weiter":"Pause",simulation.State.Paused?HudIcon.Play:HudIcon.Pause,simulation.State.Paused,"Leertaste: Spiel pausieren oder fortsetzen"))TogglePause();
             if(Button(new Rect(right+110,5,36,34),simulation.State.TimeScale+"×",false))SetSimulationSpeed(simulation.State.TimeScale==1?2:1);
             if(HudButton(new Rect(right+150,5,34,34),"",HudIcon.Settings,false,"Darstellung und Layout ändern"))SetSettingsVisible(true);
-            if(HudButton(new Rect(right+188,5,34,34),"",HudIcon.Menu,false,"Spielmenü · Speichern · Laden · Neue Partie")){menuOpen=true;selectionStart=null;shipSelectionStart=null;}
+            if(HudButton(new Rect(right+188,5,34,34),"",HudIcon.Menu,false,"Spielmenü · Speichern · Laden · Neue Partie"))SetMenuVisible(true);
         }
 
         private void DrawSidebar(float width,float height)
@@ -244,11 +244,6 @@ namespace PlanetOne.Runtime
             try
             {create(root);foreach(var renderer in root.GetComponentsInChildren<Renderer>())if(renderer.sharedMaterial.shader.name=="PlanetOne/CelestialSurface"){var material=new Material(renderer.sharedMaterial);material.SetVector("_SunDirection",new Vector4(1,1,2,0));renderer.sharedMaterial=material;portraitMaterials.Add(material);}foreach(var t in root.GetComponentsInChildren<Transform>())t.gameObject.layer=30;camera.enabled=false;camera.cullingMask=1<<30;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=Color.clear;camera.orthographic=true;camera.orthographicSize=size;camera.aspect=1.5f;camera.nearClipPlane=0.1f;camera.farClipPlane=15;camera.transform.position=root.position+new Vector3(2,2.4f,3);camera.transform.LookAt(root.position+Vector3.up*0.1f);camera.targetTexture=rt;camera.Render();RenderTexture.active=rt;image=new Texture2D(192,128,TextureFormat.RGBA32,false);image.ReadPixels(new Rect(0,0,192,128),0,0);image.Apply();objectPortraits[key]=image;return image;}
             finally{RenderTexture.active=previous;camera.targetTexture=null;RenderTexture.ReleaseTemporary(rt);root.gameObject.SetActive(false);Destroy(root.gameObject);Destroy(cameraObject);foreach(var material in portraitMaterials)Destroy(material);}
-        }
-        private void DrawHudTooltip(float width,float height)
-        {
-            if(settingsOpen || menuOpen || string.IsNullOrEmpty(GUI.tooltip))return;
-            var p=Event.current.mousePosition;var rect=new Rect(Mathf.Clamp(p.x-150,10,width-350),Mathf.Min(height-90,p.y+22),340,58);DrawPanel(rect);GUI.Label(new Rect(rect.x+12,rect.y+9,rect.width-24,40),GUI.tooltip,bodyStyle);
         }
     }
 }

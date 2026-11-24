@@ -84,8 +84,8 @@ namespace PlanetOne.Runtime
         }
         public void ConfigurePresentationTestPath(string path) { presentationPath=path; LoadPresentationSettings(); UpdateCamera(); }
         public void ReloadPresentationSettings() { LoadPresentationSettings(); UpdateCamera(); }
-        public void SetSettingsVisible(bool visible) { settingsOpen=visible; selectionStart=null; shipSelectionStart=null; }
-        public void SetMenuVisible(bool visible) { menuOpen=visible; selectionStart=null; shipSelectionStart=null; }
+        public void SetSettingsVisible(bool visible) { settingsOpen=visible; selectionStart=null; shipSelectionStart=null;CancelSpacePan(); }
+        public void SetMenuVisible(bool visible) { menuOpen=visible; selectionStart=null; shipSelectionStart=null;CancelSpacePan(); }
         public void OpenPresentationSection(int section)
         {
             if(section<0 || section>6)throw new ArgumentOutOfRangeException("section");

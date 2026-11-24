@@ -103,7 +103,7 @@ namespace PlanetOne.Runtime
             sceneCamera.nearClipPlane = 0.1f;
             sceneCamera.farClipPlane = 300f;
             sceneCamera.tag = "MainCamera";
-            sceneCamera.cullingMask = ~(1 << 30);
+            sceneCamera.cullingMask = ~((1 << 30) | (1 << 29));
             var sun=new GameObject("Sonnenlicht").AddComponent<Light>();sun.transform.SetParent(transform,false);
             sun.type=LightType.Directional;sun.intensity=1.35f;sun.color=new Color(1,0.91f,0.79f);sun.transform.rotation=Quaternion.Euler(48,-35,0);sun.shadows=LightShadows.Soft;
             RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(0.32f,0.39f,0.47f);RenderSettings.ambientEquatorColor=new Color(0.18f,0.20f,0.23f);RenderSettings.ambientGroundColor=new Color(0.11f,0.09f,0.06f);
@@ -141,6 +141,7 @@ namespace PlanetOne.Runtime
             foreach(var material in celestialMaterials.Values)Destroy(material);
             foreach(var icon in hudIcons.Values)Destroy(icon);
             foreach(var portrait in objectPortraits.Values)Destroy(portrait);
+            if(starfieldMesh!=null)Destroy(starfieldMesh);if(starfieldMaterial!=null)Destroy(starfieldMaterial);
             if(atmosphereMaterial!=null)Destroy(atmosphereMaterial);if(coronaMaterial!=null)Destroy(coronaMaterial);
             foreach (var material in materials.Values) Destroy(material);
             foreach(var material in artMaterials.Values)Destroy(material);
@@ -162,7 +163,7 @@ namespace PlanetOne.Runtime
             if (Input.GetKeyDown(KeyCode.Escape)) CancelPlacement();
             if (Input.GetKeyDown(KeyCode.Tab) && openPlanetId != 0) SetView(0);
             HandleMilitaryKeyboard();
-            if (openPlanetId != 0)
+            if (openPlanetId != 0 || !spacePanCaptured)
             {
                 Vector3 pan = Vector3.zero;
                 if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) pan.z += 1;
@@ -171,10 +172,15 @@ namespace PlanetOne.Runtime
                 if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) pan.x += 1;
                 if (pan.sqrMagnitude > 0)
                 {
-                    var planet = simulation.FindPlanet(openPlanetId);
-                    surfaceFocus += Quaternion.Euler(0,cameraYaw,0)*pan.normalized * Time.unscaledDeltaTime * 8f;
-                    surfaceFocus.x = Mathf.Clamp(surfaceFocus.x, 1, planet.Width - 2);
-                    surfaceFocus.z = Mathf.Clamp(surfaceFocus.z, 1, planet.Height - 2);
+                    var delta=Quaternion.Euler(0,cameraYaw,0)*pan.normalized*Time.unscaledDeltaTime*8f;
+                    if(openPlanetId==0)SetSpaceFocus(spaceFocus+delta);
+                    else
+                    {
+                        var planet = simulation.FindPlanet(openPlanetId);
+                        surfaceFocus += delta;
+                        surfaceFocus.x = Mathf.Clamp(surfaceFocus.x, 1, planet.Width - 2);
+                        surfaceFocus.z = Mathf.Clamp(surfaceFocus.z, 1, planet.Height - 2);
+                    }
                     UpdateCamera();
                 }
             }
@@ -182,6 +188,7 @@ namespace PlanetOne.Runtime
 
         private void HandleWorldInput()
         {
+            if(HandleSpacePanInput())return;
             if (!IsWorldPoint(Input.mousePosition))
             {
                 if (ghost != null) ghost.gameObject.SetActive(false);
@@ -194,7 +201,6 @@ namespace PlanetOne.Runtime
                 else surfaceZoom = Mathf.Clamp(surfaceZoom - wheel * 0.5f, 3f, 14f);
                 UpdateCamera();
             }
-            if(Input.GetMouseButtonDown(1) && spaceMoveTargetMode){spaceMoveTargetMode=false;return;}
             if (Input.GetMouseButtonDown(1)) CancelPlacement();
             if (openPlanetId == 0)
             {
@@ -271,7 +277,7 @@ namespace PlanetOne.Runtime
 
         private void BuildSpace()
         {
-            if (spaceRoot != null) Destroy(spaceRoot.gameObject);
+            if (spaceRoot != null) {spaceRoot.gameObject.SetActive(false);Destroy(spaceRoot.gameObject);}
             spaceRoot = new GameObject("Sonnensystem").transform;
             spaceRoot.SetParent(transform, false);
             planetViews.Clear(); shipViews.Clear(); selectedShips.Clear();
@@ -282,7 +288,7 @@ namespace PlanetOne.Runtime
             }
             orbitViews.Clear();
             var star=MakePrimitive(PrimitiveType.Sphere,"Stern",spaceRoot,Vector3.zero,Vector3.one*3.8f,new Color(1,0.50f,0.055f));CreateStarCorona(star);
-            nebulaView=MakePrimitive(PrimitiveType.Quad,"Sternennebel",spaceRoot,Vector3.zero,Vector3.one,Color.white);
+            spaceFocus=Vector3.zero;BuildSpaceBackdrop();
             float maxOrbit = 12f;
             foreach (PlanetState planet in simulation.State.Planets)
             {
@@ -293,11 +299,11 @@ namespace PlanetOne.Runtime
                 orbit.positionCount = 96;
                 for (int i = 0; i < 96; i++)
                 {
-                    float angle = i / 96f * Mathf.PI * 2f;
-                    orbit.SetPosition(i, new Vector3(Mathf.Cos(angle) * (float)planet.OrbitRadius, 0, Mathf.Sin(angle) * (float)planet.OrbitRadius));
+                    var orbitPoint=OrbitalMotion.PositionAtMeanAnomaly(planet,i*OrbitalMotion.Tau/96);
+                    orbit.SetPosition(i,new Vector3((float)orbitPoint.X,0,(float)orbitPoint.Y));
                 }
                 orbitViews[planet.Id] = orbit.transform;
-                if (!isMoon) maxOrbit = Mathf.Max(maxOrbit, (float)planet.OrbitRadius);
+                if (!isMoon) maxOrbit = Mathf.Max(maxOrbit, (float)(planet.OrbitRadius*(1+planet.OrbitEccentricity)));
             }
             spaceZoom = maxOrbit*0.73f+2;
             UpdateSpace();
@@ -313,7 +319,7 @@ namespace PlanetOne.Runtime
                 planetViews[planet.Id].gameObject.SetActive(known); orbitViews[planet.Id].gameObject.SetActive(known);
                 SimPoint point = simulation.GetOrbitPosition(planet.Id);
                 planetViews[planet.Id].position = new Vector3((float)point.X, 0, (float)point.Y);
-                planetViews[planet.Id].rotation=Quaternion.Euler(0,planet.Id*37+(float)(simulation.State.Tick*Definitions.TickSeconds)*0.7f,planet.Id==1?12:-8);
+                planetViews[planet.Id].rotation=PlanetAxialRotation(planet.Id,simulation.State.Tick*Definitions.TickSeconds);
                 celestialMaterials[planet.Id].SetVector("_SunDirection",new Vector4(-(float)point.X,2,-(float)point.Y,0));
                 if (planet.ParentId > 0)
                 {
@@ -328,6 +334,7 @@ namespace PlanetOne.Runtime
             if (planetId != 0 && simulation.FindPlanet(planetId) == null) return;
             if (planetId != 0 && !simulation.IsPlanetKnown(PlayerFactionId, planetId)) { Notify("Oberfläche ist noch unbekannt."); return; }
             openPlanetId = planetId;
+            CancelSpacePan();spaceMoveTargetMode=false;suppressShipSelectionUntilUp=false;
             if(planetId!=0)selectedPlanetId=planetId;
             panelOpen=false;contextOpen=true;presentationSection=planetId==0?0:1;
             showingSpacePanel=false;showingDiplomacy=false;showingMilitary=false;
@@ -489,8 +496,8 @@ namespace PlanetOne.Runtime
             sceneCamera.pixelRect = WorldViewport;
             if (openPlanetId == 0)
             {
-                sceneCamera.transform.position = Quaternion.Euler(Mathf.Clamp(cameraPitch-15,25,70),cameraYaw,0)*new Vector3(0,0,-56);
-                sceneCamera.transform.LookAt(Vector3.zero);
+                sceneCamera.transform.position = spaceFocus+Quaternion.Euler(Mathf.Clamp(cameraPitch-15,25,70),cameraYaw,0)*new Vector3(0,0,-56);
+                sceneCamera.transform.LookAt(spaceFocus);
                 sceneCamera.orthographicSize = spaceZoom;
             }
             else
@@ -499,7 +506,7 @@ namespace PlanetOne.Runtime
                 sceneCamera.transform.LookAt(surfaceFocus);
                 sceneCamera.orthographicSize = surfaceZoom;
             }
-            AlignNebula();
+            UpdateSpaceBackdropCamera();
         }
 
         private float UiScale { get { return Mathf.Min(presentation.Scale, Mathf.Min(Screen.width / 1200f, Screen.height / 820f)); } }
@@ -524,7 +531,6 @@ namespace PlanetOne.Runtime
             DrawSidebar(width, height);
             DrawPresentationBottom(width, height);
             DrawSelectionCard(width,height);
-            DrawHudTooltip(width,height);
             GUI.enabled=previousEnabled;
             DrawPresentationDialogs(width,height);
             GUI.matrix = original;

@@ -103,6 +103,45 @@ namespace PlanetOne.Runtime
             }
             File.WriteAllText(presentationPath,"{\"Layout\":999,\"Scale\":0}");controller.ReloadPresentationSettings();
             Require(controller.CurrentLayout==InterfaceLayout.CommandCenter && controller.WorldViewport.width>0,"Invalid preferences recover to a usable layout");
+            controller.SetView(0);controller.ResetCameraView();yield return null;
+            string beforeCamera=SaveCodec.ToJson(original.State);
+            var background=controller.SpaceBackdropCamera;var stars=controller.BackgroundStarPositions;
+            int nearStar=-1,farStar=-1;float nearDepth=float.MaxValue,farDepth=0;
+            for(int i=0;i<stars.Length;i++)
+            {
+                var projected=background.WorldToScreenPoint(stars[i]);
+                if(projected.z<=0 || !background.pixelRect.Contains(projected))continue;
+                if(projected.z<nearDepth){nearStar=i;nearDepth=projected.z;}
+                if(projected.z>farDepth){farStar=i;farDepth=projected.z;}
+            }
+            Require(nearStar>=0 && farStar>=0 && farDepth>nearDepth*4,"Visible background stars occupy genuinely different distances");
+            Vector2 nearBefore=background.WorldToScreenPoint(stars[nearStar]),farBefore=background.WorldToScreenPoint(stars[farStar]);
+            Vector2 sunBefore=Camera.main.WorldToScreenPoint(Vector3.zero);
+            controller.SetSpaceFocus(new Vector3(10,0,0));
+            float nearShift=Vector2.Distance(nearBefore,background.WorldToScreenPoint(stars[nearStar]));
+            float farShift=Vector2.Distance(farBefore,background.WorldToScreenPoint(stars[farStar]));
+            float worldShift=Vector2.Distance(sunBefore,Camera.main.WorldToScreenPoint(Vector3.zero));
+            Require(nearShift>farShift*3 && farShift>0.01f && nearShift<worldShift*0.1f,"Parallax is subtle and decreases with actual star depth");
+            controller.ResetCameraView();Vector2 starBeforeTurn=background.WorldToScreenPoint(stars[nearStar]);
+            controller.SetOrbitCamera(22,50);
+            Require(Vector2.Distance(starBeforeTurn,background.WorldToScreenPoint(stars[nearStar]))>20,"World-fixed background rotates with the camera view");
+            yield return Capture("space-background-rotated.png");Require(captureFailure==null,captureFailure??"Rotated background captured");
+            controller.ResetCameraView();
+            foreach(InterfaceLayout layout in Enum.GetValues(typeof(InterfaceLayout)))
+            {
+                controller.SetInterfaceLayout(layout);controller.CloseContextPanel();var start=controller.WorldViewport.center;
+                Require(!controller.BeginSpacePan(new Vector2(20,Screen.height-20)),"HUD cannot start a camera drag: "+layout);
+                Require(controller.BeginSpacePan(start),"Right drag begins in the world: "+layout);
+                controller.ContinueSpacePan(start+new Vector2(95,40));controller.EndSpacePan(start+new Vector2(95,40));
+                Require(controller.SpaceFocus.sqrMagnitude>1 && Vector2.Distance(controller.WorldViewport.center,Camera.main.WorldToScreenPoint(Vector3.zero))>50,"System camera pans away from the central star: "+layout);
+                yield return Capture("space-panned-"+layout+".png");Require(captureFailure==null,captureFailure??"Panned system captured");
+                controller.ResetCameraView();Require(controller.SpaceFocus==Vector3.zero,"Home restores system focus: "+layout);
+            }
+            Require(SaveCodec.ToJson(original.State)==beforeCamera,"Camera panning and background rotation preserve complete simulation state");
+            var spinBefore=controller.CelestialView(1).rotation;yield return null;yield return null;
+            Require(Quaternion.Angle(spinBefore,controller.CelestialView(1).rotation)<0.001f,"Paused planets preserve their axial rotation");
+            float spin=Quaternion.Angle(PrototypeController.PlanetAxialRotation(1,0),PrototypeController.PlanetAxialRotation(1,30));
+            Require(spin>0.2f && spin<2,"Axial rotation is present and very slow");
             Require(controller.HasSurfaceAtlas,"Authored material atlas loaded in the Windows player");
             controller.ExportBuildingCatalogue(outputDirectory);
             Require(File.Exists(Path.Combine(outputDirectory,"building-Headquarters.png")),"Building catalogue renders actual textured models");
@@ -352,6 +391,11 @@ namespace PlanetOne.Runtime
             Require(controller.RenderedShipCount == 2, "Both paid ships are rendered in the system");
             yield return Capture("space-fleet.png");
             Require(captureFailure == null, captureFailure ?? "Fleet screenshot written");
+            string beforeFleetDrag=SaveCodec.ToJson(space.State);var dragStart=controller.WorldViewport.center;
+            Require(controller.BeginSpacePan(dragStart),"Selected fleet permits camera dragging");
+            controller.ContinueSpacePan(dragStart+new Vector2(85,30));
+            Require(!controller.EndSpacePan(dragStart+new Vector2(85,30)) && SaveCodec.ToJson(space.State)==beforeFleetDrag,"Right dragging with a selected fleet never queues a flight");
+            controller.ResetCameraView();
             string beforeHudOrders=SaveCodec.ToJson(space.State);
             foreach(InterfaceLayout layout in Enum.GetValues(typeof(InterfaceLayout)))
             {
@@ -366,6 +410,9 @@ namespace PlanetOne.Runtime
             Require(SaveCodec.ToJson(space.State)==beforeHudOrders,"Blocked HUD orders leave complete space state unchanged");
             controller.SetInterfaceLayout(InterfaceLayout.CommandCenter);
             Require(controller.RequestShipMoveAtScreen(controller.WorldViewport.center) && !controller.IsShipMovePending,"Move action accepts a world target and exits target mode");
+            string beforeCancel=SaveCodec.ToJson(space.State);controller.BeginShipMove();controller.BeginSpacePan(controller.WorldViewport.center);
+            Require(!controller.EndSpacePan(controller.WorldViewport.center) && !controller.IsShipMovePending && SaveCodec.ToJson(space.State)==beforeCancel,"Short right click cancels an explicit flight target without an extra order");
+            Require(controller.BeginSpacePan(controller.WorldViewport.center) && controller.EndSpacePan(controller.WorldViewport.center),"Short right click still submits the selected fleet order on release");
             AdvanceSeconds(0.2);
             Require(colonyShip.Order==ShipOrder.MovePosition,"HUD movement reaches the shared simulation command queue");
             Require(controller.RequestSpaceOrder(CommandKind.FlyShip, colonyShip.Id, planet: 3), "Flight to moving moon queued");

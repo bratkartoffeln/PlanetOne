@@ -10,6 +10,7 @@
 - **GUI-006:** Die Oberfläche bildet zusammenhängende, unregelmäßige Berge und Täler ab. Materialübergänge und Felsgruppen folgen der Landschaft. Straßen, Bodenobjekte, Wabengrenzen und Auswahl berücksichtigen die reale Höhe. Verdeckte Bodenpunkte dürfen nicht anstelle der vordersten sichtbaren Landschaft ausgewählt werden. Spielregeln bleiben gemäß T-037 vom Relief getrennt.
 
 - **GUI-007:** Auswahl und Szenenwechsel sind getrennt. Ein Planetenklick zeigt bekannte Objektdaten und eine ausdrückliche Oberflächenaktion; ein Doppelklick darf diese direkt ausführen. B/C verwenden kompakte schließbare Auswahlkarten. Kopfzeile, Karten und Verwaltungsfenster dürfen keine Weltbefehle auslösen oder einen wartenden Zielbefehl verbrauchen. Ein gültiges Ziel wird durch dieselbe validierte Befehlsschnittstelle wie andere Eingaben verarbeitet.
+- **GUI-008:** Die Systemkamera kann mit Rechtsziehen vom Zentralstern weg verschoben werden; kurze Rechtsklicks und Ziehen sind getrennte Gesten. Der Hintergrund ist räumlich fest, folgt der Blickrotation und zeigt beim Verschieben eine schwache, entfernungsabhängige Parallaxe. Planeten besitzen langsame Eigenrotation. Es gibt kein dem Mauszeiger folgendes Informationspopup; Namensschilder sind Textbreite plus je ein Leerzeichen links/rechts.
 
 Umsetzung und Prüfumfang: [GUI_WELTRAUM_NACHWEIS](GUI_WELTRAUM_NACHWEIS.md), historischer [GUI_GRAFIK_NACHWEIS](GUI_GRAFIK_NACHWEIS.md).
 
@@ -51,7 +52,7 @@ Die normale Aufbaukarte besitzt zwei eigene Kolonien und einen neutralen Mond. B
 
 **SPACE-001** Schiffe bewegen und bekämpfen sich auf einer gemeinsamen zweidimensionalen Spielebene. Eine schräge oder isometrische Darstellung ist zulässig. Die dargestellte Höhe verändert weder Reichweite noch Trefferwahrscheinlichkeit.
 
-**SPACE-002** Jeder Planet besitzt einen Stern als Bezugskörper und eine vorgegebene Umlaufbahn. Ein Mond besitzt einen Planeten als Bezugskörper. Die Bahnen sind berechenbar und die Himmelskörper bewegen sich deutlich langsamer als Schiffe.
+**SPACE-002** Jeder Planet besitzt einen Stern als Bezugskörper und eine berechenbare Keplerellipse mit dem Stern in einem Brennpunkt. Ein Mond besitzt eine entsprechende Bahn relativ zu seinem Planeten. Gleiche Zeiten überstreichen gleiche Flächen; für denselben Bezugskörper gilt `T²/a³ = konstant`. Himmelskörper bewegen sich deutlich langsamer als Schiffe. Maßstab und Zeitkonstanten sind Spielparameter nach T-043; keine N-Körper-Simulation. Bestehende Kreisbahnen werden beim Laden positionsstetig als Sonderfall `e=0` übernommen.
 
 **SPACE-003** Flugaufträge zu beweglichen Zielen berechnen erreichbare Treffpunkte. Eskorte und planetare Verteidigung folgen ihrem Bezugsobjekt. Stationsanlagen im Orbit bleiben an ihren zugehörigen Himmelskörper gebunden.
 

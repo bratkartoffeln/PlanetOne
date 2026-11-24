@@ -1,5 +1,14 @@
 # Abnahmeszenarien für PlanetOne
 
+## TEST-027 Freie Kamera, Tiefenparallaxe und Keplerbahnen
+
+- **Regeln:** GUI-003/008, SPACE-001 bis SPACE-003, CORE-007/008; D-031.
+- **Gegeben:** Ein System mit bekannten Planeten, Mond und ausgewähltem eigenen Schiff; eine echte alte V8-Sitzung.
+- **Wenn:** In allen Layouts die Kamera rechtsgezogen, zurückgesetzt und gedreht wird; anschließend kurze Rechtsklickbefehle und ein expliziter Zielmodus verwendet werden. Bahnpositionen werden über eine volle Periode und in gleich langen Zeitintervallen verglichen; die alte Sitzung wird geladen.
+- **Dann:** Ziehen versetzt den Fokus und löst keinen Flug aus. Kurzer Rechtsklick führt erst beim Loslassen einen Befehl aus oder bricht einen aktiven Zielmodus ab. GUI-Flächen starten keine Kamerageste. Sterne in geringerer Kameratiefe verschieben sich stärker als weit entfernte, beide deutlich schwächer als die Spielwelt. Drehung verändert auch das Hintergrundbild; Pos1 zentriert den Stern. Kameragesten erhalten den vollständigen Simulationszustand. Eigenrotation ist vorhanden und in Pause angehalten.
+- **Bahnen/Save:** Peri-/Apoapsis liegen auf einer Ellipse mit dem Bezugskörper im Brennpunkt. Überstrichene Flächen pro Zeit sind gleich, Periapsisgeschwindigkeit ist höher und `T²/a³` konstant. V8-Migration bewahrt die aktuelle Position aller Welten sowie sämtliche nichtorbitalen Werte; anschließendes Save/Load setzt exakt fort.
+- **Bildkontrolle:** Hintergrund nach Drehung und Verschieben, kurze Namensschilder und ausbleibendes Mauszeiger-Popup im tatsächlichen isolierten Player. [Nachweis](KAMERA_ORBIT_NACHWEIS.md).
+
 ## TEST-026 Auswahlkarten, Navigation und Flugbefehle
 
 - **Regeln:** GUI-001 bis GUI-004 und GUI-007; CORE-007/008; D-030.
