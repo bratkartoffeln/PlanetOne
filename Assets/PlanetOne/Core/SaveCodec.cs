@@ -9,7 +9,7 @@ namespace PlanetOne.Core
     /// <summary>Portable JSON snapshot codec. File locations and atomic writes belong to the platform adapter.</summary>
     public static partial class SaveCodec
     {
-        public const int CurrentVersion = 5;
+        public const int CurrentVersion = 6;
         private const int MaximumJsonLength = 4 * 1024 * 1024;
 
         public static string ToJson(GameState state)
@@ -35,6 +35,8 @@ namespace PlanetOne.Core
                     if (state != null && state.Version == 2) MigrateMilitary(state);
                     if (state != null && state.Version == 3) MigrateSpace(state);
                     if (state != null && state.Version == 4) MigrateInvasion(state);
+                    // Odd-row coordinates preserve all former cardinal paths and their progress.
+                    if (state != null && state.Version == 5) state.Version = 6;
                     Validate(state);
                     return state;
                 }
@@ -162,7 +164,7 @@ namespace PlanetOne.Core
                     {
                         var cell = shipment.Path[i];
                         Require(cell.X >= 0 && cell.Y >= 0 && cell.X < p.Width && cell.Y < p.Height, "Weg verlässt Oberfläche.");
-                        if (i > 0) Require(Math.Abs(cell.X - shipment.Path[i - 1].X) + Math.Abs(cell.Y - shipment.Path[i - 1].Y) == 1,
+                        if (i > 0) Require(HexGrid.Adjacent(cell, shipment.Path[i - 1]),
                             "Transportweg überspringt Felder.");
                     }
                     var last = shipment.Path[shipment.Path.Count - 1];

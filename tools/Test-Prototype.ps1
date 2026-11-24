@@ -2,9 +2,8 @@
 param([string]$PlayerPath, [switch]$Visible)
 
 $ErrorActionPreference = 'Stop'
-if (-not $Visible) {
-    throw 'Der Grafiktest benoetigt ein sichtbares Renderfenster. Bitte mit -Visible starten; ein versteckter Player liefert keine verlaesslichen Screenshots.'
-}
+# Default: true headless batch mode with GPU rendering into a RenderTexture.
+# This captures the game world, not IMGUI. -Visible is only for an isolated desktop.
 $projectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if (-not $PlayerPath) { $PlayerPath = Join-Path $projectRoot 'Builds\Windows\PlanetOne.exe' }
 if (-not (Test-Path -LiteralPath $PlayerPath)) { throw 'Player fehlt. Zuerst tools/Unity.ps1 -Action Build ausfuehren.' }
@@ -16,6 +15,7 @@ $arguments = @(
     '-logFile', ('"' + (Join-Path $outputDirectory 'player.log') + '"')
 )
 $windowStyle = if ($Visible) { 'Normal' } else { 'Hidden' }
+if (-not $Visible) { $arguments += @('-batchmode', '-force-d3d11') }
 $smokeProcess = Start-Process -FilePath $PlayerPath -ArgumentList $arguments -WorkingDirectory $projectRoot -PassThru -WindowStyle $windowStyle
 $finished = $false
 for ($attempt = 0; $attempt -lt 3; $attempt++) {

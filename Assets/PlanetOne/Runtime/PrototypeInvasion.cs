@@ -10,6 +10,7 @@ namespace PlanetOne.Runtime
         private readonly Dictionary<long,Transform> invasionViews=new Dictionary<long,Transform>();
         private readonly Dictionary<int,LineRenderer> dangerRings=new Dictionary<int,LineRenderer>();
         private readonly Dictionary<long,LineRenderer> shieldRings=new Dictionary<long,LineRenderer>();
+        private readonly Dictionary<long,Transform> landingFootprints=new Dictionary<long,Transform>();
         public void StartInvasionFixture()
         {
             if(!simulation.State.InvasionTestFixture && !simulation.State.MilitaryTestFixture && !simulation.State.SpaceTestFixture) priorSession=simulation;
@@ -72,7 +73,7 @@ namespace PlanetOne.Runtime
                 if(GUILayout.Button("Auswahl in Träger #"+s.Id+" verladen",buttonStyle)) foreach(long id in selectedUnits) RequestInvasionOrder(CommandKind.LoadTroop,s.Id,id,p.Id);
             if(selectedUnits.Count==0) return;
             var u=p.Units.Find(v=>v.Id==selectedUnits[0]); if(u==null) return;
-            if(u.Kind==UnitKind.Engineer && GUILayout.Button("Hier Landekopf errichten (4 Bauteile)",buttonStyle)) RequestInvasionOrder(CommandKind.EstablishBeachhead,u.Id,planet:p.Id,x:Mathf.RoundToInt((float)u.X),y:Mathf.RoundToInt((float)u.Y));
+            if(u.Kind==UnitKind.Engineer && GUILayout.Button("Hier Landekopf errichten (4 Bauteile)",buttonStyle)) RequestInvasionOrder(CommandKind.EstablishBeachhead,u.Id,planet:p.Id,x:HexGrid.CellAt(u.X,u.Y).X,y:HexGrid.CellAt(u.X,u.Y).Y);
             foreach(var b in p.Buildings)
             {
                 if(!simulation.IsCellVisible(p,PlayerFactionId,b.X,b.Y)) continue;
@@ -92,6 +93,7 @@ namespace PlanetOne.Runtime
             }
             foreach(var view in invasionViews.Values) if(view!=null) view.gameObject.SetActive(false);
             foreach(var ring in shieldRings.Values) if(ring!=null) ring.gameObject.SetActive(false);
+            foreach(var footprint in landingFootprints.Values) if(footprint!=null) footprint.gameObject.SetActive(false);
             if(openPlanetId==0 || surfaceRoot==null) return;
             var planet=simulation.FindPlanet(openPlanetId);
             foreach(var b in planet.Buildings) if(b.Kind==BuildingKind.ShieldGenerator && b.Operational && !b.Destroyed && simulation.CanSeeEntity(planet,PlayerFactionId,b.Id))
@@ -99,19 +101,28 @@ namespace PlanetOne.Runtime
                 LineRenderer ring;
                 if(!shieldRings.TryGetValue(b.Id,out ring)||ring==null)
                 {ring=MakeLine("Aktiver Schildbereich",surfaceRoot,GameSimulation.BuildingOwner(planet,b)==PlayerFactionId?Cyan:Danger,0.045f,true);ring.positionCount=64;shieldRings[b.Id]=ring;for(int i=0;i<64;i++){float a=i*Mathf.PI*2/64;ring.SetPosition(i,new Vector3(Mathf.Cos(a)*(float)Definitions.ShieldRadius,0.2f,Mathf.Sin(a)*(float)Definitions.ShieldRadius));}}
-                ring.transform.position=new Vector3(b.X,0,b.Y);ring.gameObject.SetActive(true);
+                ring.transform.position=SurfacePosition(b.X,0,b.Y);ring.gameObject.SetActive(true);
             }
             foreach(var s in simulation.State.Ships) if(!s.Destroyed && s.TargetPlanetId==openPlanetId && s.TransportPhase!=TransportPhase.Space && (s.OwnerId==PlayerFactionId || simulation.IsCellVisible(planet,PlayerFactionId,s.LandingX,s.LandingY)))
             {
                 float height=s.TransportPhase==TransportPhase.Landed?0.5f:s.TransportPhase==TransportPhase.Descending?3*(1-(float)(s.ActionProgress/Definitions.TransitionSeconds)):3*(float)(s.ActionProgress/Definitions.TransitionSeconds);
-                InvasionMarker(s.Id,new Vector3(s.LandingX+0.5f,height,s.LandingY+0.5f),new Vector3(1.1f,0.3f,1.1f),s.OwnerId==PlayerFactionId?Cyan:Danger);
+                InvasionMarker(s.Id,SurfacePosition(s.LandingX,height,s.LandingY),new Vector3(1.1f,0.3f,1.1f),s.OwnerId==PlayerFactionId?Cyan:Danger);
+                Transform footprint;
+                if(!landingFootprints.TryGetValue(s.Id,out footprint)||footprint==null)
+                {
+                    footprint=new GameObject("Reservierte Landewaben").transform;footprint.SetParent(surfaceRoot,false);landingFootprints[s.Id]=footprint;
+                    for(int i=0;i<7;i++) MakeHexOutline("Landewabe",footprint,s.OwnerId==PlayerFactionId?Cyan:Danger,0.03f);
+                }
+                int index=0;
+                foreach(var cell in HexGrid.LandingCells(s.LandingX,s.LandingY)) footprint.GetChild(index++).localPosition=SurfacePosition(cell.X,0.12f,cell.Y);
+                footprint.gameObject.SetActive(true);
             }
             foreach(var h in simulation.State.Beachheads) if(!h.Destroyed && h.PlanetId==openPlanetId && (h.OwnerId==PlayerFactionId || simulation.IsCellVisible(planet,PlayerFactionId,h.X,h.Y)))
-                InvasionMarker(h.Id,new Vector3(h.X,0.25f,h.Y),new Vector3(0.7f,0.5f,0.7f),h.Progress<Definitions.BeachheadSeconds?Amber:Cyan);
+                InvasionMarker(h.Id,SurfacePosition(h.X,0.25f,h.Y),new Vector3(0.7f,0.5f,0.7f),h.Progress<Definitions.BeachheadSeconds?Amber:Cyan);
         }
         private void InvasionMarker(long id,Vector3 position,Vector3 size,Color color)
         {
-            Transform view;if(!invasionViews.TryGetValue(id,out view)||view==null){view=MakePrimitive(PrimitiveType.Cube,"Landung / Landekopf",surfaceRoot,position,size,color);invasionViews[id]=view;}
+            Transform view;if(!invasionViews.TryGetValue(id,out view)||view==null){view=MakeHex("Landung / Landekopf",surfaceRoot,position,size,color);invasionViews[id]=view;}
             view.gameObject.SetActive(true);view.position=position;
         }
         private void DrawInvasionNotice()

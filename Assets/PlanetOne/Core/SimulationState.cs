@@ -88,7 +88,7 @@ namespace PlanetOne.Core
     [DataContract, Serializable]
     public sealed class GameState
     {
-        [DataMember] public int Version = 5;
+        [DataMember] public int Version = 6;
         [DataMember] public bool InvasionTestFixture;
         [DataMember] public List<BeachheadState> Beachheads = new List<BeachheadState>();
         [DataMember] public List<ShipState> Ships = new List<ShipState>();

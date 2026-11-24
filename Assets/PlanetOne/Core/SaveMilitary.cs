@@ -59,7 +59,7 @@ namespace PlanetOne.Core
                 {
                     var c = u.Path[i];
                     Require(c.X >= 0 && c.Y >= 0 && c.X < p.Width && c.Y < p.Height, "Bodenweg außerhalb der Karte.");
-                    if (i > 0) Require(Math.Abs(c.X - u.Path[i - 1].X) + Math.Abs(c.Y - u.Path[i - 1].Y) == 1, "Bodenweg überspringt Felder.");
+                    if (i > 0) Require(HexGrid.Adjacent(c, u.Path[i - 1]), "Bodenweg überspringt Felder.");
                 }
                 if (u.Path.Count > 0)
                 {

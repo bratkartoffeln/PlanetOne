@@ -4,6 +4,10 @@ PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, ph
 
 Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung ist minimalistisch: klare geometrische Formen, dunkler Weltraum und wenige Akzentfarben. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
 
+## Wabenoberflächen in 1.0.6
+
+Bodenfelder, Straßen, Bauvorschau und Auswahl verwenden ein Hexraster mit sechs Nachbarn. Wege, Sicht, Deckung, Reichweiten und Landeflächen folgen derselben Geometrie; alte Spielstände werden übernommen. 82 Core-Tests und 104 fensterlose Player-Prüfungen bestanden. [Regeln, Migration und Prüfschritte](docs/HEXRASTER_NACHWEIS.md). Der Standardaufruf `tools/Test-Prototype.ps1` öffnet kein Fenster und erzeugt Weltbilder ohne IMGUI; manuelle Bedienungsabnahme bleibt separat.
+
 ## Einstieg für Codex
 
 1. [Arbeitsregeln](AGENTS.md) lesen.

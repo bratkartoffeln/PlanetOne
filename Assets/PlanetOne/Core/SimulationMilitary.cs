@@ -16,12 +16,14 @@ namespace PlanetOne.Core
 
         public bool HasLineOfSight(PlanetState p, double ax, double ay, double bx, double by)
         {
-            int steps = (int)Math.Ceiling(Distance(ax, ay, bx, by) * 4);
-            int startX = (int)Math.Round(ax), startY = (int)Math.Round(ay);
-            int endX = (int)Math.Round(bx), endY = (int)Math.Round(by);
+            int steps = (int)Math.Ceiling(HexGrid.Distance(ax, ay, bx, by) * 4);
+            var start = HexGrid.CellAt(ax, ay); int startX = start.X, startY = start.Y;
+            var a = HexGrid.ToWorld(ax, ay); var bWorld = HexGrid.ToWorld(bx, by);
+            var end = HexGrid.CellAt(bx, by); int endX = end.X, endY = end.Y;
             for (int i = 1; i < steps; i++)
             {
-                int x = (int)Math.Round(ax + (bx - ax) * i / steps), y = (int)Math.Round(ay + (by - ay) * i / steps);
+                var sample = HexGrid.FromWorld(a.X + (bWorld.X - a.X) * i / steps, a.Y + (bWorld.Y - a.Y) * i / steps);
+                int x = sample.X, y = sample.Y;
                 if ((x == startX && y == startY) || (x == endX && y == endY)) continue;
                 if (!Inside(p, x, y) || p.Terrain[y * p.Width + x] == 1) return false;
                 if (p.Buildings.Exists(b => !b.Destroyed && b.X == x && b.Y == y &&
@@ -34,9 +36,9 @@ namespace PlanetOne.Core
         {
             foreach (var u in p.Units)
                 if (!u.Destroyed && u.OwnerId == faction && u.Layer == TargetLayer.Ground &&
-                    Distance(u.X, u.Y, x, y) <= Definitions.Get(u.Kind).Sight && HasLineOfSight(p, u.X, u.Y, x, y)) return true;
+                    HexGrid.Distance(u.X, u.Y, x, y) <= Definitions.Get(u.Kind).Sight && HasLineOfSight(p, u.X, u.Y, x, y)) return true;
             foreach (var b in p.Buildings)
-                    if (BuildingOwner(p,b) == faction && b.Built && !b.Destroyed && !b.Deconstructing && Distance(b.X, b.Y, x, y) <= Definitions.BuildingSight &&
+                    if (BuildingOwner(p,b) == faction && b.Built && !b.Destroyed && !b.Deconstructing && HexGrid.Distance(b.X, b.Y, x, y) <= Definitions.BuildingSight &&
                         HasLineOfSight(p, b.X, b.Y, x, y)) return true;
             return false;
         }
@@ -63,21 +65,21 @@ namespace PlanetOne.Core
 
         private List<GridCell> GroundPath(PlanetState p, UnitState u, int x, int y, bool adjacent)
         {
-            int sx = (int)Math.Round(u.X), sy = (int)Math.Round(u.Y);
+            var startCell = HexGrid.CellAt(u.X, u.Y); int sx = startCell.X, sy = startCell.Y;
             if (!Inside(p, sx, sy) || !Inside(p, x, y)) return null;
             int start = sy * p.Width + sx;
             var previous = new int[p.Terrain.Length]; for (int i = 0; i < previous.Length; i++) previous[i] = -1;
             var queue = new Queue<int>(); queue.Enqueue(start); previous[start] = start;
             int finish = -1;
-            int[] dx = { 1, 0, -1, 0 }, dy = { 0, 1, 0, -1 };
+
             while (queue.Count > 0)
             {
                 int cell = queue.Dequeue(), cx = cell % p.Width, cy = cell / p.Width;
-                if ((!adjacent && cx == x && cy == y) || (adjacent && Math.Abs(cx - x) + Math.Abs(cy - y) <= 1))
+                if ((!adjacent && cx == x && cy == y) || (adjacent && HexGrid.Steps(cx, cy, x, y) <= 1))
                 { finish = cell; break; }
-                for (int d = 0; d < 4; d++)
+                for (int d = 0; d < 6; d++)
                 {
-                    int nx = cx + dx[d], ny = cy + dy[d];
+                    var neighbor = HexGrid.Neighbor(cx, cy, d); int nx = neighbor.X, ny = neighbor.Y;
                     if (!CanTraverse(p, u.OwnerId, u.Kind, nx, ny)) continue;
                     int next = ny * p.Width + nx;
                     if (previous[next] >= 0) continue;
@@ -128,7 +130,7 @@ namespace PlanetOne.Core
                 if (!AtWar(u.OwnerId, owner)) { Report(c, false, "NotAtWar", "Kein gültiger Kriegszustand."); return; }
                 if (!ValidWeaponTarget(Definitions.Get(u.Kind).AntiAir, layer))
                 { Report(c, false, "InvalidTargetLayer", "Waffe kann diese Zielebene nicht bekämpfen."); return; }
-                x = (int)Math.Round(tx); y = (int)Math.Round(ty);
+                var targetCell = HexGrid.CellAt(tx, ty); x = targetCell.X; y = targetCell.Y;
             }
             if (order == UnitOrder.Bombard)
             {
@@ -146,7 +148,7 @@ namespace PlanetOne.Core
                 { Report(c, false, "DepotRequired", "Zum Nachfüllen ein Militärdepot anfahren."); return; }
                 if (order == UnitOrder.Repair && u.Kind != UnitKind.Engineer)
                 { Report(c, false, "EngineerRequired", "Reparatur benötigt ein Pionierfahrzeug."); return; }
-                x = (int)Math.Round(tx); y = (int)Math.Round(ty);
+                var targetCell = HexGrid.CellAt(tx, ty); x = targetCell.X; y = targetCell.Y;
             }
             if (order != UnitOrder.Hold && !Inside(p, x, y))
             { Report(c, false, "InvalidPosition", "Ziel liegt außerhalb der Oberfläche."); return; }
@@ -189,7 +191,7 @@ namespace PlanetOne.Core
             {
                 foreach (var u in p.Units)
                     if (!u.Destroyed && u.OwnerId != faction.Id && CanSeeEntity(p, faction.Id, u.Id))
-                        Remember(p, faction.Id, u.Id, (int)Math.Round(u.X), (int)Math.Round(u.Y));
+                        Remember(p, faction.Id, u.Id, HexGrid.CellAt(u.X, u.Y).X, HexGrid.CellAt(u.X, u.Y).Y);
                 if (p.OwnerId != faction.Id)
                     foreach (var b in p.Buildings)
                         if (!b.Destroyed && CanSeeEntity(p, faction.Id, b.Id)) Remember(p, faction.Id, b.Id, b.X, b.Y);
@@ -221,11 +223,11 @@ namespace PlanetOne.Core
             b.RecruitProgress = Math.Min(d.Seconds, b.RecruitProgress + Definitions.TickSeconds * p.Productivity);
             b.Status = "Rekrutierung " + (int)(100 * b.RecruitProgress / d.Seconds) + " %";
             if (b.RecruitProgress + 0.000001 < d.Seconds) return;
-            int[] dx = { 1, 0, -1, 0 }, dy = { 0, 1, 0, -1 };
-            for (int i = 0; i < 4; i++)
+
+            for (int i = 0; i < 6; i++)
             {
-                int x = b.X + dx[i], y = b.Y + dy[i];
-                if (!CanTraverse(p, p.OwnerId, kind, x, y) || p.Units.Exists(v => !v.Destroyed && Distance(v.X, v.Y, x, y) < 0.6)) continue;
+                var neighbor = HexGrid.Neighbor(b.X, b.Y, i); int x = neighbor.X, y = neighbor.Y;
+                if (!CanTraverse(p, p.OwnerId, kind, x, y) || p.Units.Exists(v => !v.Destroyed && HexGrid.Distance(v.X, v.Y, x, y) < 0.6)) continue;
                 p.Units.Add(new UnitState { Id = State.NextEntityId++, OwnerId = p.OwnerId, Kind = kind,
                     X = x, Y = y, Health = d.Health, Ammunition = d.Ammo, Food = d.Food, GoalX = x, GoalY = y });
                 b.RecruitKind = -1; b.RecruitPaid = false; b.RecruitProgress = 0;
@@ -243,20 +245,20 @@ namespace PlanetOne.Core
                 if (!Target(p, u.TargetId, out x, out y, out owner, out layer) || !AtWar(u.OwnerId, owner) ||
                     !CanSeeEntity(p, u.OwnerId, u.TargetId))
                 { u.Order = UnitOrder.Hold; u.TargetId = 0; u.Path.Clear(); u.PathDistance = 0; u.Status = "Ziel verloren; hält letzte Position"; return; }
-                u.GoalX = (int)Math.Round(x); u.GoalY = (int)Math.Round(y);
-                if (Distance(u.X, u.Y, x, y) <= d.Range && (d.Indirect || HasLineOfSight(p, u.X, u.Y, x, y)))
+                var goal = HexGrid.CellAt(x, y); u.GoalX = goal.X; u.GoalY = goal.Y;
+                if (HexGrid.Distance(u.X, u.Y, x, y) <= d.Range && (d.Indirect || HasLineOfSight(p, u.X, u.Y, x, y)))
                 { u.Path.Clear(); u.PathDistance = 0; FireUnit(p, u, u.TargetId, x, y, layer); return; }
                 MoveGround(p, u, true); return;
             }
             if (u.Order == UnitOrder.Bombard)
             {
-                if (Distance(u.X, u.Y, u.GoalX, u.GoalY) > d.Range) { MoveGround(p, u, true); return; }
+                if (HexGrid.Distance(u.X, u.Y, u.GoalX, u.GoalY) > d.Range) { MoveGround(p, u, true); return; }
                 if (u.Cooldown > 0 || u.Ammunition <= 0) { u.Status = u.Ammunition <= 0 ? "Munition fehlt" : "Lädt nach"; return; }
                 u.Ammunition--; u.Cooldown = d.Interval; u.Status = "Beschießt bekannte Position";
                 // Deliberate area fire does not track hidden targets or reveal hit information.
                 foreach (var other in p.Units)
                     if (!other.Destroyed && other.Layer == TargetLayer.Ground && AtWar(u.OwnerId, other.OwnerId) &&
-                        Distance(other.X, other.Y, u.GoalX, u.GoalY) <= Definitions.AreaFireRadius) HurtUnit(p, other, d.Damage, u.Kind);
+                        HexGrid.Distance(other.X, other.Y, u.GoalX, u.GoalY) <= Definitions.AreaFireRadius) HurtUnit(p, other, d.Damage, u.Kind);
                 var b = p.Buildings.Find(v => !v.Destroyed && v.X == u.GoalX && v.Y == u.GoalY);
                 if (b != null && AtWar(u.OwnerId, BuildingOwner(p,b))) HurtBuilding(p, b, d.Damage);
                 return;
@@ -266,8 +268,8 @@ namespace PlanetOne.Core
                 double x, y; int owner; TargetLayer layer;
                 if (!Target(p, u.TargetId, out x, out y, out owner, out layer) || owner != u.OwnerId)
                 { u.Order = UnitOrder.Hold; return; }
-                u.GoalX = (int)Math.Round(x); u.GoalY = (int)Math.Round(y);
-                if (Distance(u.X, u.Y, x, y) > 1.1) { MoveGround(p, u, true); return; }
+                var goal = HexGrid.CellAt(x, y); u.GoalX = goal.X; u.GoalY = goal.Y;
+                if (HexGrid.Distance(u.X, u.Y, x, y) > 1.1) { MoveGround(p, u, true); return; }
                 if (u.Order == UnitOrder.Resupply) Supply(p, u); else Repair(p, u);
                 return;
             }
@@ -284,8 +286,8 @@ namespace PlanetOne.Core
             // Reroute only at cell centers; an invalid next segment never teleports a unit.
             if (u.Path.Count == 0 || u.PathDistance >= u.Path.Count - 1 - 0.000001)
             {
-                double cx = Math.Round(u.X), cy = Math.Round(u.Y);
-                double offset = Distance(u.X, u.Y, cx, cy);
+                var center = HexGrid.CellAt(u.X, u.Y); double cx = center.X, cy = center.Y;
+                double offset = HexGrid.Distance(u.X, u.Y, cx, cy);
                 if (offset > 0.000001)
                 {
                     double step = Math.Min(offset, Definitions.Get(u.Kind).Speed * Definitions.TickSeconds);
@@ -313,7 +315,7 @@ namespace PlanetOne.Core
             long result = 0; double nearest = range + 0.000001;
             foreach (var u in p.Units)
             {
-                double distance = Distance(x, y, u.X, u.Y);
+                double distance = HexGrid.Distance(x, y, u.X, u.Y);
                 if (u.Destroyed || !AtWar(owner, u.OwnerId) || !ValidWeaponTarget(antiAir, u.Layer) || distance >= nearest ||
                     !CanSeeEntity(p, owner, u.Id) || (!indirect && !HasLineOfSight(p, x, y, u.X, u.Y))) continue;
                 nearest = distance; result = u.Id;
@@ -336,10 +338,11 @@ namespace PlanetOne.Core
         public bool HasCover(PlanetState p, UnitState u)
         {
             if (u.Kind != UnitKind.Infantry && u.Kind != UnitKind.AntiTank) return false;
-            int x = (int)Math.Round(u.X), y = (int)Math.Round(u.Y);
-            if (p.Buildings.Exists(b => !b.Destroyed && Math.Abs(b.X - x) + Math.Abs(b.Y - y) <= 1)) return true;
-            int[] dx = { 1, 0, -1, 0 }, dy = { 0, 1, 0, -1 };
-            for (int i = 0; i < 4; i++) if (Inside(p, x + dx[i], y + dy[i]) && p.Terrain[(y + dy[i]) * p.Width + x + dx[i]] == 1) return true;
+            var cell = HexGrid.CellAt(u.X, u.Y); int x = cell.X, y = cell.Y;
+            if (p.Buildings.Exists(b => !b.Destroyed && HexGrid.Steps(b.X, b.Y, x, y) <= 1)) return true;
+
+            for (int i = 0; i < 6; i++)
+            { var n = HexGrid.Neighbor(x, y, i); if (Inside(p, n.X, n.Y) && p.Terrain[n.Y * p.Width + n.X] == 1) return true; }
             return false;
         }
 

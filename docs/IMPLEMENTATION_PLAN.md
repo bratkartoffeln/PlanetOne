@@ -2,6 +2,10 @@
 
 Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0 bis M4 sind umgesetzt und abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen vollständigen zusätzlichen Maustest. M3 ist mit Core-Tests, Windows-Build, Grafiklauf und gezielten tatsächlichen Maus-/Tastatureingaben geprüft; siehe [M3_NACHWEIS](M3_NACHWEIS.md). P08–P10 sind in Version 1.0.3 abgeschlossen; Nachweise und konkrete Grenzen stehen in [M4_NACHWEIS](M4_NACHWEIS.md).
 
+## Projektweite Rasteränderung 1.0.6
+
+Nutzerauftrag vom 24. November 2026: Waben statt Schachbrett. Betrifft P03/P04/P06/P07/P12 sowie ihre gemeinsamen Darstellungs- und Speicherpfade. Hexraster, sechs Nachbarn, Kameraauswahl, Bau/Transport, Sicht/Deckung/Reichweiten und siebenzellige Landeflächen sind umgesetzt. Nachweise: 82 Core-Tests, Windows-Build, fensterloser Player-Test mit 104 Einzelprüfungen; [HEXRASTER_NACHWEIS](HEXRASTER_NACHWEIS.md). M6 bleibt außerhalb dieses Auftrags.
+
 ## Verbindliche Grundlagen
 
 - [Spielregeln](./GAME_DESIGN.md): Anforderungen der Gruppen CORE, SPACE, SURFACE, ECO, LOG, RES, COMBAT, INV und DEF.

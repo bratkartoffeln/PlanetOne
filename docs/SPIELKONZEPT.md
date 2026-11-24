@@ -4,6 +4,8 @@ Stand: 23. November 2026. PlanetOne verbindet planetaren Aufbau, physische Waren
 
 Diese Übersicht rekonstruiert den im Projekt erhaltenen Konzeptstand; sie ist kein wörtliches Transkript des früheren Chats. Verbindliche Detailregeln und stabile Anforderungs-IDs stehen in [GAME_DESIGN](GAME_DESIGN.md), [AI_DIPLOMACY](AI_DIPLOMACY.md) und [TECHNICAL_ARCHITECTURE](TECHNICAL_ARCHITECTURE.md). Vorgaben und Arbeitsannahmen unterscheidet [DECISIONS](DECISIONS.md). Die Übersicht ändert diese Regeln nicht. Das hier beschriebene Gesamtspiel ist das Entwicklungsziel; der bereits umgesetzte Stand ist am Ende separat aufgeführt.
 
+Die Oberflächen verwenden seit Version 1.0.6 ein Hexraster aus sechseckigen Waben: sechs Nachbarn für Bauanschluss, Straßen und Bewegung, geometrisch passende Sicht und Reichweiten sowie Landezonen aus sieben Waben. Spielstandübernahme und Nachweise: [HEXRASTER_NACHWEIS](HEXRASTER_NACHWEIS.md).
+
 ## 1 Spielidee und Umfang
 
 Der Spieler führt eine Weltraumfraktion: erkunden, besiedeln, produzieren, transportieren, erforschen, verteidigen und expandieren. Wirtschaft, Flotten, Bodenarmeen und diplomatische Beziehungen beeinflussen sich unmittelbar. Auf Planeten entstehen Bevölkerung, Waren, Forschung und Truppen. Flotten sichern Expansion und Versorgung. Bodenarmeen kämpfen auf den tatsächlich aufgebauten Kolonieflächen.
