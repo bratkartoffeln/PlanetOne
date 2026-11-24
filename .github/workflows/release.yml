@@ -1,0 +1,75 @@
+name: Release Windows download
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: Als Vorabversion kennzeichnen
+        type: boolean
+        default: true
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Select successful build of current main
+        id: build
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const repo = context.repo;
+            const {data: branch} = await github.rest.repos.getBranch({...repo, branch: 'main'});
+            const sha = branch.commit.sha;
+            if (sha !== context.sha) throw new Error('main hat sich seit dem Start geaendert. Workflow erneut starten.');
+            const {data} = await github.rest.actions.listWorkflowRuns({...repo, workflow_id: 'ci.yml', branch: 'main', event: 'push', head_sha: sha, status: 'success', per_page: 100});
+            const run = data.workflow_runs.find(r => r.head_sha === sha && r.conclusion === 'success');
+            if (!run) throw new Error('Kein erfolgreicher CI-Build fuer den aktuellen main-Commit. CI abwarten.');
+            core.setOutput('run', run.id);
+            core.setOutput('sha', sha);
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: distribution-${{ steps.build.outputs.sha }}
+          path: distribution
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.build.outputs.run }}
+      - name: Verify and publish exact tested files
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          BUILD_SHA: ${{ steps.build.outputs.sha }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        with:
+          script: |
+            const fs = require('fs');
+            const crypto = require('crypto');
+            const repo = context.repo;
+            const info = JSON.parse(fs.readFileSync('distribution/build-info.json', 'utf8').replace(/^\uFEFF/, ''));
+            if (info.commit !== process.env.BUILD_SHA || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(info.version)) throw new Error('Build-Herkunft ungueltig.');
+            const stem = `PlanetOne-${info.version}-Windows-x64`;
+            const files = [`${stem}.zip`, `${stem}-Setup.exe`, 'build-info.json'];
+            const sums = fs.readFileSync('distribution/SHA256SUMS.txt', 'utf8');
+            for (const file of files) {
+              const hash = crypto.createHash('sha256').update(fs.readFileSync(`distribution/${file}`)).digest('hex');
+              if (!sums.split(/\r?\n/).includes(`${hash}  ${file}`)) throw new Error(`Pruefsumme ungueltig: ${file}`);
+            }
+            const {data: branch} = await github.rest.repos.getBranch({...repo, branch: 'main'});
+            if (branch.commit.sha !== info.commit) throw new Error('main hat sich geaendert; erneut starten.');
+            const tag = `v${info.version}`;
+            try {
+              await github.rest.git.getRef({...repo, ref: `tags/${tag}`});
+              throw new Error('Version bereits getaggt; keine vorhandene Veroeffentlichung ueberschreiben.');
+            } catch (error) { if (error.status !== 404) throw error; }
+            const {data: release} = await github.rest.repos.createRelease({...repo, tag_name: tag, target_commitish: info.commit, name: `PlanetOne ${info.version}`, draft: true, prerelease: process.env.PRERELEASE === 'true', body: `Windows x64: Setup.exe installieren oder ZIP vollstaendig entpacken und PlanetOne.exe starten.\n\nCommit: ${info.commit}\nSHA-256-Pruefsummen: SHA256SUMS.txt.\n\nInstaller und Programm sind derzeit nicht digital signiert.`});
+            for (const file of [...files, 'SHA256SUMS.txt']) {
+              await github.rest.repos.uploadReleaseAsset({...repo, release_id: release.id, name: file, data: fs.readFileSync(`distribution/${file}`)});
+            }
+            await github.rest.repos.updateRelease({...repo, release_id: release.id, draft: false});
+            core.notice(`Download: ${release.html_url}`);

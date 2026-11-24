@@ -93,7 +93,7 @@ namespace PlanetOne.Editor
                 scenes = new[] { ScenePath },
                 locationPathName = target,
                 target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.Development
+                options = BuildOptions.None
             };
             BuildReport report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded)

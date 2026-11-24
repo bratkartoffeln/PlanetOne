@@ -1,0 +1,121 @@
+name: PR and main build
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    name: Core and version tests
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check product version
+        shell: powershell
+        run: ./tools/Version.ps1 -Action Check
+      - name: Test version tooling
+        shell: powershell
+        run: ./Tests/Tools/Test-Version.ps1
+      - name: Test simulation
+        shell: powershell
+        run: ./tools/Test-Core.ps1
+      - name: Test release guards
+        run: node Tests/Tools/test-release.cjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: core-results
+          path: TestResults/Core/results.txt
+          retention-days: 14
+  build:
+    name: Unity Windows build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    needs: tests
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Require Unity activation secrets
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          if [[ -z "$UNITY_EMAIL" || -z "$UNITY_PASSWORD" || ( -z "$UNITY_LICENSE" && -z "$UNITY_SERIAL" ) ]]; then
+            echo '::error::Unity-Secrets fehlen. Siehe docs/CI_RELEASE.md.'
+            exit 1
+          fi
+      - uses: game-ci/unity-builder@4423ee75828dff56037d1d1cfdac6b68e3a6ba00 # v4
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          unityVersion: auto
+          targetPlatform: StandaloneWindows64
+          buildMethod: PlanetOne.Editor.BuildTools.BuildWindows
+          versioning: None
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-player
+          path: Builds/Windows/
+          if-no-files-found: error
+          retention-days: 3
+  package:
+    name: Windows installer and ZIP
+    runs-on: windows-2022
+    needs: build
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: windows-player
+          path: Builds/Windows
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          choco install innosetup --version=6.4.3 --yes --no-progress --allow-downgrade
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed.' }
+      - name: Package tested player
+        shell: powershell
+        run: ./tools/Package-Windows.ps1
+      - name: Verify installation and uninstallation
+        shell: powershell
+        run: ./tools/Test-Installer.ps1
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: distribution-${{ github.sha }}
+          path: |
+            Builds/Distribution/*.exe
+            Builds/Distribution/*.zip
+            Builds/Distribution/build-info.json
+            Builds/Distribution/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+  required:
+    name: PR validation
+    if: always()
+    needs: [tests, build, package]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every stage to succeed
+        env:
+          TESTS: ${{ needs.tests.result }}
+          BUILD: ${{ needs.build.result }}
+          PACKAGE: ${{ needs.package.result }}
+        run: test "$TESTS" = success && test "$BUILD" = success && test "$PACKAGE" = success
