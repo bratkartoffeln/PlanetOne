@@ -24,7 +24,7 @@ namespace PlanetOne.Core
             return null;
         }
         private bool PortOwned(BuildingState b, int owner)
-        { return b != null && b.Kind == BuildingKind.Spaceport && b.Built && !b.Deconstructing && !b.Destroyed && FindPlanet(b.PlanetId).OwnerId == owner; }
+        { return b != null && b.Kind == BuildingKind.Spaceport && b.Built && !b.Deconstructing && !b.Destroyed && BuildingOwner(FindPlanet(b.PlanetId),b) == owner; }
         private void ApplySpace(SimCommand c)
         {
             var p = FindPlanet(c.PlanetId); var b = FindBuilding(c.TargetId);
@@ -34,7 +34,7 @@ namespace PlanetOne.Core
             {
                 var research = State.Factions.Find(f => f.Id == c.IssuerId).Research;
                 error = ResearchError(c.IssuerId, (Technology)c.IntValue);
-                if (b == null || b.Kind != BuildingKind.Laboratory || !b.Built || b.Deconstructing || FindPlanet(b.PlanetId).OwnerId != c.IssuerId) error = "Eigenes fertiges Labor benötigt.";
+                if (b == null || b.Kind != BuildingKind.Laboratory || !b.Built || b.Deconstructing || BuildingOwner(FindPlanet(b.PlanetId),b) != c.IssuerId) error = "Eigenes fertiges Labor benötigt.";
                 else if (research.Active >= 0 && research.Active != c.IntValue) error = "Laufende Forschung zuerst abschließen.";
                 if (error == null) { research.Active = c.IntValue; research.LaboratoryId = b.Id; research.Status = "Material wird angeliefert"; }
             }
@@ -42,6 +42,7 @@ namespace PlanetOne.Core
             {
                 if (!PortOwned(b, c.IssuerId) || b.ShipBuildKind >= 0) error = "Freier eigener Raumhafen benötigt.";
                 else if (!Enum.IsDefined(typeof(ShipKind), c.IntValue)) error = "Unbekannter Schiffstyp.";
+                else if (c.IntValue > (int)ShipKind.OrbitalYard) error = "Militärschiffe benötigen eine Orbitalwerft.";
                 else if (!HasTechnology(c.IssuerId, Definitions.Ships[c.IntValue].Required)) error = "Schiffstechnologie fehlt.";
                 else { b.ShipBuildKind = c.IntValue; b.ShipBuildPaid = false; b.ShipBuildProgress = 0; }
             }
@@ -52,6 +53,7 @@ namespace PlanetOne.Core
                 else { int r = c.IntValue; b.Supply.Minimum[r] = c.Minimum; b.Supply.Target[r] = c.Amount; b.Supply.ExportReserve[r] = c.Reserve; b.Supply.Priority[r] = c.X; }
             }
             else if (ship == null) error = "Eigenes aktives Schiff benötigt.";
+            else if (ship.Kind == ShipKind.OrbitalYard || ship.TransportPhase != TransportPhase.Space) error = "Station oder gelandeter Träger kann keinen Raumflugauftrag ausführen.";
             else if (c.Kind == CommandKind.CancelFreight)
             { CancelFreight(ship); ship.AutoSupply = false; foreach (var route in State.Routes) if (route.ShipId == ship.Id) route.Enabled = false; }
             else if (c.Kind == CommandKind.SetAutoSupply)
@@ -69,7 +71,7 @@ namespace PlanetOne.Core
                 }
                 else if (!TryFreight(ship, b, target, c.IntValue, c.Amount)) error = "Kein freier Frachter, exportierbarer Bestand oder Zielplatz.";
             }
-            else if (ship.Freight != null || Total(ship.Cargo) > 0 && ship.Kind != ShipKind.ColonyShip) error = "Frachtauftrag zuerst abschließen oder abbrechen.";
+            else if (ship.Freight != null || Total(ship.Cargo) > 0 && ship.Kind != ShipKind.ColonyShip && ship.Kind != ShipKind.LandingTransport) error = "Frachtauftrag zuerst abschließen oder abbrechen.";
             else if (c.Kind == CommandKind.Colonize) error = Colonize(ship, p);
             else if (c.Kind == CommandKind.MoveShipPosition)
             {
@@ -120,6 +122,10 @@ namespace PlanetOne.Core
                 for (int r = 0; r < 6; r++) desired[r] = Math.Max(desired[r], Definitions.Technologies[research.Active].Cost[r]);
             if (b.Kind == BuildingKind.Spaceport)
                 for (int r = 0; r < 6; r++) desired[r] = Math.Max(desired[r], b.Supply.Target[r]);
+            if (b.Kind == BuildingKind.Spaceport)
+                foreach (var yard in State.Ships)
+                    if (!yard.Destroyed && yard.Kind == ShipKind.OrbitalYard && yard.OwnerId == BuildingOwner(p,b) && yard.TargetPlanetId == p.Id)
+                        for (int r=0;r<6;r++) desired[r]=Math.Max(desired[r], yard.ProductionKind>=0 && !yard.ProductionPaid ? Math.Max(0,Definitions.Ships[yard.ProductionKind].Cost[r]-yard.Cargo[r]) : r==3?8:0);
             for (int r = 0; r < 6; r++) if (desired[r] > 0) PlanInput(p, b, r, desired[r]);
         }
         private bool Pay(PlanetState p, BuildingState b, int[] cost)
@@ -143,7 +149,7 @@ namespace PlanetOne.Core
                 b.ShipBuildProgress += Definitions.TickSeconds * p.Productivity; b.Status = "Schiffsbau " + (int)(100 * b.ShipBuildProgress / d.Seconds) + "%";
                 if (b.ShipBuildProgress + 0.0000001 < d.Seconds) continue;
                 var pos = GetOrbitPosition(p.Id);
-                State.Ships.Add(new ShipState { Id = State.NextEntityId++, OwnerId = p.OwnerId, Kind = (ShipKind)b.ShipBuildKind, X = pos.X, Y = pos.Y, Crew = d.Crew, Cargo = (int[])d.ColonyCargo.Clone(), TargetPlanetId = p.Id, Order = ShipOrder.Guard });
+                State.Ships.Add(new ShipState { Id = State.NextEntityId++, OwnerId = p.OwnerId, Kind = (ShipKind)b.ShipBuildKind, X = pos.X, Y = pos.Y, Crew = d.Crew, Cargo = (int[])d.ColonyCargo.Clone(), TargetPlanetId = p.Id, Order = ShipOrder.Guard, Health = Definitions.SpaceWeapons[b.ShipBuildKind].Health });
                 for (int r = 0; r < 6; r++) p.ConsumedTotals[r] -= d.ColonyCargo[r];
                 b.ShipBuildKind = -1; b.ShipBuildPaid = false; b.ShipBuildProgress = 0; b.Status = "Schiff fertiggestellt";
             }
@@ -151,7 +157,7 @@ namespace PlanetOne.Core
             {
                 var research = f.Research; if (research.Active < 0) continue;
                 var b = FindBuilding(research.LaboratoryId);
-                if (b == null || b.Deconstructing || FindPlanet(b.PlanetId).OwnerId != f.Id) { research.Status = "Forschung pausiert: neues Labor zuweisen"; continue; }
+                if (b == null || b.Deconstructing || BuildingOwner(FindPlanet(b.PlanetId),b) != f.Id) { research.Status = "Forschung pausiert: neues Labor zuweisen"; continue; }
                 if (!b.Operational) { research.Status = "Forschung pausiert: " + b.Status; continue; }
                 var d = Definitions.Technologies[research.Active];
                 if (!research.Paid) { if (!Pay(FindPlanet(b.PlanetId), b, d.Cost)) { research.Status = "Versuchsmaterial wird angeliefert"; continue; } research.Paid = true; }
@@ -164,6 +170,7 @@ namespace PlanetOne.Core
             foreach (var ship in State.Ships)
             {
                 if (ship.Destroyed || ship.Consumed) continue;
+                if (ship.Kind == ShipKind.OrbitalYard || ship.TransportPhase != TransportPhase.Space) continue;
                 if (ship.Freight == null && ship.Kind == ShipKind.Freighter && Total(ship.Cargo) > 0) RecoverCargo(ship);
                 if (ship.Freight == null && Total(ship.Cargo) == 0)
                 {
@@ -283,6 +290,9 @@ namespace PlanetOne.Core
             var ship = State.Ships.Find(s => s.Id == shipId); if (ship == null || ship.Destroyed || ship.Consumed) return;
             CancelFreight(ship); for (int r = 0; r < 6; r++) { State.SpaceLostTotals[r] += ship.Cargo[r]; ship.Cargo[r] = 0; }
             ship.Destroyed = true; ship.Crew = 0; ship.AutoSupply = false; ship.Status = "Zerstört";
+            ship.Health = 0; ship.Order = ShipOrder.Hold;
+            foreach (var troop in ship.Troops) { troop.Destroyed = true; troop.Health = 0; State.SpaceLostTotals[3] += troop.Parts; troop.Parts = 0; }
+            ship.ProductionKind = -1; ship.ProductionPaid = false; ship.ProductionProgress = 0;
             foreach (var route in State.Routes) if (route.ShipId == ship.Id) route.Enabled = false;
         }
         private void CancelPortWork(PlanetState p, BuildingState b)
@@ -300,7 +310,7 @@ namespace PlanetOne.Core
         public bool IsPlanetKnown(int faction, int planetId)
         { return IsPlanetVisible(faction, planetId) || State.SpaceSightings.Exists(s => s.FactionId == faction && s.PlanetId == planetId); }
         public bool IsShipVisible(int faction, ShipState ship)
-        { return !ship.Destroyed && !ship.Consumed && (ship.OwnerId == faction || SpacePointVisible(faction, new SimPoint(ship.X, ship.Y))); }
+        { return !ship.Destroyed && !ship.Consumed && ship.TransportPhase == TransportPhase.Space && (ship.OwnerId == faction || SpacePointVisible(faction, new SimPoint(ship.X, ship.Y))); }
         private bool SpacePointVisible(int faction, SimPoint point)
         {
             foreach (var p in State.Planets) if (p.OwnerId == faction && Distance(point.X, point.Y, GetOrbitPosition(p.Id)) <= 6) return true;

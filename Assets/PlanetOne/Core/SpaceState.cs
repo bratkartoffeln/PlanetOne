@@ -4,13 +4,13 @@ using System.Runtime.Serialization;
 
 namespace PlanetOne.Core
 {
-    public enum ShipKind { Freighter, ColonyShip, SurveyShip }
-    public enum ShipOrder { Hold, Fly, Guard, Escort, Freight, MovePosition }
+    public enum ShipKind { Freighter, ColonyShip, SurveyShip, OrbitalYard, Scout, Corvette, EscortFrigate, TorpedoShip, LandingTransport }
+    public enum ShipOrder { Hold, Fly, Guard, Escort, Freight, MovePosition, Attack, Retreat, Repair, Bombard }
     public enum FreightPhase { Collect, Loading, Deliver, Unloading }
     public enum Technology { Transport, Colonization, CrystalMining, Electronics, Sensors }
 
     [DataContract, Serializable]
-    public sealed class ShipState
+    public sealed partial class ShipState
     {
         [DataMember] public long Id;
         [DataMember] public int OwnerId;
@@ -97,7 +97,13 @@ namespace PlanetOne.Core
         public static readonly ShipDefinition[] Ships = {
             new ShipDefinition("Frachter", new[] { 4,0,16,6,0,0 }, 2, 40, 12, 6, 5, Technology.Transport),
             new ShipDefinition("Kolonieschiff", new[] { 44,0,100,32,0,0 }, 12, 140, 20, 5, 6, Technology.Colonization, new[] {40,0,80,20,0,0}),
-            new ShipDefinition("Sensorschiff", new[] {4,0,16,6,0,4}, 2, 0, 14, 8, 12, Technology.Sensors)
+            new ShipDefinition("Sensorschiff", new[] {4,0,16,6,0,4}, 2, 0, 14, 8, 12, Technology.Sensors),
+            new ShipDefinition("Orbitalwerft", new[] {8,0,30,12,0,0}, 4, 160, 24, 0, 8, Technology.Transport),
+            new ShipDefinition("Aufklärer", new[] {2,0,12,4,0,0}, 1, 0, 10, 9, 12, Technology.Transport),
+            new ShipDefinition("Korvette", new[] {4,0,20,8,0,0}, 2, 0, 16, 7, 7, Technology.Transport),
+            new ShipDefinition("Eskortfregatte", new[] {6,0,32,14,0,0}, 3, 0, 24, 5, 8, Technology.Transport),
+            new ShipDefinition("Torpedoschiff", new[] {4,0,28,12,0,0}, 2, 0, 22, 4, 7, Technology.Transport),
+            new ShipDefinition("Landungstransporter", new[] {4,0,24,10,0,0}, 2, 24, 18, 5, 6, Technology.Transport)
         };
         public static readonly TechnologyDefinition[] Technologies = {
             new TechnologyDefinition(Technology.Transport, "Raumtransport", 12, new[] {0,0,4,2,0,0}),

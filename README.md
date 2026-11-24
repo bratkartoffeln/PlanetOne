@@ -49,6 +49,8 @@ Ein reproduzierbarer Core-Test baut drei Minuten auf und betreibt die Kolonie we
 
 ## Entwicklungsmeilensteine
 
+**M5 in Version 1.0.5, lokal umgesetzt und automatisiert geprüft:** Orbitalwerft, Raumkampf, Eskorte, Rückzug und Reparatur, reale Truppenverladung, Landung/Flak, versorgter Landekopf, Evakuierung und örtliche Eroberung. Einstieg über **M5 Invasion prüfen** beziehungsweise den Reiter **Krieg**. [M5_NACHWEIS](docs/M5_NACHWEIS.md) dokumentiert 74 Core-Tests, 103 grafische Einzelprüfungen sowie die noch offene manuelle Abnahme und Git-Integration.
+
 **M4 in Version 1.0.3:** Schiffsbau, freie Erkundungsflüge, Eskorte, Koloniegründung, interplanetare Fracht mit Reservierungen, feste Routen und automatische Hafenversorgung sowie Kristalle, Elektronik und ein verzweigter Forschungsbaum sind umgesetzt. Einstieg über **Raumfahrt und Forschung** oder **M4 Aufbau und Raumfahrt**. Regeln, Bedienung, Balance und Nachweise stehen in [M4_NACHWEIS](docs/M4_NACHWEIS.md).
 
 **M3 in Version 1.0.2:** Bodentruppen werden mit real angeliefertem Material rekrutiert. Sicht, Deckung, Gefechte, Rückzug, vier Geschützstellungen, Mauern, Tore, Depots und Pioniernachschub sind umgesetzt. Die Systemübersicht bietet eine ausdrücklich gekennzeichnete Gefechtsprüfkarte. Bedienung, Testbestände und Nachweise stehen in [M3_NACHWEIS](docs/M3_NACHWEIS.md).
@@ -93,6 +95,8 @@ powershell -ExecutionPolicy Bypass -File .\tools\Unity.ps1 -Action Build
 Der Windows-Build entsteht unter `Builds/Windows/PlanetOne.exe`. Die Buildausgabe ist lokal erzeugt; auf einem neuen Checkout wird sie mit dem Buildskript erstellt.
 
 Kernregeln und grafischen Integrationsablauf prüfen:
+
+**Aktuelle Testvorgabe:** Den laufenden Arbeitsdesktop nicht stören; keine Screenreader- oder Computer-Use-Prüfung. Core-Tests und Unity-Batch-Builds laufen ohne sichtbare Fenster. Den folgenden grafischen Aufruf ausschließlich in einer isolierten Testsitzung ausführen, gegebenenfalls in einer dedizierten VirtualBox-VM; nicht auf dem benutzten Arbeitsdesktop.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\Test-Core.ps1
@@ -143,9 +147,9 @@ Die obere Leiste bietet zusätzlich Pause, Spieltempo **1× / 2×**, Speichern u
 ## Aktueller Stand
 
 - **M0 abgeschlossen:** Unity importiert das Projekt; Vorbereitung und Windows-Mono-Build enden erfolgreich.
-- **58 Core-Tests bestanden:** Wirtschaft und M3 sowie Schiffsbau, Erkundung, Gründung, Frachten, Reservierungen, Forschung, Kristall-/Elektronikkette und Speicherformat 4 mit Migration aus V1/V2/V3.
-- **Grafischer Integrationstest bestanden:** 91 Einzelprüfungen und elf visuell kontrollierte Renderbilder. M3 und M4 wurden zusätzlich gezielt mit echten Maus-/Tastatureingaben geprüft; siehe [M3-Nachweis](docs/M3_NACHWEIS.md) und [M4-Nachweis](docs/M4_NACHWEIS.md).
+- **74 Core-Tests bestanden:** Wirtschaft, M3/M4 und M5 einschließlich Raumkampf, Landung, Transportintegrität, Eroberung und Speicherformat 5 mit Migration aus V1–V4.
+- **Grafischer Integrationstest bestanden:** 103 Einzelprüfungen und 14 erzeugte Renderbilder; M5-Bilder als Dateien geprüft. M3/M4 besitzen zusätzliche frühere native Bediennachweise; die vollständige manuelle M5-Abnahme bleibt offen. Aktuelle Tests ohne Eingriffe in den Arbeitsdesktop: [M5-Nachweis](docs/M5_NACHWEIS.md).
 - **Versionswerkzeuge geprüft:** 12 Tests mit 19 isolierten Fixtures, einschließlich Rücknahme eines fehlgeschlagenen Schreibvorgangs. Produktversion, Playeranzeige und Versionsbranch sind synchron.
 - **Vorläufiges Testszenario:** zwei eigene Kolonien und ein neutraler Mond; je Oberfläche 18 × 14 Felder und vier Kuriere pro Kolonie.
-- **Funktionsstand:** M1/M2 technisch abgenommen nach [T-006](docs/DECISIONS.md); M3 und M4 einschließlich gezielter echter Bedienprüfung abgeschlossen. Die vollständige ältere Wirtschaftsbedienungsabnahme bleibt separat offen. Als Nächstes folgt M5 mit Raumkampf, Landung und Invasion; KI und Diplomatie folgen danach.
+- **Funktionsstand:** M1/M2 technisch abgenommen nach [T-006](docs/DECISIONS.md); M3 und M4 einschließlich gezielter echter Bedienprüfung abgeschlossen. Die vollständige ältere Wirtschaftsbedienungsabnahme bleibt separat offen. M5 ist lokal umgesetzt und automatisiert geprüft; seine manuelle Abnahme und Git-Integration bleiben offen. M6-KI und M7-Diplomatie folgen danach.
 - **Plattformstatus:** Windows-Player und programmatische Eingabeadapter sind geprüft. Weitere Desktop-, Web-, Mobil- und Konsolenexporte sowie eine vollständige manuelle Bedienungsabnahme sind ungeprüft. Der kleine Prototyp liefert noch keine Performancegarantie für das vollständige Spiel.

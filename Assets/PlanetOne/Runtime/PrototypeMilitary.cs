@@ -120,6 +120,7 @@ namespace PlanetOne.Runtime
 
         private void UpdateMilitaryViews(PlanetState p)
         {
+            foreach(var view in unitViews.Values) if(view!=null) view.gameObject.SetActive(false);
             foreach (var u in p.Units)
             {
                 Transform t;
@@ -145,6 +146,7 @@ namespace PlanetOne.Runtime
         private void DrawMilitaryLabels(float scale)
         {
             var p = simulation.FindPlanet(openPlanetId);
+            var labelRects=new List<Rect>();
             if (simulation.State.MilitaryTestFixture)
                 GUI.Label(new Rect(20, TopHeight + 12, 730, 28), "M3 TESTFIXTURE · endliche Bestände · keine Fraktions-KI", headingStyle);
             foreach (var u in p.Units)
@@ -154,7 +156,10 @@ namespace PlanetOne.Runtime
                 if (!sceneCamera.pixelRect.Contains(screen)) continue;
                 float x = screen.x / scale, y = (Screen.height - screen.y) / scale;
                 string marker = selectedUnits.Contains(u.Id) ? "▶ " : "";
-                GUI.Label(new Rect(x - 48, y - 25, 155, 24), marker + Definitions.Get(u.Kind).Name, smallStyle);
+                var labelRect=new Rect(x-48,y-25,170,24);
+                while(labelRects.Exists(r=>r.Overlaps(labelRect))) labelRect.y-=24;
+                labelRects.Add(labelRect);
+                GUI.Label(labelRect, marker + Definitions.Get(u.Kind).Name, smallStyle);
                 Fill(new Rect(x - 18, y - 3, 36, 4), Border);
                 Fill(new Rect(x - 18, y - 3, 36 * (float)(u.Health / Definitions.Get(u.Kind).Health), 4), u.OwnerId == PlayerFactionId ? Cyan : Danger);
                 if (selectedUnits.Contains(u.Id) && u.Order != UnitOrder.Hold)
@@ -211,6 +216,7 @@ namespace PlanetOne.Runtime
                 TargetButton("Reparatur: eigenes Ziel wählen", CommandKind.RepairTarget);
                 if (militaryTargetMode.HasValue) GUILayout.Label("Jetzt das Ziel auf der Karte anklicken.", bodyStyle);
             }
+            DrawGroundInvasionPanel(p);
             GUILayout.Space(10); GUILayout.Label("REKRUTIERUNG", headingStyle);
             foreach (var b in p.Buildings)
                 if (b.Built && !b.Deconstructing && (b.Kind == BuildingKind.Barracks || b.Kind == BuildingKind.VehicleFactory)) DrawRecruitment(b);

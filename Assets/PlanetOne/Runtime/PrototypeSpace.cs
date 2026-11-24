@@ -18,7 +18,7 @@ namespace PlanetOne.Runtime
         private Vector2? shipSelectionStart;
         private GUIStyle spaceTabStyle;
         public int RenderedShipCount { get { int n=0; foreach(var t in shipViews.Values) if(t.gameObject.activeSelf) n++; return n; } }
-        public void ShowSpacePanel(int tab) { showingSpacePanel=true; spacePanelTab=Mathf.Clamp(tab,0,2); sidebarScroll=Vector2.zero; }
+        public void ShowSpacePanel(int tab) { showingSpacePanel=true; spacePanelTab=Mathf.Clamp(tab,0,3); sidebarScroll=Vector2.zero; }
         public void StartSpaceFixture()
         {
             if (!simulation.State.MilitaryTestFixture && !simulation.State.SpaceTestFixture) priorSession = simulation;
@@ -127,13 +127,13 @@ namespace PlanetOne.Runtime
         private void DrawSpacePanel()
         {
             if(spaceTabStyle==null) spaceTabStyle=new GUIStyle(GUI.skin.button) { fontSize=11, wordWrap=true, padding=new RectOffset(3,3,4,4) };
-            spacePanelTab=GUILayout.Toolbar(spacePanelTab,new[]{"Flotte","Forschung","Logistik"},spaceTabStyle,GUILayout.Width(208)); GUILayout.Space(10);
+            spacePanelTab=GUILayout.Toolbar(spacePanelTab,new[]{"Flotte","Technik","Fracht","Krieg"},spaceTabStyle,GUILayout.Width(208)); GUILayout.Space(10);
             if(simulation.State.SpaceTestFixture)
             {
                 GUILayout.Label("M4 DEMONSTRATION · regulär finanzierter Aufbau",smallStyle);
                 if(priorSession!=null && GUILayout.Button("Zur laufenden Kolonie zurück",buttonStyle)) { simulation=priorSession; priorSession=null; foodRates.Clear(); BuildSpace(); SetView(0); return; }
             }
-            if(spacePanelTab==0) DrawFleetPanel(); else if(spacePanelTab==1) DrawResearchPanel(); else DrawSupplyPanel();
+            if(spacePanelTab==0) DrawFleetPanel(); else if(spacePanelTab==1) DrawResearchPanel(); else if(spacePanelTab==2) DrawSupplyPanel(); else DrawInvasionPanel();
         }
         private BuildingState ChoosePort()
         {
@@ -171,7 +171,7 @@ namespace PlanetOne.Runtime
             if(GUILayout.Button("Zieloberfläche öffnen",buttonStyle)) SetView(spaceTarget);
             GUILayout.Space(12); var port=ChoosePort(); if(port==null) return;
             if(port.ShipBuildKind>=0) GUILayout.Label("Bauauftrag: "+Definitions.Ships[port.ShipBuildKind].Name,bodyStyle);
-            else for(int i=0;i<Definitions.Ships.Length;i++)
+            else for(int i=0;i<=(int)ShipKind.OrbitalYard;i++)
             {
                 var d=Definitions.Ships[i]; bool unlocked=simulation.HasTechnology(PlayerFactionId,d.Required);
                 GUILayout.Label(d.Name+": "+GoodsText(d.Cost)+" · "+d.Crew+" Bewohner · "+d.Seconds+" s",smallStyle);

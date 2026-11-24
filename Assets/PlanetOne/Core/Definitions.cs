@@ -86,7 +86,9 @@ namespace PlanetOne.Core
             new BuildingDefinition(BuildingKind.Spaceport, "Raumhafen", 18, 5, 8, 2, 0, 2, 240),
             new BuildingDefinition(BuildingKind.Laboratory, "Forschungslabor", 12, 4, 6, 2, 0, 2, 40),
             new BuildingDefinition(BuildingKind.CrystalMine, "Kristallmine", 12, 4, 6, 2, 0, 2, 40, 5, null, Goods(ResourceKind.Crystals, 1)),
-            new BuildingDefinition(BuildingKind.ElectronicsFactory, "Elektronikwerk", 16, 6, 8, 3, 0, 3, 50, 6, new[] {0,0,2,0,1,0}, Goods(ResourceKind.Electronics, 1))
+            new BuildingDefinition(BuildingKind.ElectronicsFactory, "Elektronikwerk", 16, 6, 8, 3, 0, 3, 50, 6, new[] {0,0,2,0,1,0}, Goods(ResourceKind.Electronics, 1)),
+            new BuildingDefinition(BuildingKind.ShieldGenerator, "Lokaler Schild", 24, 10, 12, 6, 0, 2, 40),
+            new BuildingDefinition(BuildingKind.OrbitalBattery, "Planetare Abwehrbatterie", 28, 12, 12, 4, 0, 2, 40)
         };
 
         public static BuildingDefinition Get(BuildingKind kind)

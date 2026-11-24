@@ -18,7 +18,7 @@ namespace PlanetOne.Core
             var connected = new HashSet<long>();
             foreach (var b in p.Buildings)
             {
-                if (headquarters == null || FindPath(p, headquarters, b) == null) continue;
+                if (BuildingOwner(p,b)!=p.OwnerId || headquarters == null || FindPath(p, headquarters, b) == null) continue;
                 connected.Add(b.Id);
                 if (!b.Built || !b.Enabled || b.Deconstructing) continue;
                 var definition = Definitions.Get(b.Kind);
@@ -269,7 +269,7 @@ namespace PlanetOne.Core
             for (int i = p.Buildings.Count - 1; i >= 0; i--)
             {
                 var b = p.Buildings[i];
-                if (!b.Deconstructing || Total(b.Inventory) != 0 || Total(b.ReservedOutgoing) != 0 || Total(b.ReservedIncoming) != 0 || b.ReservedReturnSpace != 0 ||
+                if ((b.Destroyed && b.Kind==BuildingKind.Headquarters) || !b.Deconstructing || Total(b.Inventory) != 0 || Total(b.ReservedOutgoing) != 0 || Total(b.ReservedIncoming) != 0 || b.ReservedReturnSpace != 0 ||
                     p.Deliveries.Exists(d => d.SourceId == b.Id || d.TargetId == b.Id) ||
                     p.Shipments.Exists(s => s.SourceId == b.Id || s.TargetId == b.Id)) continue;
                 p.Buildings.RemoveAt(i);

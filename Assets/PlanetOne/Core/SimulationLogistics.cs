@@ -12,7 +12,7 @@ namespace PlanetOne.Core
                 PlanInput(p, headquarters, (int)ResourceKind.Food, Math.Max(24, p.Population * 2));
             foreach (var target in p.Buildings)
             {
-                if (!target.Built || !target.Enabled || target.Deconstructing) continue;
+                if (BuildingOwner(p,target)!=p.OwnerId || !target.Built || !target.Enabled || target.Deconstructing) continue;
                 var definition = Definitions.Get(target.Kind);
                 PlanSpaceInputs(p, target);
                 if (target.RecruitKind >= 0)
@@ -20,7 +20,7 @@ namespace PlanetOne.Core
                     var cost = Definitions.Get((UnitKind)target.RecruitKind).Cost;
                     if (!target.RecruitPaid) for (int r = 0; r < 6; r++) if (cost[r] > 0) PlanInput(p, target, r, cost[r]);
                 }
-                if (target.Kind == BuildingKind.MilitaryDepot || Definitions.IsTower(target.Kind))
+                if (target.Kind == BuildingKind.MilitaryDepot || target.Kind == BuildingKind.OrbitalBattery || Definitions.IsTower(target.Kind))
                 {
                     PlanInput(p, target, (int)ResourceKind.Food, 8);
                     PlanInput(p, target, (int)ResourceKind.Parts, target.Kind == BuildingKind.MilitaryDepot ? 24 : 8);
@@ -30,7 +30,7 @@ namespace PlanetOne.Core
             }
             foreach (var source in p.Buildings)
             {
-                if (!source.Deconstructing && (!source.Built || IsStorage(source))) continue;
+                if (BuildingOwner(p,source)!=p.OwnerId || !source.Deconstructing && (!source.Built || IsStorage(source))) continue;
                 var definition = Definitions.Get(source.Kind);
                 for (int r = 0; r < 6; r++)
                 {
@@ -39,7 +39,7 @@ namespace PlanetOne.Core
                     if (amount < (source.Deconstructing ? 1 : 4)) continue;
                     foreach (var target in p.Buildings)
                     {
-                        if (!target.Built || target.Deconstructing || !IsStorage(target) || target.Id == source.Id ||
+                        if (BuildingOwner(p,target)!=p.OwnerId || !target.Built || target.Deconstructing || !IsStorage(target) || target.Id == source.Id ||
                             FreeSpace(target) <= 0 || FindPath(p, source, target) == null) continue;
                         int targetNeed = StorageTarget(p, r) - target.Inventory[r] - target.ReservedIncoming[r];
                         if (source.Deconstructing) targetNeed = FreeSpace(target);
@@ -70,7 +70,7 @@ namespace PlanetOne.Core
             if (needed <= 0) return;
             foreach (var source in p.Buildings)
             {
-                if ((!source.Built && !source.Deconstructing) || source.Id == target.Id ||
+                if (BuildingOwner(p,source)!=BuildingOwner(p,target) || (!source.Built && !source.Deconstructing) || source.Id == target.Id ||
                     (!source.Deconstructing && !IsStorage(source) && source.Kind != BuildingKind.Spaceport && Definitions.Get(source.Kind).Outputs[resource] == 0)) continue;
                 // Local factories may use every uncommitted item; export reserves do not apply here.
                 int available = source.Inventory[resource] - source.ReservedOutgoing[resource];

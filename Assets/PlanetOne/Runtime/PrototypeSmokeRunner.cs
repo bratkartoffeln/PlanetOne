@@ -281,6 +281,39 @@ namespace PlanetOne.Runtime
             Require(controller.SaveGame(), "M4 session saves after founding and delivery");
             spaceJson = SaveCodec.ToJson(space.State);
             Require(controller.LoadGame() && SaveCodec.ToJson(controller.Simulation.State) == spaceJson, "M4 final save retains colony freight research and knowledge");
+
+            controller.StartInvasionFixture();
+            var invasion=controller.Simulation;
+            Require(invasion.State.InvasionTestFixture && invasion.State.Paused,"M5 finite fixture starts paused in its own session");
+            var carrier=invasion.State.Ships.Find(s=>s.Kind==ShipKind.LandingTransport);
+            Require(carrier.Troops.Count==4 && invasion.FindPlanet(1).Units.Count==0,"M5 four troops exist only in their carrier");
+            invasion.Enqueue(new SimCommand {Id=invasion.NextCommandId(),IssuerId=1,Kind=CommandKind.SetPaused,BoolValue=false});
+            controller.SelectShip(carrier.Id);controller.ShowSpacePanel(3);
+            foreach(var ship in invasion.State.Ships) if(ship.OwnerId==1 && ship.Kind!=ShipKind.OrbitalYard) controller.RequestSpaceOrder(CommandKind.FlyShip,ship.Id,planet:2);
+            invasion.Step(500);
+            Require(invasion.State.Ships.Exists(s=>s.OwnerId==2 && s.Destroyed),"M5 real fleet weapons defeat the local corvette");
+            Require(!carrier.Destroyed && carrier.Troops.Count==4,"M5 supplied transport survives escorted approach");
+            yield return null;yield return Capture("invasion-orbit.png");
+            controller.RequestInvasionOrder(CommandKind.LandTransport,carrier.Id,planet:2,x:4,y:9);invasion.Step(50);
+            Require(carrier.TransportPhase==TransportPhase.Descending,"M5 descent has a real vulnerable transition");
+            controller.SetView(2);yield return null;yield return Capture("invasion-descent.png");
+            Require(controller.SaveGame(),"M5 descent saves");string descent=SaveCodec.ToJson(invasion.State);
+            Require(controller.LoadGame() && SaveCodec.ToJson(controller.Simulation.State)==descent,"M5 descent restores exactly");
+            invasion=controller.Simulation;carrier=invasion.State.Ships.Find(s=>s.Kind==ShipKind.LandingTransport);invasion.Step(120);
+            var troopIds=new System.Collections.Generic.List<long>();foreach(var u in carrier.Troops) troopIds.Add(u.Id);
+            foreach(long id in troopIds){controller.RequestInvasionOrder(CommandKind.UnloadTroop,carrier.Id,id,2);invasion.Step();}
+            Require(carrier.Troops.Count==0 && invasion.FindPlanet(2).Units.FindAll(u=>u.OwnerId==1).Count==4,"M5 all transported identities are active only on destination surface");
+            var ground=invasion.FindPlanet(2);var engineer=ground.Units.Find(u=>u.OwnerId==1 && u.Kind==UnitKind.Engineer);
+            controller.RequestInvasionOrder(CommandKind.EstablishBeachhead,engineer.Id,planet:2,x:(int)engineer.X,y:(int)engineer.Y);invasion.Step(140);
+            Require(invasion.State.Beachheads.Exists(h=>h.Progress==Definitions.BeachheadSeconds && h.Food>0),"M5 paid pioneer establishes supplied beachhead");
+            var infantry=ground.Units.Find(u=>u.OwnerId==1 && u.Kind==UnitKind.Infantry);
+            controller.RequestUnitOrder(infantry.Id,CommandKind.MoveUnit,7,6);invasion.Step(160);
+            var hq=ground.Buildings.Find(b=>b.Kind==BuildingKind.Headquarters);
+            controller.RequestInvasionOrder(CommandKind.CaptureBuilding,infantry.Id,hq.Id,2);invasion.Step(180);
+            Require(ground.OwnerId==1 && ground.Units.Exists(u=>u.OwnerId==2 && !u.Destroyed),"M5 infantry and supply capture planet without deleting surviving defenders");
+            controller.SelectUnit(infantry.Id);controller.ShowSpacePanel(3);yield return null;yield return Capture("invasion-capture.png");
+            Require(controller.SaveGame(),"M5 occupation saves");string occupied=SaveCodec.ToJson(invasion.State);
+            Require(controller.LoadGame() && SaveCodec.ToJson(controller.Simulation.State)==occupied,"M5 occupation stocks owners and troops restore exactly");
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)
