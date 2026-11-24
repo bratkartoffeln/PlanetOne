@@ -6,6 +6,8 @@ Diese Übersicht rekonstruiert den im Projekt erhaltenen Konzeptstand; sie ist k
 
 Die Oberflächen verwenden seit Version 1.0.6 ein Hexraster aus sechseckigen Waben: sechs Nachbarn für Bauanschluss, Straßen und Bewegung, geometrisch passende Sicht und Reichweiten sowie Landezonen aus sieben Waben. Spielstandübernahme und Nachweise: [HEXRASTER_NACHWEIS](HEXRASTER_NACHWEIS.md).
 
+Seit Version 1.0.7 ist M6 lokal umgesetzt und automatisiert geprüft: eigenständige Wirtschaft, Forschung, Erkundung, Kolonisierung, Operationsplanung und Rückzug über reguläre Befehle mit begrenztem Wissen. Einstieg über **M6 Gegen Computer spielen**; Nachweise, separate taktische Fixture und noch offene manuelle/Git-Abnahme: [M6_NACHWEIS](M6_NACHWEIS.md). Diplomatie und gemeinsamer Sieg bleiben M7.
+
 ## 1 Spielidee und Umfang
 
 Der Spieler führt eine Weltraumfraktion: erkunden, besiedeln, produzieren, transportieren, erforschen, verteidigen und expandieren. Wirtschaft, Flotten, Bodenarmeen und diplomatische Beziehungen beeinflussen sich unmittelbar. Auf Planeten entstehen Bevölkerung, Waren, Forschung und Truppen. Flotten sichern Expansion und Versorgung. Bodenarmeen kämpfen auf den tatsächlich aufgebauten Kolonieflächen.
@@ -229,7 +231,7 @@ Kosten, Produktionsraten, Reichweiten, Schaden, Schildstärke, Vorräte, Sicheru
 
 ## 17 Entwicklungsstand und Reihenfolge
 
-Aktueller Stand nach dem nächsten Meilenstein: **M4 ist in Produktversion 1.0.3 abgeschlossen.** Schiffsbau, freie Erkundung, bewegte Ziele, Eskorte, bezahlte Koloniegründung, physische Frachter, automatische Hafenversorgung, feste Routen, Kristalle, Elektronik und fünf verzweigte Technologien sind vorhanden. 58 Core-Tests, Windows-Build, 91 grafische Einzelprüfungen, elf kontrollierte Renderbilder und gezielte native Eingaben sind nachgewiesen. [M4_NACHWEIS](M4_NACHWEIS.md) unterscheidet Bedienprüfung, automatisierten Wirtschaftsdurchlauf und verbleibende Grenzen. Die folgenden Angaben zu M3 und 1.0.1 bleiben historisch.
+Aktuell ist M6 in 1.0.7 lokal umgesetzt und automatisiert geprüft; siehe [M6_NACHWEIS](M6_NACHWEIS.md). Historischer Nachweis zu M4: **M4 ist in Produktversion 1.0.3 abgeschlossen.** Schiffsbau, freie Erkundung, bewegte Ziele, Eskorte, bezahlte Koloniegründung, physische Frachter, automatische Hafenversorgung, feste Routen, Kristalle, Elektronik und fünf verzweigte Technologien sind vorhanden. 58 Core-Tests, Windows-Build, 91 grafische Einzelprüfungen, elf kontrollierte Renderbilder und gezielte native Eingaben sind nachgewiesen. [M4_NACHWEIS](M4_NACHWEIS.md) unterscheidet Bedienprüfung, automatisierten Wirtschaftsdurchlauf und verbleibende Grenzen. Die folgenden Angaben zu M3 und 1.0.1 bleiben historisch.
 
 Aktualisierung nach dem anschließenden M3-Auftrag: Produktversion **1.0.2** ergänzt reguläre Rekrutierung, Bodengefechte, Sicht, Mauern/Tore, vier Stellungen, Depots und Pioniernachschub. **43 Core-Tests**, Windows-Build, **71 grafische Einzelprüfungen**, sieben Renderbilder und gezielte echte Maus-/Tastaturprüfungen sind erfolgreich. Umfang, vorläufige Balance und Grenzen stehen in [M3_NACHWEIS](M3_NACHWEIS.md). Die nachfolgenden Angaben zu 1.0.1 halten den Ausgangsstand der Rekonstruktion fest.
 
@@ -237,7 +239,7 @@ Der dokumentierte Ausgangsstand ist Produktversion 1.0.1. M0 ist abgeschlossen; 
 
 Dokumentierte Nachweise: Windows-Build, 28 Core-Tests und 58 programmatische Prüfbedingungen im sichtbaren Player mit vier kontrollierten Renderbildern. Der zusätzliche physische Mausbedienungstest und andere Plattformen bleiben offen. Diese Übersicht behauptet keine neue Testausführung.
 
-| Meilenstein | Inhalt | Stand nach M4 |
+| Meilenstein | Inhalt | Stand nach M6 |
 |---|---|---|
 | M0 | Unity und Werkzeuge | Abgeschlossen |
 | M1 | Gemeinsame Simulation, Befehle und Speichergrundlage | Technisch abgenommen nach T-006 |
@@ -245,7 +247,7 @@ Dokumentierte Nachweise: Windows-Build, 28 Core-Tests und 58 programmatische Pr�
 | M3 | Bodentruppen, Gefechte, Türme, Mauern und Nachschub | P06 und P07 in 1.0.2 abgeschlossen |
 | M4 | Schiffsbau, Kolonisierung, Frachter und Forschung | P08–P10 in 1.0.3 abgeschlossen |
 | M5 | Raumkampf, Landung und durchgängige Invasion | In 1.0.5 lokal umgesetzt und automatisiert geprüft; manuelle Abnahme/Git-Integration offen, siehe [M5_NACHWEIS](M5_NACHWEIS.md) |
-| M6 | Eigenständige wirtschaftliche und militärische KI | Offen |
+| M6 | Eigenständige wirtschaftliche und militärische KI | In 1.0.7 lokal umgesetzt und automatisiert geprüft; manuelle Abnahme/Git-Integration offen |
 | M7 | Verträge, Koalitionen und gemeinsamer Sieg | Offen |
 | M8 | Gesamtintegration, Exporte und Referenzszenario | Offen |
 

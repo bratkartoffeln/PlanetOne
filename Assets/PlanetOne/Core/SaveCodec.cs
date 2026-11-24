@@ -9,7 +9,7 @@ namespace PlanetOne.Core
     /// <summary>Portable JSON snapshot codec. File locations and atomic writes belong to the platform adapter.</summary>
     public static partial class SaveCodec
     {
-        public const int CurrentVersion = 6;
+        public const int CurrentVersion = 7;
         private const int MaximumJsonLength = 4 * 1024 * 1024;
 
         public static string ToJson(GameState state)
@@ -37,6 +37,8 @@ namespace PlanetOne.Core
                     if (state != null && state.Version == 4) MigrateInvasion(state);
                     // Odd-row coordinates preserve all former cardinal paths and their progress.
                     if (state != null && state.Version == 5) state.Version = 6;
+                    if (state != null && state.Version == 6)
+                    { state.ComputerFactions = new List<AiState>(); state.AiScenario = false; state.Version = 7; }
                     Validate(state);
                     return state;
                 }
@@ -51,6 +53,7 @@ namespace PlanetOne.Core
         {
             Require(state != null, "Spielzustand fehlt.");
             Require(state.Version == CurrentVersion, "Nicht unterstützte Spielstandversion.");
+            ValidateAi(state);
             Require(state.Tick >= 0 && state.NextEntityId > 0 && state.NextCommand > 0, "Ungültige Zeit oder Kennungen.");
             Require(Finite(state.Accumulator) && state.Accumulator >= 0 && state.Accumulator < Definitions.TickSeconds + 0.000001,
                 "Ungültiger Simulationsrest.");

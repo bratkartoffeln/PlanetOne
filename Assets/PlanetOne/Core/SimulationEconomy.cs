@@ -142,7 +142,7 @@ namespace PlanetOne.Core
             {
                 b.Built = true;
                 SetStatus(p, b, "BuildingCompleted", "Bereit");
-                State.LastMessage = definition.Name + " auf " + p.Name + " fertiggestellt.";
+                if(BuildingOwner(p,b)==State.PlayerFactionId) State.LastMessage = definition.Name + " auf " + p.Name + " fertiggestellt.";
             }
             else SetStatus(p, b, "UnderConstruction", "Wird errichtet");
             return true;

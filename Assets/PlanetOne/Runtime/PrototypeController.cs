@@ -81,7 +81,7 @@ namespace PlanetOne.Runtime
         public int RenderedShipmentCount { get { return shipmentViews.Count; } }
         public int PlayerFactionId { get { return simulation.State.PlayerFactionId; } }
         public static string SavePath { get { return Path.Combine(Application.persistentDataPath, "prototype-save.json"); } }
-        public string ActiveSavePath { get { return smokeSavePath ?? (simulation.State.InvasionTestFixture ? Path.Combine(Application.persistentDataPath, "invasion-fixture-save.json") : simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "space-fixture-save.json") : simulation.State.MilitaryTestFixture ? Path.Combine(Application.persistentDataPath, "military-fixture-save.json") : SavePath); } }
+        public string ActiveSavePath { get { return smokeSavePath ?? (simulation.State.AiScenario ? Path.Combine(Application.persistentDataPath, "ai-scenario-save.json") : simulation.State.InvasionTestFixture ? Path.Combine(Application.persistentDataPath, "invasion-fixture-save.json") : simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "space-fixture-save.json") : simulation.State.MilitaryTestFixture ? Path.Combine(Application.persistentDataPath, "military-fixture-save.json") : SavePath); } }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureBootstrap()
@@ -569,6 +569,7 @@ namespace PlanetOne.Runtime
             GUILayout.BeginArea(new Rect(area.x + 17, area.y + 18, area.width - 34, area.height - 30));
             sidebarScroll = GUILayout.BeginScrollView(sidebarScroll, false, true);
             GUILayout.BeginVertical(GUILayout.Width(area.width - 70));
+            DrawAiSession();
             if (GUILayout.Button(showingSpacePanel ? "Zur Kolonieübersicht" : "Raumfahrt und Forschung", buttonStyle, GUILayout.Height(32))) { showingSpacePanel = !showingSpacePanel; sidebarScroll = Vector2.zero; }
             if (showingSpacePanel) { DrawSpacePanel(); GUILayout.EndVertical(); GUILayout.EndScrollView(); GUILayout.EndArea(); return; }
             if (openPlanetId == 0)
@@ -592,6 +593,8 @@ namespace PlanetOne.Runtime
                 GUILayout.Space(14);
                 GUILayout.Label("Beide Kolonien arbeiten weiter, während du die Ansicht wechselst.", mutedStyle);
                 GUILayout.Space(16);
+                if (GUILayout.Button("M6 Gegen Computer spielen", buttonStyle, GUILayout.Height(38))) StartAiScenario();
+                GUILayout.Label("Eigenständiger Gegner, gleiche Startmittel. Neue separate Partie im Krieg.", smallStyle);
                 GUILayout.Label("DEMONSTRATIONEN", headingStyle);
                 if (GUILayout.Button("M4 Aufbau und Raumfahrt", buttonStyle, GUILayout.Height(34))) StartSpaceFixture();
                 if (GUILayout.Button("M5 Invasion prüfen", buttonStyle, GUILayout.Height(34))) StartInvasionFixture();

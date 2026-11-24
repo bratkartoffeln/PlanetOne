@@ -34,6 +34,12 @@ Umlaufbahnen, Bauvorschau, Lieferbewegungen und Reichweiten sind funktionale Dar
 
 `HexGrid` im Unity-unabhängigen Core definiert das odd-r-Wabenraster. Ganzzahlige Adressen sind Spalte/Zeile; benachbarte Mittelpunkte haben Abstand eins. Kontinuierliche Bodenpositionen interpolieren den Zeilenversatz zwischen Nachbarzentren. Rendering, Kamera-Picking, Straßen- und Truppenwege, Sicht, Reichweite, Deckung und Landezonen nutzen dieselbe Geometrie. Raumpositionen behalten ihre kartesische Bedeutung. Speicherformat 6 übernimmt die bisherigen Feldadressen und Wege ohne Änderung an Ressourcen oder Identitäten; Details: [HEXRASTER_NACHWEIS](HEXRASTER_NACHWEIS.md).
 
+## KI-Grenze ab 1.0.7
+
+Die Simulationsseite erstellt mit ObserveForAi kopierte, sichtgefilterte AiObservation-Daten. AiPlanner besitzt keinen Zugriff auf Simulation, Weltzustand oder fremde interne Bestände. Eigene Operations- und Wissensdaten werden getrennt in AiState gespeichert. Ergebnisse sind einzelne AiIntent-Befehle, die TickAi am Ende eines regulären Takts über Enqueue einreiht; Ausführung erfolgt im folgenden Takt durch dieselbe Validierung wie beim Spieler. Kamera und Bildrate planen keine KI.
+
+Speicherformat 7 ergänzt KI-Zustand, Operationsphasen, exklusive Zuweisungen, Kontakte und Entscheidungshistorie. Alte Spielstände erhalten keine automatisch aktivierte KI. Private KI-Meldungen werden nicht in die Spielermeldung übernommen. Details und Abgrenzung öffentlicher Geografie: [M6_NACHWEIS](M6_NACHWEIS.md).
+
 ## Systemgrenzen
 
 | Modul | Verantwortlich für | Darf nicht selbst bestimmen |
@@ -175,7 +181,7 @@ Definitionen werden über IDs und Versionen referenziert. Renderobjekte, Dateiha
 
 Speichern erfolgt über einen Plattformadapter möglichst atomar, mit Schutz des vorherigen gültigen Stands. Unbekannte oder inkompatible Versionen werden verständlich abgelehnt; keine stillschweigende Teilwiederherstellung. Migrationen erst für tatsächlich unterstützte ältere Formate implementieren.
 
-Der aktuelle JSON-Schnappschuss verwendet **Speicherformat 2**. Es umfasst auch Bevölkerung, Nahrungsrest und -mangel, Wachstum, Energiespeicher, Prioritäten, Rückbau, Fracht samt Route und Rücknahmeraum, Fraktionen, Beziehungen, Ereignisse und ausstehende Befehle. Das ursprüngliche Format 1 wird ausdrücklich migriert: vorhandene Waren, IDs, Reservierungen und Produktionsfortschritte bleiben erhalten; neue Bevölkerungsdaten werden initialisiert und alte Rückfahrtrouten angepasst. Ein nur für bereits vorhandene Überbelegung benötigter Migrationsfreiraum schrumpft beim Freiwerden und lässt sich nicht erneut auffüllen. Eine unveränderte Originaldatei unter `Tests/Core/Fixtures/prototype-v1.json` sichert diesen Fall ab. Produktversion aus `VERSION`, Unity-Editorversion und Speicherformat sind getrennte Versionsarten.
+Der aktuelle JSON-Schnappschuss verwendet **Speicherformat 7** einschließlich KI-Zustand; siehe [M6_NACHWEIS](M6_NACHWEIS.md). Historischer Migrationsnachweis: **Speicherformat 2** ergänzte die Koloniewirtschaft. Es umfasst auch Bevölkerung, Nahrungsrest und -mangel, Wachstum, Energiespeicher, Prioritäten, Rückbau, Fracht samt Route und Rücknahmeraum, Fraktionen, Beziehungen, Ereignisse und ausstehende Befehle. Das ursprüngliche Format 1 wird ausdrücklich migriert: vorhandene Waren, IDs, Reservierungen und Produktionsfortschritte bleiben erhalten; neue Bevölkerungsdaten werden initialisiert und alte Rückfahrtrouten angepasst. Ein nur für bereits vorhandene Überbelegung benötigter Migrationsfreiraum schrumpft beim Freiwerden und lässt sich nicht erneut auffüllen. Eine unveränderte Originaldatei unter `Tests/Core/Fixtures/prototype-v1.json` sichert diesen Fall ab. Produktversion aus `VERSION`, Unity-Editorversion und Speicherformat sind getrennte Versionsarten.
 
 Abnahme: Vor und nach einem Speichern/Laden bleiben eindeutige IDs, Mengen, Rechte und aktive Phasen identisch. Eine Fortsetzung desselben Befehlsablaufs liefert auf derselben Laufzeit dieselben überprüften Ergebnisse.
 

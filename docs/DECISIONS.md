@@ -1,6 +1,14 @@
 # Entscheidungen und Plattformstrategie
 
-Stand: 24. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.6 stellt die Oberflächen auf Waben um. M5 und CI sind über PR #4/#5 in main integriert; die vollständige manuelle M5-Abnahme bleibt offen. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
+Stand: 24. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.7 ergänzt lokal geprüftes M6 auf dem Hexraster. M5 und CI sind über PR #4/#5 in main integriert; die vollständige manuelle M5-Abnahme bleibt offen. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
+
+## Eigenständige KI: M6 (24. November 2026)
+
+- **D-026, Vorgabe:** Mit dem nächsten Meilenstein M6/P14–P15 fortfahren. Tests weiterhin ohne Screenreader/Computer-Use und ohne Eingriffe in den Arbeitsdesktop.
+- **T-024, entschieden:** Produktversion 1.0.7 auf eigenem Versionsbranch, aufbauend auf dem noch offenen Hexraster-PR #6. Separate reguläre Partie mit einer KI und gleichen Anfangsmitteln; Aster gehört dem Spieler, Nereid der KI, Krieg ist sichtbar deklarierte Szenariovorgabe. Keine neuen Ressourcenboni oder Startarmeen.
+- **T-025, entschieden:** Abgetrennte Wahrnehmungsdaten vor dem Entscheider, regelbasierte Planung alle 40 Ticks (zwei Sekunden), ausschließlich gemeinsame validierte Befehle. Statische Geografie kartierter Welten ist öffentlich, Infrastruktur, Rohstoffabbau und fremde Inventare nicht. Wirtschaft und Operationsplanung erhalten abwechselnd Planungsgelegenheiten; Aufklärung darf andere Aufträge nicht dauerhaft verdrängen.
+- **T-026, Arbeitsannahme:** Eine exklusive Offensive je KI; mindestens drei tatsächlich geladene Truppen einschließlich Pionier, Eskorte und Startversorgung. Wiederaufbaureserve 16 Metall/4 Bauteile, begründete Ausnahme für Grundversorgung; 60 Sekunden Wiederanlaufsperre nach Abbruch. Transportengpässe werden durch Bedarfs-/Verbrauchssteuerung behandelt, nicht durch zusätzliche kostenlose Kuriere.
+- **T-027, entschieden/Nachweis:** Speicherformat 7 erhält KI-Wissen, Profile, Planungszeit, Operationen und Entscheidungsprotokoll; V1–V6 erhalten eine leere KI-Liste. 96 Core-Tests, Windows-Build und 113 fensterlose Player-Prüfungen; echte Kolonisierung und separate taktische Invasionsfixture geprüft. Keine vollständige manuelle IMGUI-Abnahme. Details: [M6_NACHWEIS](M6_NACHWEIS.md).
 
 ## Wabenraster (24. November 2026)
 

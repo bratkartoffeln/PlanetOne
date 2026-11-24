@@ -2,7 +2,7 @@
 
 Diese Spezifikation definiert eigenständig handelnde Computerfraktionen, verbindliche Zusammenarbeit und einen gemeinsamen Szenariosieg. Sie ergänzt die Wirtschafts-, Raum- und Bodenregeln in [GAME_DESIGN.md](GAME_DESIGN.md). Die Umsetzung verwendet Unity mit C#.
 
-Stand 23. November 2026: Der erste geprüfte Aufbauprototyp besitzt eine gemeinsame Wirtschafts- und Weltensimulation, aber noch keine eigenständig handelnde KI, Diplomatie oder Szenariosieglösung. Die Anforderungen dieser Datei bleiben Zielverhalten für M6 und M7; ihre spätere Abnahme ist in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) ausgewiesen.
+Stand 24. November 2026: M6/P14–P15 besitzt in Version 1.0.7 eine regelbasierte, eigenständig wirtschaftende und militärisch planende KI mit vorab gefiltertem Wissen. Geprüfter Umfang, konkrete Arbeitsannahmen und Grenzen stehen in [M6_NACHWEIS](M6_NACHWEIS.md). Verträge, geteilte Koalitionssicht, diplomatische Persönlichkeiten und gemeinsamer Sieg bleiben Zielverhalten von M7; nicht alle Anforderungen dieser Datei sind damit abgeschlossen.
 
 ## 1 Verbindlichkeit und Umfang
 

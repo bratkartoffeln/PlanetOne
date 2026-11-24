@@ -99,7 +99,7 @@ namespace PlanetOne.Core
             State.PendingCommands.Add(new SimCommand { Id = command.Id, IssuerId = command.IssuerId,
                 Kind = command.Kind, PlanetId = command.PlanetId, X = command.X, Y = command.Y,
                 Building = command.Building, TargetId = command.TargetId, ActorId = command.ActorId, IntValue = command.IntValue, BoolValue = command.BoolValue, Amount = command.Amount, Minimum = command.Minimum, Reserve = command.Reserve });
-            State.LastMessage = State.Paused ? "Befehl für die Fortsetzung vorgemerkt." : "Befehl vorgemerkt.";
+            if(command.IssuerId==State.PlayerFactionId) State.LastMessage = State.Paused ? "Befehl für die Fortsetzung vorgemerkt." : "Befehl vorgemerkt.";
             return true;
         }
 
@@ -143,6 +143,7 @@ namespace PlanetOne.Core
             }
             TickSpace();
             TickInvasion();
+            TickAi();
             State.Tick++;
         }
 
@@ -299,7 +300,7 @@ namespace PlanetOne.Core
 
         private void Report(SimCommand command, bool success, string code, string message)
         {
-            State.LastMessage = message;
+            if(command.IssuerId==State.PlayerFactionId) State.LastMessage = message;
             State.CommandResults.Add(new CommandResult { CommandId = command.Id, Tick = State.Tick,
                 Success = success, Code = code, Message = message });
             if (State.CommandResults.Count > Definitions.EventHistoryLimit) State.CommandResults.RemoveAt(0);
@@ -321,7 +322,7 @@ namespace PlanetOne.Core
             return "InvalidTerrain";
         }
 
-        private static bool IsStorage(BuildingState b)
+        internal static bool IsStorage(BuildingState b)
         { return b.Kind == BuildingKind.Headquarters || b.Kind == BuildingKind.Warehouse; }
 
         private static int Total(int[] goods)
