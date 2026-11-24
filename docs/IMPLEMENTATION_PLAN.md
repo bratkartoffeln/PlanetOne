@@ -2,6 +2,10 @@
 
 Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0 bis M4 sind umgesetzt und abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen vollständigen zusätzlichen Maustest. M3 ist mit Core-Tests, Windows-Build, Grafiklauf und gezielten tatsächlichen Maus-/Tastatureingaben geprüft; siehe [M3_NACHWEIS](M3_NACHWEIS.md). P08–P10 sind in Version 1.0.3 abgeschlossen; Nachweise und konkrete Grenzen stehen in [M4_NACHWEIS](M4_NACHWEIS.md).
 
+## Aktueller Meilenstein M7 (1.0.8)
+
+P16–P18 sind lokal implementiert und automatisiert geprüft: 126 Core-Tests, Windows-Build, 131 fensterlose Player-Prüfungen und 18 Renderbilder. [M7_NACHWEIS](M7_NACHWEIS.md) dokumentiert Verträge, Koalitionen, reale gemeinsame Operationen, Torziel und Ausscheiden. Manuelle IMGUI-Abnahme und Git-Integration bleiben getrennt offen. M8 ist der nächste Entwicklungsmeilenstein.
+
 ## Projektweite Rasteränderung 1.0.6
 
 Nutzerauftrag vom 24. November 2026: Waben statt Schachbrett. Betrifft P03/P04/P06/P07/P12 sowie ihre gemeinsamen Darstellungs- und Speicherpfade. Hexraster, sechs Nachbarn, Kameraauswahl, Bau/Transport, Sicht/Deckung/Reichweiten und siebenzellige Landeflächen sind umgesetzt. Nachweise: 82 Core-Tests, Windows-Build, fensterloser Player-Test mit 104 Einzelprüfungen; [HEXRASTER_NACHWEIS](HEXRASTER_NACHWEIS.md). M6 bleibt außerhalb dieses Auftrags.
@@ -237,7 +241,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P16 Verträge und Rechte
 
-- **Status:** Offen. **Abhängigkeit:** P15.
+- **Status:** In 1.0.8 lokal implementiert und automatisiert geprüft: Verträge, Rechte, physischer Handel und KI-Verhandlungen. [M7_NACHWEIS](M7_NACHWEIS.md); manuelle Bedienungsabnahme und Git-Integration offen. **Abhängigkeit:** P15 lokal erfüllt.
 - **Module:** Diplomatie, Handelsabwicklung, Berechtigungen, Beziehungen, Dialogoberfläche.
 - **Umfang:** Paarweise Peace/War-Beziehungen mit ausdrücklicher Kriegserklärung sowie Waffenstillstand, Nichtangriff, physischer Handel, Transit, Nutzung und Verteidigungspakt mit Zuständen, Laufzeiten und Folgen. Angebote können Spieler oder KI beginnen. Mehrere KI handeln auch miteinander.
 - **Nicht enthalten:** Gemeinsame Siegauswertung oder zusammengelegte Fraktionslager.
@@ -246,7 +250,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P17 Koalitionen und gemeinsame Operationen
 
-- **Status:** Offen. **Abhängigkeit:** P16.
+- **Status:** In 1.0.8 lokal implementiert und automatisiert geprüft: einstimmiger Beitritt, aktuelle gemeinsame Sicht, reale exklusive Zusagen, gemeinsame Invasion/Eigentum und Räumung. [M7_NACHWEIS](M7_NACHWEIS.md); manuelle Bedienungsabnahme und Git-Integration offen. **Abhängigkeit:** P16 lokal erfüllt.
 - **Module:** Koalitionen, Sichtfreigabe, Operationszusagen, Stationsrechte, Besitzabsprachen.
 - **Umfang:** Koalitionsmitgliedschaft, vereinbarte gemeinsame Sicht, konkrete Hilfszusagen, reservierte Kräfte, vorgesehener Eigentümer einer Eroberung und geordnete Räumung bei Vertragsende.
 - **Nicht enthalten:** Automatische Vollkontrolle über verbündete Einheiten oder kostenlose gemeinsame Produktion.
@@ -255,7 +259,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P18 Szenarioziel, Kapitulation und gemeinsamer Sieg
 
-- **Status:** Offen. **Abhängigkeit:** P17.
+- **Status:** In 1.0.8 lokal implementiert und automatisiert geprüft: bezahlter Torbau/Komponentenlieferung, öffentliche Sicherungsphase, gemeinsamer Sieg sowie einmalige Kapitulation/Eliminierung. [M7_NACHWEIS](M7_NACHWEIS.md); manuelle Bedienungsabnahme und Git-Integration offen. **Abhängigkeit:** P17 lokal erfüllt.
 - **Module:** Szenarioziele, Sprungtorprojekt, Fraktionsstatus, Siegoberfläche.
 - **Umfang:** Öffentliches Aufbauziel mit realen Beiträgen und abschließender Aktivierung. Koalitionssieg, Kapitulation, echte Eliminierung einschließlich einmaliger Restbesitz-/Vertragsabwicklung und Fortsetzung nach Hauptstadtverlust gemäß WIN-Regeln.
 - **Nicht enthalten:** Kampagne, Mehrspieler oder zusätzliche Siegvarianten.

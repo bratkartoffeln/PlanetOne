@@ -7,6 +7,7 @@ namespace PlanetOne.Core
     {
         private void PlanDeliveries(PlanetState p)
         {
+            if(p.OwnerId==0)return;
             var headquarters = p.Buildings.Find(b => b.Kind == BuildingKind.Headquarters && b.Built && !b.Deconstructing);
             if (headquarters != null)
                 PlanInput(p, headquarters, (int)ResourceKind.Food, Math.Max(24, p.Population * 2));
@@ -15,6 +16,7 @@ namespace PlanetOne.Core
                 if (BuildingOwner(p,target)!=p.OwnerId || !target.Built || !target.Enabled || target.Deconstructing) continue;
                 var definition = Definitions.Get(target.Kind);
                 PlanSpaceInputs(p, target);
+                if(target.Kind==BuildingKind.JumpGate && !State.GateProjects.Exists(g=>g.BuildingId==target.Id&&g.Complete)) for(int r=0;r<6;r++) if(Definitions.GateComponents[r]>0)PlanInput(p,target,r,Definitions.GateComponents[r]);
                 if (target.RecruitKind >= 0)
                 {
                     var cost = Definitions.Get((UnitKind)target.RecruitKind).Cost;
@@ -30,6 +32,7 @@ namespace PlanetOne.Core
             }
             foreach (var source in p.Buildings)
             {
+                if (source.Kind==BuildingKind.JumpGate && !source.Deconstructing) continue;
                 if (BuildingOwner(p,source)!=p.OwnerId || !source.Deconstructing && (!source.Built || IsStorage(source))) continue;
                 var definition = Definitions.Get(source.Kind);
                 for (int r = 0; r < 6; r++)

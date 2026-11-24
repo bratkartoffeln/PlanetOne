@@ -41,6 +41,7 @@ internal static class CoreTests
         InvasionTests.Register(Run);
         HexGridTests.Register(Run);
         AiTests.Register(Run);
+        DiplomacyTests.Register(Run);
         Console.WriteLine(failures == 0 ? "All " + checks + " core tests passed." : failures + " test(s) failed.");
         return failures == 0 ? 0 : 1;
     }

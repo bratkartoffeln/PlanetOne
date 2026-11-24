@@ -35,10 +35,10 @@ namespace PlanetOne.Core
         public bool IsCellVisible(PlanetState p, int faction, double x, double y)
         {
             foreach (var u in p.Units)
-                if (!u.Destroyed && u.OwnerId == faction && u.Layer == TargetLayer.Ground &&
+                if (!u.Destroyed && SharesSensors(faction,u.OwnerId) && u.Layer == TargetLayer.Ground &&
                     HexGrid.Distance(u.X, u.Y, x, y) <= Definitions.Get(u.Kind).Sight && HasLineOfSight(p, u.X, u.Y, x, y)) return true;
             foreach (var b in p.Buildings)
-                    if (BuildingOwner(p,b) == faction && b.Built && !b.Destroyed && !b.Deconstructing && HexGrid.Distance(b.X, b.Y, x, y) <= Definitions.BuildingSight &&
+                    if (SharesSensors(faction,BuildingOwner(p,b)) && b.Built && !b.Destroyed && !b.Deconstructing && HexGrid.Distance(b.X, b.Y, x, y) <= Definitions.BuildingSight &&
                         HasLineOfSight(p, b.X, b.Y, x, y)) return true;
             return false;
         }
@@ -51,13 +51,13 @@ namespace PlanetOne.Core
             return b != null && (faction == BuildingOwner(p,b) || IsCellVisible(p, faction, b.X, b.Y));
         }
 
-        public bool CanTraverse(PlanetState p, int faction, UnitKind kind, int x, int y)
+        public bool CanTraverse(PlanetState p, int faction, UnitKind kind, int x, int y, long unitId=0)
         {
             if (!Inside(p, x, y) || p.Terrain[y * p.Width + x] == 1) return false;
             var building = p.Buildings.Find(b => b.X == x && b.Y == y && !b.Destroyed);
             if (building == null) return true;
             if (building.Kind == BuildingKind.Gate && building.Built && !building.Deconstructing)
-                return faction == BuildingOwner(p,building) || (!AtWar(faction, BuildingOwner(p,building)) && p.GatePermissions.Exists(g => g.GateId == building.Id && g.FactionId == faction));
+                return faction == BuildingOwner(p,building) || State.Evacuations.Exists(e=>e.Guest==faction&&e.PlanetId==p.Id&&e.UntilTick>State.Tick&&e.Units.Contains(unitId)) || (!AtWar(faction, BuildingOwner(p,building)) && (HasAccess(faction,BuildingOwner(p,building),p.Id,AccessRight.MilitaryTransit) || p.GatePermissions.Exists(g => g.GateId == building.Id && g.FactionId == faction)));
             // Friendly infantry may occupy completed civilian buildings for cover.
             return kind == UnitKind.Infantry && faction == BuildingOwner(p,building) && building.Built && !building.Deconstructing &&
                 building.Kind < BuildingKind.Barracks;
@@ -80,7 +80,7 @@ namespace PlanetOne.Core
                 for (int d = 0; d < 6; d++)
                 {
                     var neighbor = HexGrid.Neighbor(cx, cy, d); int nx = neighbor.X, ny = neighbor.Y;
-                    if (!CanTraverse(p, u.OwnerId, u.Kind, nx, ny)) continue;
+                    if (!CanTraverse(p, u.OwnerId, u.Kind, nx, ny,u.Id)) continue;
                     int next = ny * p.Width + nx;
                     if (previous[next] >= 0) continue;
                     previous[next] = cell; queue.Enqueue(next);
@@ -109,6 +109,11 @@ namespace PlanetOne.Core
             var u = p.Units.Find(v => v.Id == c.ActorId && !v.Destroyed);
             if (u == null || u.OwnerId != c.IssuerId || u.Layer != TargetLayer.Ground)
             { Report(c, false, "PermissionDenied", "Keine eigene aktive Bodeneinheit."); return; }
+            if(EvacuatingUnit(p,u))
+            {
+                if(c.Kind!=CommandKind.MoveUnit && c.Kind!=CommandKind.RetreatUnit && c.Kind!=CommandKind.HoldPosition){Report(c,false,"EvacuationOnly","Räumung erlaubt nur Abzug und Verladung.");return;}
+                if(c.Kind!=CommandKind.HoldPosition && !State.Ships.Exists(s=>!s.Destroyed&&s.OwnerId==u.OwnerId&&s.TargetPlanetId==p.Id&&s.TransportPhase==TransportPhase.Landed&&HexGrid.Steps(c.X,c.Y,s.LandingX,s.LandingY)<=1)){Report(c,false,"EvacuationRoute","Abzug muss zum gelandeten eigenen Evakuierungsträger führen.");return;}
+            }
             UnitOrder order;
             switch (c.Kind)
             {
@@ -127,6 +132,7 @@ namespace PlanetOne.Core
                 int owner; TargetLayer layer; double tx, ty;
                 if (!Target(p, c.TargetId, out tx, out ty, out owner, out layer) || !CanSeeEntity(p, u.OwnerId, c.TargetId))
                 { Report(c, false, "TargetNotVisible", "Ziel ist nicht aktuell aufgeklärt."); return; }
+                if (ProtectedGuest(p,u.OwnerId,c.TargetId)) {Report(c,false,"ProtectedEvacuation","Abziehendes Kontingent ist geschützt.");return;}
                 if (!AtWar(u.OwnerId, owner)) { Report(c, false, "NotAtWar", "Kein gültiger Kriegszustand."); return; }
                 if (!ValidWeaponTarget(Definitions.Get(u.Kind).AntiAir, layer))
                 { Report(c, false, "InvalidTargetLayer", "Waffe kann diese Zielebene nicht bekämpfen."); return; }
@@ -141,7 +147,7 @@ namespace PlanetOne.Core
             if (order == UnitOrder.Resupply || order == UnitOrder.Repair)
             {
                 int owner; TargetLayer layer; double tx, ty;
-                if (!Target(p, c.TargetId, out tx, out ty, out owner, out layer) || owner != u.OwnerId)
+                if (!Target(p, c.TargetId, out tx, out ty, out owner, out layer) || (owner != u.OwnerId && !HasAccess(u.OwnerId,owner,p.Id,order==UnitOrder.Resupply?AccessRight.Supply:AccessRight.Repair)))
                 { Report(c, false, "PermissionDenied", "Versorgung und Reparatur benötigen ein eigenes Ziel."); return; }
                 var depot = p.Buildings.Find(b => b.Id == c.TargetId && b.Kind == BuildingKind.MilitaryDepot && b.Built && !b.Deconstructing);
                 if (order == UnitOrder.Resupply && depot == null && u.Kind != UnitKind.Engineer)
@@ -173,7 +179,7 @@ namespace PlanetOne.Core
         {
             foreach (var b in p.Buildings)
             {
-                if (b.Destroyed || b.Deconstructing) continue;
+                if (b.Destroyed || b.Deconstructing || BuildingOwner(p,b)==0) continue;
                 if (b.RecruitKind >= 0 && BuildingOwner(p,b)==p.OwnerId) TickRecruitment(p, b);
                 if (Definitions.IsTower(b.Kind)) TickTower(p, b);
             }
@@ -239,11 +245,12 @@ namespace PlanetOne.Core
         private void TickUnit(PlanetState p, UnitState u)
         {
             var d = Definitions.Get(u.Kind);
+            if(EvacuatingUnit(p,u)){if(u.Order==UnitOrder.Move||u.Order==UnitOrder.Retreat)MoveGround(p,u,false);return;}
             if (u.Order == UnitOrder.Attack)
             {
                 double x, y; int owner; TargetLayer layer;
                 if (!Target(p, u.TargetId, out x, out y, out owner, out layer) || !AtWar(u.OwnerId, owner) ||
-                    !CanSeeEntity(p, u.OwnerId, u.TargetId))
+                    !CanSeeEntity(p, u.OwnerId, u.TargetId) || ProtectedGuest(p,u.OwnerId,u.TargetId))
                 { u.Order = UnitOrder.Hold; u.TargetId = 0; u.Path.Clear(); u.PathDistance = 0; u.Status = "Ziel verloren; hält letzte Position"; return; }
                 var goal = HexGrid.CellAt(x, y); u.GoalX = goal.X; u.GoalY = goal.Y;
                 if (HexGrid.Distance(u.X, u.Y, x, y) <= d.Range && (d.Indirect || HasLineOfSight(p, u.X, u.Y, x, y)))
@@ -257,7 +264,7 @@ namespace PlanetOne.Core
                 u.Ammunition--; u.Cooldown = d.Interval; u.Status = "Beschießt bekannte Position";
                 // Deliberate area fire does not track hidden targets or reveal hit information.
                 foreach (var other in p.Units)
-                    if (!other.Destroyed && other.Layer == TargetLayer.Ground && AtWar(u.OwnerId, other.OwnerId) &&
+                    if (!other.Destroyed && other.Layer == TargetLayer.Ground && !ProtectedGuest(p,u.OwnerId,other.Id) && AtWar(u.OwnerId, other.OwnerId) &&
                         HexGrid.Distance(other.X, other.Y, u.GoalX, u.GoalY) <= Definitions.AreaFireRadius) HurtUnit(p, other, d.Damage, u.Kind);
                 var b = p.Buildings.Find(v => !v.Destroyed && v.X == u.GoalX && v.Y == u.GoalY);
                 if (b != null && AtWar(u.OwnerId, BuildingOwner(p,b))) HurtBuilding(p, b, d.Damage);
@@ -266,7 +273,7 @@ namespace PlanetOne.Core
             if (u.Order == UnitOrder.Resupply || u.Order == UnitOrder.Repair)
             {
                 double x, y; int owner; TargetLayer layer;
-                if (!Target(p, u.TargetId, out x, out y, out owner, out layer) || owner != u.OwnerId)
+                if (!Target(p, u.TargetId, out x, out y, out owner, out layer) || (owner != u.OwnerId && !HasAccess(u.OwnerId,owner,p.Id,u.Order==UnitOrder.Resupply?AccessRight.Supply:AccessRight.Repair)))
                 { u.Order = UnitOrder.Hold; return; }
                 var goal = HexGrid.CellAt(x, y); u.GoalX = goal.X; u.GoalY = goal.Y;
                 if (HexGrid.Distance(u.X, u.Y, x, y) > 1.1) { MoveGround(p, u, true); return; }
@@ -300,7 +307,7 @@ namespace PlanetOne.Core
                 { if (u.Order == UnitOrder.Move || u.Order == UnitOrder.Retreat) u.Order = UnitOrder.Hold; u.Status = "Ziel erreicht"; return; }
             }
             int index = Math.Min((int)u.PathDistance, u.Path.Count - 2); var next = u.Path[index + 1];
-            if (!CanTraverse(p, u.OwnerId, u.Kind, next.X, next.Y))
+            if (!CanTraverse(p, u.OwnerId, u.Kind, next.X, next.Y,u.Id))
             { if (u.PathDistance == index) { u.Path.Clear(); u.PathDistance = 0; } u.Status = "Weg blockiert"; return; }
             double speed = Definitions.Get(u.Kind).Speed;
             // Stop at each cell to revalidate obstacles before crossing another segment.
@@ -316,7 +323,7 @@ namespace PlanetOne.Core
             foreach (var u in p.Units)
             {
                 double distance = HexGrid.Distance(x, y, u.X, u.Y);
-                if (u.Destroyed || !AtWar(owner, u.OwnerId) || !ValidWeaponTarget(antiAir, u.Layer) || distance >= nearest ||
+                if (u.Destroyed || ProtectedGuest(p,owner,u.Id) || !AtWar(owner, u.OwnerId) || !ValidWeaponTarget(antiAir, u.Layer) || distance >= nearest ||
                     !CanSeeEntity(p, owner, u.Id) || (!indirect && !HasLineOfSight(p, x, y, u.X, u.Y))) continue;
                 nearest = distance; result = u.Id;
             }

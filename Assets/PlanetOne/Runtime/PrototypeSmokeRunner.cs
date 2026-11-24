@@ -346,6 +346,34 @@ namespace PlanetOne.Runtime
             Require(SaveCodec.ToJson(aiCopy.State)==SaveCodec.ToJson(controller.Simulation.State),"M6 restored AI continues with identical decisions and commands");
             controller.Simulation.State.Paused=true;controller.SetView(1);yield return null;yield return Capture("ai-player-colony.png");
             Require(captureFailure==null,captureFailure??"M6 player world remains renderable during AI operation");
+            controller.StartDiplomacyScenario();var diplomacy=controller.Simulation;
+            Require(diplomacy.State.Factions.Count==3&&diplomacy.State.ComputerFactions.Count==2&&!diplomacy.AtWar(1,2)&&!diplomacy.AtWar(2,3),"M7 regular scenario starts with three peaceful independent factions");
+            Require(diplomacy.State.Ships.Count==0&&diplomacy.State.Planets.FindAll(p=>p.OwnerId>0).TrueForAll(p=>p.Buildings.Count==1&&p.Buildings[0].Inventory[2]==100),"M7 normal start has equal finite stocks and no fixture fleet");
+            diplomacy.Step(2400);
+            Require(diplomacy.State.Treaties.Exists(t=>GameSimulation.TreatyLive(t)&&t.Terms.Members.Contains(2)&&t.Terms.Members.Contains(3)),"M7 computer factions negotiate through normal simulation commands");
+            controller.StartDiplomacyFixture();diplomacy=controller.Simulation;
+            Require(diplomacy.State.SpaceTestFixture&&diplomacy.State.LastMessage.Contains("TESTFIXTURE"),"M7 prepared gate assets are explicitly isolated as a test fixture");
+            Require(controller.RequestDiplomacy(new SimCommand{Kind=CommandKind.ProposeTreaty,Terms=new TreatyTerms{Kind=TreatyKind.Coalition,Members=new List<int>{1,2,3}}}),"M7 controller queues coalition proposal");diplomacy.Step();
+            var pact=diplomacy.State.Treaties[0];
+            Require(pact.Phase==TreatyPhase.Proposed&&!diplomacy.SharesSensors(1,2),"M7 proposal alone grants no coalition rights");
+            diplomacy.Enqueue(new SimCommand{Id=diplomacy.NextCommandId(),IssuerId=2,Kind=CommandKind.AcceptTreaty,TargetId=pact.Id});diplomacy.Step();
+            Require(!GameSimulation.TreatyLive(pact),"M7 every coalition participant must consent");
+            diplomacy.Enqueue(new SimCommand{Id=diplomacy.NextCommandId(),IssuerId=3,Kind=CommandKind.AcceptTreaty,TargetId=pact.Id});diplomacy.Step();
+            Require(GameSimulation.TreatyLive(pact)&&diplomacy.SharesSensors(1,2)&&diplomacy.SharesSensors(1,3),"M7 unanimous coalition shares current sensors");
+            Require(!diplomacy.HasAccess(1,2,2,AccessRight.Landing),"M7 coalition grants no unagreed landing rights");
+            controller.SetView(0);yield return null;yield return Capture("diplomacy-coalition.png");
+            Require(captureFailure==null,captureFailure??"M7 shared system view renders coalition worlds");
+            var jumpGate=diplomacy.FindPlanet(1).Buildings.Find(b=>b.Kind==BuildingKind.JumpGate);
+            Require(controller.RequestDiplomacy(new SimCommand{Kind=CommandKind.ActivateGate,TargetId=jumpGate.Id}),"M7 controller requests public gate activation");diplomacy.Step();
+            Require(diplomacy.State.GateProjects.Count==1&&diplomacy.State.GateProjects[0].Activating&&diplomacy.State.GateProjects[0].Participants.Count==3,"M7 gate locks consenting coalition participants at activation start");
+            diplomacy.State.Paused=true;Require(controller.SaveGame(),"M7 contracts and gate progress save");string diplomaticSave=SaveCodec.ToJson(diplomacy.State);
+            Require(controller.LoadGame()&&SaveCodec.ToJson(controller.Simulation.State)==diplomaticSave,"M7 save restores treaties participants and exact remaining time");
+            diplomacy=controller.Simulation;diplomacy.State.Paused=false;diplomacy.Step(Definitions.GateSecureTicks);
+            Require(diplomacy.State.Winners.Count==3&&diplomacy.State.GateProjects[0].Complete,"M7 coalition completes the real securing phase and wins together");
+            Require(jumpGate.Inventory[4]==8,"M7 replacing the simulation did not mutate detached old state");
+            Require(diplomacy.FindPlanet(1).ConsumedTotals[4]>=8,"M7 successful activation consumes actual delivered crystals");
+            diplomacy.State.Paused=true;controller.SetView(1);yield return null;yield return Capture("diplomacy-gate.png");
+            Require(captureFailure==null,captureFailure??"M7 completed gate world renders in the real player");
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)

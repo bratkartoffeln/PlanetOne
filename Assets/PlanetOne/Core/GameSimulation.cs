@@ -98,7 +98,7 @@ namespace PlanetOne.Core
             // Copy the intent. The presentation cannot change an already queued command afterwards.
             State.PendingCommands.Add(new SimCommand { Id = command.Id, IssuerId = command.IssuerId,
                 Kind = command.Kind, PlanetId = command.PlanetId, X = command.X, Y = command.Y,
-                Building = command.Building, TargetId = command.TargetId, ActorId = command.ActorId, IntValue = command.IntValue, BoolValue = command.BoolValue, Amount = command.Amount, Minimum = command.Minimum, Reserve = command.Reserve });
+                Building = command.Building, TargetId = command.TargetId, ActorId = command.ActorId, IntValue = command.IntValue, BoolValue = command.BoolValue, Amount = command.Amount, Minimum = command.Minimum, Reserve = command.Reserve, Terms = command.Terms==null?null:CopyAiValue(command.Terms) });
             if(command.IssuerId==State.PlayerFactionId) State.LastMessage = State.Paused ? "Befehl für die Fortsetzung vorgemerkt." : "Befehl vorgemerkt.";
             return true;
         }
@@ -125,13 +125,15 @@ namespace PlanetOne.Core
 
         private void TickOnce()
         {
-            foreach (var command in State.PendingCommands)
+            foreach (var command in new List<SimCommand>(State.PendingCommands))
             {
                 if (State.ProcessedCommandIds.Contains(command.Id)) continue;
                 State.ProcessedCommandIds.Add(command.Id);
                 Apply(command);
             }
             State.PendingCommands.Clear();
+            TickDiplomacy();
+            TickFactionExit();
             foreach (var planet in State.Planets)
             {
                 TickEconomy(planet);
@@ -143,7 +145,10 @@ namespace PlanetOne.Core
             }
             TickSpace();
             TickInvasion();
+            TickJointOperations();
             TickAi();
+            TickFactionExit();
+            TickGateProjects();
             State.Tick++;
         }
 
@@ -199,7 +204,7 @@ namespace PlanetOne.Core
             {
                 int available = 0;
                 foreach (var b in p.Buildings)
-                    if (b.Built && !b.Deconstructing && IsStorage(b)) available += b.Inventory[r] - b.ReservedOutgoing[r];
+                    if (BuildingOwner(p,b)==factionId && b.Built && !b.Deconstructing && IsStorage(b)) available += b.Inventory[r] - b.ReservedOutgoing[r];
                 if (available < definition.Cost[r]) return "Nicht genug " + Definitions.ResourceName((ResourceKind)r) + " in lokalen Lagern.";
             }
             return null;
@@ -222,6 +227,8 @@ namespace PlanetOne.Core
             PlanetState p = FindPlanet(command.PlanetId);
             if (!State.Factions.Exists(f => f.Id == command.IssuerId))
             { Report(command, false, "UnknownFaction", "Unbekannte Fraktion."); return; }
+            if (!FactionActive(command.IssuerId)) { Report(command,false,"FactionInactive","Ausgeschiedene Fraktion kann keine Aufträge erteilen."); return; }
+            if (command.Kind >= CommandKind.ProposeTreaty) { ApplyDiplomacy(command); return; }
             if (p == null) { Report(command, false, "UnknownPlanet", "Unbekannter Planet."); return; }
             if (command.Kind >= CommandKind.AttackShip) { ApplyInvasion(command); return; }
             if (command.Kind >= CommandKind.BuildShip) { ApplySpace(command); return; }
@@ -288,7 +295,7 @@ namespace PlanetOne.Core
                 int remaining = definition.Cost[r];
                 foreach (var source in p.Buildings)
                 {
-                    if (!source.Built || source.Deconstructing || !IsStorage(source) || remaining == 0) continue;
+                    if (BuildingOwner(p,source)!=command.IssuerId || !source.Built || source.Deconstructing || !IsStorage(source) || remaining == 0) continue;
                     int amount = Math.Min(remaining, source.Inventory[r] - source.ReservedOutgoing[r]);
                     if (amount <= 0) continue;
                     ReserveDelivery(p, source, building, r, amount);

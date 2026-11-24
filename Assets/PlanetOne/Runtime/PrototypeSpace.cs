@@ -42,7 +42,7 @@ namespace PlanetOne.Runtime
                 Transform view;
                 if(!shipViews.TryGetValue(ship.Id,out view))
                 {
-                    view=MakePrimitive(ship.Kind==ShipKind.ColonyShip?PrimitiveType.Capsule:PrimitiveType.Cube,"Schiff "+ship.Id,spaceRoot,Vector3.zero,new Vector3(0.32f,0.2f,0.65f),ship.OwnerId==PlayerFactionId?Cyan:Danger);
+                    view=MakePrimitive(ship.Kind==ShipKind.ColonyShip?PrimitiveType.Capsule:PrimitiveType.Cube,"Schiff "+ship.Id,spaceRoot,Vector3.zero,new Vector3(0.32f,0.2f,0.65f),DiplomaticColor(ship.OwnerId));
                     shipViews[ship.Id]=view;
                 }
                 view.gameObject.SetActive(true); view.position=new Vector3((float)ship.X,0.6f,(float)ship.Y);

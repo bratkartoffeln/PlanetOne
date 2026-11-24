@@ -129,7 +129,7 @@ namespace PlanetOne.Runtime
                 {
                     if (!visible) continue;
                     t = new GameObject(Definitions.Get(u.Kind).Name).transform; t.SetParent(surfaceRoot, false);
-                    Color color = u.OwnerId == PlayerFactionId ? Cyan : Danger;
+                    Color color = DiplomaticColor(u.OwnerId);
                     bool infantry = u.Kind == UnitKind.Infantry || u.Kind == UnitKind.AntiTank;
                     MakePrimitive(infantry ? PrimitiveType.Capsule : PrimitiveType.Cube, "Verband", t,
                         new Vector3(0, 0.23f, 0), infantry ? new Vector3(0.25f, 0.25f, 0.25f) : new Vector3(0.55f, 0.28f, 0.4f), color);
@@ -161,7 +161,7 @@ namespace PlanetOne.Runtime
                 labelRects.Add(labelRect);
                 GUI.Label(labelRect, marker + Definitions.Get(u.Kind).Name, smallStyle);
                 Fill(new Rect(x - 18, y - 3, 36, 4), Border);
-                Fill(new Rect(x - 18, y - 3, 36 * (float)(u.Health / Definitions.Get(u.Kind).Health), 4), u.OwnerId == PlayerFactionId ? Cyan : Danger);
+                Fill(new Rect(x - 18, y - 3, 36 * (float)(u.Health / Definitions.Get(u.Kind).Health), 4), DiplomaticColor(u.OwnerId));
                 if (selectedUnits.Contains(u.Id) && u.Order != UnitOrder.Hold)
                 {
                     var goal = sceneCamera.WorldToScreenPoint(SurfacePosition(u.GoalX, 0.15f, u.GoalY));

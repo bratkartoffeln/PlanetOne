@@ -81,7 +81,7 @@ namespace PlanetOne.Runtime
         public int RenderedShipmentCount { get { return shipmentViews.Count; } }
         public int PlayerFactionId { get { return simulation.State.PlayerFactionId; } }
         public static string SavePath { get { return Path.Combine(Application.persistentDataPath, "prototype-save.json"); } }
-        public string ActiveSavePath { get { return smokeSavePath ?? (simulation.State.AiScenario ? Path.Combine(Application.persistentDataPath, "ai-scenario-save.json") : simulation.State.InvasionTestFixture ? Path.Combine(Application.persistentDataPath, "invasion-fixture-save.json") : simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "space-fixture-save.json") : simulation.State.MilitaryTestFixture ? Path.Combine(Application.persistentDataPath, "military-fixture-save.json") : SavePath); } }
+        public string ActiveSavePath { get { return smokeSavePath ?? (simulation.State.DiplomacyScenario && simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "diplomacy-fixture-save.json") : simulation.State.DiplomacyScenario ? Path.Combine(Application.persistentDataPath, "diplomacy-save.json") : simulation.State.AiScenario ? Path.Combine(Application.persistentDataPath, "ai-scenario-save.json") : simulation.State.InvasionTestFixture ? Path.Combine(Application.persistentDataPath, "invasion-fixture-save.json") : simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "space-fixture-save.json") : simulation.State.MilitaryTestFixture ? Path.Combine(Application.persistentDataPath, "military-fixture-save.json") : SavePath); } }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureBootstrap()
@@ -447,6 +447,15 @@ namespace PlanetOne.Runtime
             buildingIndicators[building.Id] = status.GetComponent<Renderer>();
             switch (building.Kind)
             {
+                case BuildingKind.JumpGate:
+                    for(int segment=0;segment<8;segment++)
+                    {
+                        float angle=segment*Mathf.PI/4;
+                        var arch=MakePrimitive(PrimitiveType.Cube,"Sprungtorring",root,new Vector3(Mathf.Cos(angle)*0.3f,0.55f+Mathf.Sin(angle)*0.3f,0),new Vector3(0.26f,0.10f,0.16f),Cyan);
+                        arch.localRotation=Quaternion.Euler(0,0,segment*45+90);
+                    }
+                    MakePrimitive(PrimitiveType.Cube,"Torstütze",root,new Vector3(0,0.22f,0),new Vector3(0.65f,0.15f,0.36f),Muted);
+                    break;
                 case BuildingKind.Wall:
                     MakePrimitive(PrimitiveType.Cube, "Mauer", root, new Vector3(0, 0.4f, 0), new Vector3(0.8f, 0.8f, 0.8f), Muted); break;
                 case BuildingKind.Gate:
@@ -570,6 +579,8 @@ namespace PlanetOne.Runtime
             sidebarScroll = GUILayout.BeginScrollView(sidebarScroll, false, true);
             GUILayout.BeginVertical(GUILayout.Width(area.width - 70));
             DrawAiSession();
+            if(GUILayout.Button(showingDiplomacy?"Diplomatie schließen":"Diplomatie und Sprungtor",buttonStyle,GUILayout.Height(32)))showingDiplomacy=!showingDiplomacy;
+            if(showingDiplomacy){DrawDiplomacyPanel();GUILayout.EndVertical();GUILayout.EndScrollView();GUILayout.EndArea();return;}
             if (GUILayout.Button(showingSpacePanel ? "Zur Kolonieübersicht" : "Raumfahrt und Forschung", buttonStyle, GUILayout.Height(32))) { showingSpacePanel = !showingSpacePanel; sidebarScroll = Vector2.zero; }
             if (showingSpacePanel) { DrawSpacePanel(); GUILayout.EndVertical(); GUILayout.EndScrollView(); GUILayout.EndArea(); return; }
             if (openPlanetId == 0)
@@ -579,8 +590,9 @@ namespace PlanetOne.Runtime
                 foreach (PlanetState planet in simulation.State.Planets)
                 {
                     if (!simulation.IsPlanetKnown(PlayerFactionId, planet.Id)) continue;
-                    int knownOwner = simulation.IsPlanetVisible(PlayerFactionId, planet.Id) ? planet.OwnerId : simulation.State.SpaceSightings.Find(s => s.FactionId == PlayerFactionId && s.PlanetId == planet.Id).KnownOwnerId;
-                    string relationship = knownOwner == PlayerFactionId ? "  →" : (knownOwner == 0 ? "  · unbesiedelt" : "  · fremde Kolonie");
+                    var lastSighting=simulation.State.SpaceSightings.Find(s=>s.FactionId==PlayerFactionId&&s.PlanetId==planet.Id);
+                    int knownOwner = simulation.IsPlanetVisible(PlayerFactionId, planet.Id) ? planet.OwnerId : lastSighting==null?-1:lastSighting.KnownOwnerId;
+                    string relationship = knownOwner == PlayerFactionId ? "  →" : knownOwner<0?" · vereinbarter Ort":simulation.SharesSensors(PlayerFactionId,knownOwner)?" · Koalition":(knownOwner == 0 ? "  · unbesiedelt" : "  · fremde Kolonie");
                     if (GUILayout.Button(planet.Name + relationship, buttonStyle, GUILayout.Height(40))) SetView(planet.Id);
                     GUILayout.Space(5);
                     GUILayout.Label(planet.OwnerId == PlayerFactionId ? planet.Population + " Bewohner · " + planet.Buildings.Count + " Gebäude" : "Oberfläche ansehen", smallStyle);
@@ -593,9 +605,11 @@ namespace PlanetOne.Runtime
                 GUILayout.Space(14);
                 GUILayout.Label("Beide Kolonien arbeiten weiter, während du die Ansicht wechselst.", mutedStyle);
                 GUILayout.Space(16);
+                if(GUILayout.Button("M7 Diplomatische Partie",buttonStyle,GUILayout.Height(38)))StartDiplomacyScenario();
                 if (GUILayout.Button("M6 Gegen Computer spielen", buttonStyle, GUILayout.Height(38))) StartAiScenario();
                 GUILayout.Label("Eigenständiger Gegner, gleiche Startmittel. Neue separate Partie im Krieg.", smallStyle);
                 GUILayout.Label("DEMONSTRATIONEN", headingStyle);
+                if(GUILayout.Button("M7 Vertrags- und Torprüfkarte",buttonStyle,GUILayout.Height(34)))StartDiplomacyFixture();
                 if (GUILayout.Button("M4 Aufbau und Raumfahrt", buttonStyle, GUILayout.Height(34))) StartSpaceFixture();
                 if (GUILayout.Button("M5 Invasion prüfen", buttonStyle, GUILayout.Height(34))) StartInvasionFixture();
                 if (GUILayout.Button("M3 Prüfkarte öffnen", buttonStyle, GUILayout.Height(34))) StartMilitaryFixture();
@@ -750,7 +764,7 @@ namespace PlanetOne.Runtime
             DrawBuildButton(BuildingKind.Workshop);
             DrawBuildButton(BuildingKind.Housing);
             DrawBuildButton(BuildingKind.Warehouse);
-            for (int kind = (int)BuildingKind.Barracks; kind <= (int)BuildingKind.OrbitalBattery; kind++) DrawBuildButton((BuildingKind)kind);
+            for (int kind = (int)BuildingKind.Barracks; kind <= (int)BuildingKind.JumpGate; kind++) DrawBuildButton((BuildingKind)kind);
             GUILayout.Space(4);
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Straße bauen", placingRoad ? selectedButtonStyle : buttonStyle, GUILayout.Height(30)))

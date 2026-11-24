@@ -32,7 +32,7 @@ if (Test-Path -LiteralPath $reportPath) { Get-Content -LiteralPath $reportPath }
 if ($smokeProcess.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $reportPath)) {
     throw "Grafischer Integrationstest fehlgeschlagen. Exitcode: $($smokeProcess.ExitCode); Log: $outputDirectory"
 }
-foreach ($imageName in @('space.png', 'surface.png', 'surface-details.png', 'surface-restored.png', 'military-defense.png', 'military-combat.png', 'military-restored.png', 'space-fleet.png', 'space-colony.png', 'space-logistics.png', 'space-research.png', 'invasion-orbit.png', 'invasion-descent.png', 'invasion-capture.png', 'ai-system.png', 'ai-player-colony.png')) {
+foreach ($imageName in @('space.png', 'surface.png', 'surface-details.png', 'surface-restored.png', 'military-defense.png', 'military-combat.png', 'military-restored.png', 'space-fleet.png', 'space-colony.png', 'space-logistics.png', 'space-research.png', 'invasion-orbit.png', 'invasion-descent.png', 'invasion-capture.png', 'ai-system.png', 'ai-player-colony.png', 'diplomacy-coalition.png', 'diplomacy-gate.png')) {
     $imagePath = Join-Path $outputDirectory $imageName
     if (-not (Test-Path -LiteralPath $imagePath) -or (Get-Item -LiteralPath $imagePath).Length -le 256) {
         throw "Screenshot fehlt oder ist leer: $imagePath"
