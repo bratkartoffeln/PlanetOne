@@ -33,7 +33,7 @@ namespace PlanetOne.Runtime
             if (u == null) return false;
             if (!additive) selectedUnits.Clear();
             if (!selectedUnits.Contains(id)) selectedUnits.Add(id);
-            contextOpen=true;showingDiplomacy=false;showingSpacePanel=false;
+            contextOpen=true;panelOpen=false;showingDiplomacy=false;showingSpacePanel=false;presentationSection=2;
             selectedBuildingId = 0; showingMilitary = true; CancelPlacement(); return true;
         }
 

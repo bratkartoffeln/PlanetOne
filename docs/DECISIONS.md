@@ -1,5 +1,12 @@
 # Entscheidungen und Plattformstrategie
 
+## GUI nach Konzepttafel und Weltraumansicht (24. November 2026)
+
+- **D-030, Vorgabe:** GUI an die vorhandenen Vorlagen anpassen, intuitiver und schöner gestalten; die Weltraumansicht soll ebenfalls der Vorlage entsprechen. Die drei wählbaren Layouts und die räumliche Darstellung bleiben erhalten.
+- **T-039, entschieden:** Version 1.0.11 trennt Auswahl von Verwaltung. Planetenklick bleibt im System; Oberflächenaktion beziehungsweise Doppelklick öffnet die Welt. A nutzt eine feste rechte Verwaltung, B eine linke Navigation und ein breites Befehlsdeck, C ein schwebendes Dock. B/C zeigen kompakte Auswahlkarten; umfangreiche Funktionen öffnen eigene Arbeitsbereiche. Der Koloniename öffnet die Übersicht; Testszenarien und Sitzungswechsel liegen im Spielmenü.
+- **T-040, entschieden:** Eigene Imagegen-Texturen für Planeten und Nebel, echte Kugelgeometrie mit sonnenabhängiger Tag-/Nachtseite, Atmosphären und Korona. Der Hintergrund folgt der Kamera. Schiffe werden auf einer Darstellungsebene in Höhe 2,3 gerendert, damit große Planetenkörper sie nicht verschlucken; Auswahl, Markierungen und Zielprojektion verwenden dieselbe Ebene. Keine Änderung der simulierten Flugpositionen, Reichweiten, Planetenzahl oder Bestände. Savegame-Schema bleibt 8.
+- **T-041, Nachweis:** Auswahl, Menüs und Zielbefehle über die tatsächlichen Controllerpfade testen; vollständige GUI-Bilder in zwei Auflösungen auf getrenntem unsichtbarem Desktop. Bildkontrolle und automatisierte Bedienpfade gelten nicht als vollständiger manueller Klicktest oder pixelgleiche Abnahme. [Ergebnisse](GUI_WELTRAUM_NACHWEIS.md), [Assets und vollständige Prompts](ART_ASSETS.md).
+
 ## Räumliche Grafik und natürliche Landschaft (24. November 2026)
 
 - **D-029, Vorgabe:** Die vom Nutzer ausgewählte Konzeptgrafik soll bildgetreu (»1:1«) umgesetzt werden; die frühere Einordnung als unverbindliche Stilrichtung genügt ausdrücklich nicht. Gelände soll natürlich wirken und Berge/Täler besitzen. Gebäude, Fahrzeuge, Raumschiffe und Weltobjekte werden vollständig dreidimensional gestaltet; Kamera räumlich drehbar, Fahrzeugausrichtung abhängig von der Fahrtrichtung. Alle drei Layouts bleiben wählbar.

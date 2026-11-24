@@ -26,9 +26,9 @@ namespace PlanetOne.Runtime
             "Große Spielfläche, schwebende Werkzeugleiste und ausblendbare Details." };
         public InterfaceLayout CurrentLayout { get { return (InterfaceLayout)presentation.Layout; } }
         private float TopHeight { get { return 44; } }
-        private float BottomHeight { get { return CurrentLayout == InterfaceLayout.OrbitalBridge ? 165 : 72; } }
-        private float SideWidth { get { return 320; } }
-        private bool SidebarVisible { get { return CurrentLayout == InterfaceLayout.CommandCenter || contextOpen; } }
+        private float BottomHeight { get { return CurrentLayout == InterfaceLayout.OrbitalBridge ? 160 : CurrentLayout==InterfaceLayout.OpenSpace?88:72; } }
+        private float SideWidth { get { return CurrentLayout==InterfaceLayout.CommandCenter?300:380; } }
+        private bool SidebarVisible { get { return CurrentLayout == InterfaceLayout.CommandCenter || panelOpen; } }
         private Rect SidebarRect(float width, float height)
         { return new Rect(width - SideWidth - (CurrentLayout == InterfaceLayout.OpenSpace ? 12 : 0), TopHeight + 8, SideWidth, height - TopHeight - BottomHeight - 16); }
         public Rect WorldViewport
@@ -44,7 +44,8 @@ namespace PlanetOne.Runtime
         {
             if (settingsOpen || menuOpen || !WorldViewport.Contains(screenPoint)) return false;
             var guiPoint = new Vector2(screenPoint.x/UiScale, (Screen.height-screenPoint.y)/UiScale);
-            return !SidebarVisible || !SidebarRect(Screen.width/UiScale,Screen.height/UiScale).Contains(guiPoint);
+            if(SidebarVisible && SidebarRect(Screen.width/UiScale,Screen.height/UiScale).Contains(guiPoint))return false;
+            return !SelectionCardVisible || !SelectionCardRect(Screen.width/UiScale).Contains(guiPoint);
         }
         private void LoadPresentationSettings()
         {
@@ -63,7 +64,7 @@ namespace PlanetOne.Runtime
         {
             if ((int)layout<0 || (int)layout>2) return false;
             presentation.Layout=(int)layout; sidebarScroll=Vector2.zero;
-            contextOpen=layout==InterfaceLayout.CommandCenter;
+            contextOpen=true;panelOpen=false;
             selectionStart=null; shipSelectionStart=null;
             if(sceneCamera!=null) UpdateCamera();
             if(persist) SavePresentationSettings();
@@ -84,104 +85,17 @@ namespace PlanetOne.Runtime
         public void ConfigurePresentationTestPath(string path) { presentationPath=path; LoadPresentationSettings(); UpdateCamera(); }
         public void ReloadPresentationSettings() { LoadPresentationSettings(); UpdateCamera(); }
         public void SetSettingsVisible(bool visible) { settingsOpen=visible; selectionStart=null; shipSelectionStart=null; }
-        private void DrawPresentationTop(float width)
-        {
-            DrawPanel(new Rect(0,0,width,TopHeight));
-            var planet=openPlanetId==0?null:simulation.FindPlanet(openPlanetId);
-            int[] stock=new int[6];int power=0;
-            foreach(var p in simulation.State.Planets)
-            {
-                if(p.OwnerId!=PlayerFactionId || (planet!=null && p.Id!=planet.Id))continue;
-                power+=p.EnergyProduced-p.EnergyUsed;
-                foreach(var building in p.Buildings)if(GameSimulation.BuildingOwner(p,building)==PlayerFactionId)for(int r=0;r<stock.Length;r++)stock[r]+=building.Inventory[r];
-            }
-            string[] labels={"Energie "+power,"Nahrung "+stock[0],"Metall "+stock[2],"Bauteile "+stock[3],"Kristalle "+stock[4]};
-            BuildingKind[] icons={BuildingKind.SolarPlant,BuildingKind.Farm,BuildingKind.Smelter,BuildingKind.Workshop,BuildingKind.CrystalMine};
-            for(int i=0;i<labels.Length;i++)
-            {
-                float x=12+i*158;GUI.DrawTexture(new Rect(x,7,37,29),BuildingIcon(icons[i]),ScaleMode.ScaleToFit);
-                GUI.Label(new Rect(x+42,11,116,24),labels[i],bodyStyle);
-            }
-            float right=width-365;
-            if(Button(new Rect(right,7,76,29),simulation.State.Paused?"Weiter":"Pause",simulation.State.Paused))TogglePause();
-            if(Button(new Rect(right+80,7,45,29),simulation.State.TimeScale+"×",false))SetSimulationSpeed(simulation.State.TimeScale==1?2:1);
-            if(Button(new Rect(right+130,7,132,29),"Einstellungen",false))SetSettingsVisible(true);
-            if(Button(new Rect(right+266,7,89,29),"Menü",false)){menuOpen=true;selectionStart=null;shipSelectionStart=null;}
-        }
-        private void DrawSectionNavigation()
-        {
-            string[] labels={"Übersicht","Bauen","Einheiten","Flotte","Forschung","Logistik","Diplomatie"};
-            GUILayout.BeginHorizontal();
-            for(int i=0;i<3;i++)if(GUILayout.Button(labels[i],presentationSection==i?selectedButtonStyle:buttonStyle,GUILayout.Height(29)))OpenPresentationSection(i);
-            GUILayout.EndHorizontal();
-            for(int row=0;row<2;row++)
-            {GUILayout.BeginHorizontal();for(int i=3+row*2;i<5+row*2;i++)if(GUILayout.Button(labels[i],presentationSection==i?selectedButtonStyle:buttonStyle,GUILayout.Height(29)))OpenPresentationSection(i);GUILayout.EndHorizontal();}
-            GUILayout.Space(10);
-        }
+        public void SetMenuVisible(bool visible) { menuOpen=visible; selectionStart=null; shipSelectionStart=null; }
         public void OpenPresentationSection(int section)
         {
             if(section<0 || section>6)throw new ArgumentOutOfRangeException("section");
             presentationSection=section;
-            contextOpen=true; showingDetails=false; showingDiplomacy=false; showingSpacePanel=false; showingMilitary=false;
+            contextOpen=true;panelOpen=true;showingDetails=false;showingDiplomacy=false;showingSpacePanel=false;showingMilitary=false;
+            spaceMoveTargetMode=false;militaryTargetMode=null;
             sidebarScroll=Vector2.zero;
             if(section==2) showingMilitary=true;
             if(section>=3 && section<=5) { showingSpacePanel=true; spacePanelTab=section==3?0:section==4?1:2; }
             if(section==6) showingDiplomacy=true;
-        }
-        private void DrawPresentationBottom(float width,float height)
-        {
-            float y=height-BottomHeight;
-            Rect deck=CurrentLayout==InterfaceLayout.OpenSpace?new Rect((width-600)/2,y+4,600,BottomHeight-12):new Rect(0,y,width,BottomHeight);
-            DrawPanel(deck);
-            if(CurrentLayout==InterfaceLayout.OpenSpace)
-            {
-                string[] names={"Bauen","Flotte","Forschung","Diplomatie","Details"};int[] sections={1,3,4,6,0};
-                for(int i=0;i<5;i++)if(Button(new Rect(deck.x+10+i*116,deck.y+12,110,34),names[i],false))
-                {if(i==4)contextOpen=!contextOpen;else OpenPresentationSection(sections[i]);}
-                if(Time.unscaledTime<notificationUntil)GUI.Label(new Rect(18,y-32,width-36,28),notification,bodyStyle);
-                return;
-            }
-            if(CurrentLayout==InterfaceLayout.OrbitalBridge)
-            {
-                DrawRadar(new Rect(16,y+12,175,140));
-                GUI.Label(new Rect(210,y+12,400,26),openPlanetId==0?"FLOTTENKOMMANDO":"KOLONIEKOMMANDO",headingStyle);
-                var selected=openPlanetId==0?null:FindSelected(simulation.FindPlanet(openPlanetId));
-                if(selected!=null)
-                {
-                    GUI.DrawTexture(new Rect(210,y+42,120,80),BuildingIcon(selected.Kind),ScaleMode.ScaleToFit);
-                    GUI.Label(new Rect(340,y+45,280,46),Definitions.Get(selected.Kind).Name+"\n"+selected.Status,bodyStyle);
-                }
-                else GUI.Label(new Rect(210,y+43,410,46),"Objekt auswählen, um Zustand und Versorgung zu prüfen.",bodyStyle);
-            }
-            float left=CurrentLayout==InterfaceLayout.OrbitalBridge?650:32;
-            float commandsY=CurrentLayout==InterfaceLayout.OrbitalBridge?y+18:y+10;
-            float available=width-left-24, buttonWidth=Mathf.Min(150,(available-18)/4);
-            if(Button(new Rect(left,commandsY,buttonWidth,30),"System",false))SetView(0);
-            if(Button(new Rect(left+buttonWidth+6,commandsY,buttonWidth,30),"Auswahl",false)){contextOpen=true;showingDetails=true;showingSpacePanel=false;showingDiplomacy=false;}
-            if(Button(new Rect(left+2*(buttonWidth+6),commandsY,buttonWidth,30),"Bau beenden",false))CancelPlacement();
-            if(CurrentLayout==InterfaceLayout.OpenSpace)
-            {
-                if(Button(new Rect(left+3*(buttonWidth+6),commandsY,buttonWidth,30),SidebarVisible?"Details aus":"Details ein",false))contextOpen=!contextOpen;
-            }
-            else if(Button(new Rect(left+3*(buttonWidth+6),commandsY,buttonWidth,30),"Versorgung",false))OpenPresentationSection(5);
-            string message=Time.unscaledTime<notificationUntil?notification:placementReason;
-            if(string.IsNullOrEmpty(message))message="WASD Kamera · Mausrad Zoom · Q/E Drehen · Mittlere Maustaste Neigen · Pos1 Zurücksetzen";
-            GUI.Label(new Rect(CurrentLayout==InterfaceLayout.OrbitalBridge?210:32,y+BottomHeight-26,width-(CurrentLayout==InterfaceLayout.OrbitalBridge?240:64),24),message,smallStyle);
-        }
-        private void DrawPresentationNavigation(float width,float height)
-        {
-            if(CurrentLayout!=InterfaceLayout.OrbitalBridge)return;
-            DrawPanel(new Rect(0,TopHeight,194,height-TopHeight-BottomHeight));
-            GUILayout.BeginArea(new Rect(12,TopHeight+14,170,height-TopHeight-BottomHeight-28));
-            navigationScroll=GUILayout.BeginScrollView(navigationScroll);
-            GUILayout.Label("KOLONIEN",headingStyle);
-            foreach(var p in simulation.State.Planets)
-                if(simulation.IsPlanetKnown(PlayerFactionId,p.Id) && GUILayout.Button(p.Name,openPlanetId==p.Id?selectedButtonStyle:buttonStyle,GUILayout.Height(34)))SetView(p.Id);
-            GUILayout.Space(18);GUILayout.Label("FLOTTEN",headingStyle);
-            foreach(var ship in simulation.State.Ships)
-                if(ship.OwnerId==PlayerFactionId && !ship.Destroyed && !ship.Consumed && GUILayout.Button("#"+ship.Id+" · "+Definitions.Ships[(int)ship.Kind].Name,buttonStyle,GUILayout.Height(35)))
-                {SetView(0);SelectShip(ship.Id,false);OpenPresentationSection(3);}
-            GUILayout.EndScrollView();GUILayout.EndArea();
         }
         private void DrawRadar(Rect rect)
         {
@@ -197,7 +111,8 @@ namespace PlanetOne.Runtime
                     if(!simulation.IsPlanetKnown(PlayerFactionId,p.Id))continue;
                     var pos=simulation.GetOrbitPosition(p.Id);
                     Rect dot=new Rect(rect.center.x+(float)pos.X/extent*rect.width*0.42f-5,rect.center.y-(float)pos.Y/extent*rect.height*0.42f-5,10,10);
-                    if(GUI.Button(dot,GUIContent.none,buttonStyle))SetView(p.Id);
+                    if(GUI.Button(dot,GUIContent.none,buttonStyle))SelectPlanet(p.Id);
+                    Fill(new Rect(dot.x+2,dot.y+2,6,6),p.Id==selectedPlanetId?Color.white:Cyan);
                 }
                 Fill(new Rect(rect.center.x-3,rect.center.y-3,6,6),Amber);
             }
@@ -232,8 +147,9 @@ namespace PlanetOne.Runtime
         {
             if(!settingsOpen && !menuOpen)return;
             Fill(new Rect(0,0,width,height),new Color(0,0,0,0.76f));
-            Rect box=new Rect((width-660)/2,(height-540)/2,660,540);DrawPanel(box);
-            GUILayout.BeginArea(new Rect(box.x+26,box.y+22,608,496));
+            float dialogHeight=settingsOpen?540:650;
+            Rect box=new Rect((width-660)/2,(height-dialogHeight)/2,660,dialogHeight);DrawPanel(box);
+            GUILayout.BeginArea(new Rect(box.x+26,box.y+22,608,dialogHeight-44));
             if(settingsOpen)
             {
                 GUILayout.Label("EINSTELLUNGEN · DARSTELLUNG",titleStyle);GUILayout.Space(18);
@@ -260,37 +176,50 @@ namespace PlanetOne.Runtime
                 if(GUILayout.Button("Spiel speichern",buttonStyle,GUILayout.Height(40))){SaveGame();menuOpen=false;}
                 if(GUILayout.Button("Spiel laden",buttonStyle,GUILayout.Height(40))){LoadGame();menuOpen=false;}
                 if(GUILayout.Button("Einstellungen",buttonStyle,GUILayout.Height(40))){menuOpen=false;settingsOpen=true;}
+                if(priorSession!=null && GUILayout.Button("Zur vorherigen Partie zurück",buttonStyle,GUILayout.Height(34)))
+                {simulation=priorSession;priorSession=null;foodRates.Clear();BuildSpace();SetView(0);menuOpen=false;}
                 GUILayout.Space(22);GUILayout.Label("NEUE PARTIE · laufendes Spiel vorher speichern",smallStyle);
                 if(GUILayout.Button("Diplomatische Partie",buttonStyle,GUILayout.Height(40))){StartDiplomacyScenario();menuOpen=false;}
                 if(GUILayout.Button("Gegen Computer spielen",buttonStyle,GUILayout.Height(40))){StartAiScenario();menuOpen=false;}
-                GUILayout.Space(20);if(GUILayout.Button("Spiel beenden",buttonStyle,GUILayout.Height(36)))Application.Quit();
+                GUILayout.Space(12);GUILayout.Label("TESTSZENARIEN · separate Sitzung",smallStyle);
+                GUILayout.BeginHorizontal();
+                if(GUILayout.Button("Aufbau / Raumfahrt",buttonStyle,GUILayout.Height(32))){StartSpaceFixture();menuOpen=false;}
+                if(GUILayout.Button("Bodengefecht",buttonStyle,GUILayout.Height(32))){StartMilitaryFixture();menuOpen=false;}
+                GUILayout.EndHorizontal();GUILayout.BeginHorizontal();
+                if(GUILayout.Button("Invasion",buttonStyle,GUILayout.Height(32))){StartInvasionFixture();menuOpen=false;}
+                if(GUILayout.Button("Verträge / Sprungtor",buttonStyle,GUILayout.Height(32))){StartDiplomacyFixture();menuOpen=false;}
+                GUILayout.EndHorizontal();
+                GUILayout.Space(10);if(GUILayout.Button("Spiel beenden",buttonStyle,GUILayout.Height(32)))Application.Quit();
             }
             GUILayout.EndArea();
         }
         private GUIStyle panelStyle;
         private void DrawPanel(Rect rect)
         {
-            Color tint=CurrentLayout==InterfaceLayout.OrbitalBridge?new Color(0.64f,0.8f,1):new Color(0.78f,0.85f,0.9f);
+            Color tint=CurrentLayout==InterfaceLayout.OrbitalBridge?new Color(0.72f,0.86f,1):Color.white;
             Color old=GUI.color;GUI.color=tint;
-            if(panelStyle==null){panelStyle=new GUIStyle();panelStyle.normal.background=panelTexture;panelStyle.border=new RectOffset(12,12,12,12);}
+            if(panelStyle==null){panelStyle=new GUIStyle();panelStyle.normal.background=panelTexture;panelStyle.border=new RectOffset(8,8,8,8);}
             GUI.Box(rect,GUIContent.none,panelStyle);GUI.color=old;
         }
         private void PreparePresentationSkin()
         {
             if(panelTexture==null)
             {
-                panelTexture=CreateInterfaceTexture(false);buttonTexture=CreateInterfaceTexture(true);hoverTexture=CreateInterfaceTexture(true);
+                panelTexture=CreateInterfaceTexture(0);buttonTexture=CreateInterfaceTexture(1);hoverTexture=CreateInterfaceTexture(2);
             }
             buttonStyle.normal.background=buttonTexture;buttonStyle.hover.background=hoverTexture;
             buttonStyle.border=new RectOffset(8,8,8,8);selectedButtonStyle.border=buttonStyle.border;
             buttonStyle.normal.textColor=Ink;buttonStyle.hover.textColor=Color.white;
             buttonStyle.active.background=hoverTexture;buttonStyle.active.textColor=Cyan;
+            buttonStyle.onNormal.background=hoverTexture;buttonStyle.onNormal.textColor=Cyan;buttonStyle.onHover.background=hoverTexture;buttonStyle.onHover.textColor=Color.white;
             selectedButtonStyle.normal.background=hoverTexture;
             selectedButtonStyle.normal.textColor=Cyan;
             if(buildStyle==null)
             {
-                buildStyle=new GUIStyle(buttonStyle){imagePosition=ImagePosition.ImageAbove,alignment=TextAnchor.MiddleCenter,fontSize=11,fixedWidth=112,padding=new RectOffset(4,4,5,5)};
-                selectedBuildStyle=new GUIStyle(buildStyle);selectedBuildStyle.normal.textColor=Cyan;
+                buildStyle=new GUIStyle(buttonStyle){imagePosition=ImagePosition.ImageAbove,alignment=TextAnchor.MiddleCenter,fontSize=12,fixedWidth=120,padding=new RectOffset(5,5,6,6)};
+                selectedBuildStyle=new GUIStyle(buildStyle);selectedBuildStyle.normal.textColor=Cyan;selectedBuildStyle.normal.background=hoverTexture;
+                centerStyle=new GUIStyle(bodyStyle){alignment=TextAnchor.MiddleCenter,fontSize=12};
+                treeStyle=new GUIStyle(buttonStyle){imagePosition=ImagePosition.ImageLeft,padding=new RectOffset(7,4,4,4),fontSize=12};treeStyle.normal.background=null;
             }
             GUI.skin.button=buttonStyle;GUI.skin.label=bodyStyle;
             GUI.skin.toggle.fontSize=14;GUI.skin.toggle.normal.textColor=Ink;
@@ -301,17 +230,17 @@ namespace PlanetOne.Runtime
             GUI.skin.horizontalScrollbar.normal.background=panelTexture;
             GUI.skin.horizontalScrollbarThumb.normal.background=buttonTexture;
         }
-        private static Texture2D CreateInterfaceTexture(bool button)
+        private static Texture2D CreateInterfaceTexture(int kind)
         {
             var texture=new Texture2D(64,64,TextureFormat.RGBA32,false){name="Metallrahmen",wrapMode=TextureWrapMode.Clamp};
             for(int y=0;y<64;y++)for(int x=0;x<64;x++)
             {
-                float grain=((x*13+y*71)%17)/1700f;
+                float grain=((x*13+y*71)%17)/5500f;
                 int edge=Mathf.Min(Mathf.Min(x,63-x),Mathf.Min(y,63-y));
-                float value=0.055f+(64-y)/1600f+grain;
-                if(edge<2)value=0.42f;if(edge>=2 && edge<5)value=0.16f;if(edge==5)value=0.30f;
+                float value=(kind==0?0.032f:kind==1?0.045f:0.08f)+(64-y)/2400f+grain;
+                if(edge==0)value=kind==2?0.45f:0.25f;if(edge==1)value=0.045f;
                 float alpha=(x+y<6 || (63-x)+y<6 || x+(63-y)<6 || (63-x)+(63-y)<6)?0:1;
-                texture.SetPixel(x,y,new Color(value*0.65f,value*0.90f,value*1.12f,alpha));
+                texture.SetPixel(x,y,new Color(value*(kind==2?0.35f:0.64f),value*0.93f,value*1.14f,alpha));
             }
             texture.Apply();return texture;
         }

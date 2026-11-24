@@ -9,7 +9,9 @@
 - **GUI-005:** Gebäude, Bodeneinheiten, Gütertransporter, Schiffe und Himmelskörper besitzen räumliche Geometrie. Die Kamera kann um die Welt gedreht und geneigt werden. Bewegte Modelle zeigen mit der Vorderseite in ihre tatsächliche Bewegungsrichtung; Stillstand erhält die letzte Ausrichtung, Kameradrehung verändert keine Einheit.
 - **GUI-006:** Die Oberfläche bildet zusammenhängende, unregelmäßige Berge und Täler ab. Materialübergänge und Felsgruppen folgen der Landschaft. Straßen, Bodenobjekte, Wabengrenzen und Auswahl berücksichtigen die reale Höhe. Verdeckte Bodenpunkte dürfen nicht anstelle der vordersten sichtbaren Landschaft ausgewählt werden. Spielregeln bleiben gemäß T-037 vom Relief getrennt.
 
-Umsetzung und Prüfumfang: [GUI_GRAFIK_NACHWEIS](GUI_GRAFIK_NACHWEIS.md).
+- **GUI-007:** Auswahl und Szenenwechsel sind getrennt. Ein Planetenklick zeigt bekannte Objektdaten und eine ausdrückliche Oberflächenaktion; ein Doppelklick darf diese direkt ausführen. B/C verwenden kompakte schließbare Auswahlkarten. Kopfzeile, Karten und Verwaltungsfenster dürfen keine Weltbefehle auslösen oder einen wartenden Zielbefehl verbrauchen. Ein gültiges Ziel wird durch dieselbe validierte Befehlsschnittstelle wie andere Eingaben verarbeitet.
+
+Umsetzung und Prüfumfang: [GUI_WELTRAUM_NACHWEIS](GUI_WELTRAUM_NACHWEIS.md), historischer [GUI_GRAFIK_NACHWEIS](GUI_GRAFIK_NACHWEIS.md).
 
 Diese Spezifikation beschreibt das verbindliche Zielverhalten des Spiels. Sie dient als fachliche Vorlage für die Umsetzung durch Codex. Anforderungs-IDs bleiben bei Umformulierungen stabil; fachliche Änderungen werden ausdrücklich dokumentiert.
 

@@ -1,5 +1,13 @@
 # Abnahmeszenarien für PlanetOne
 
+## TEST-026 Auswahlkarten, Navigation und Flugbefehle
+
+- **Regeln:** GUI-001 bis GUI-004 und GUI-007; CORE-007/008; D-030.
+- **Gegeben:** Eine pausierte Partie mit bekannten Welten, einer aufgebauten Kolonie und einem eigenen flugfähigen Schiff.
+- **Wenn:** In allen drei Layouts Planet und Gebäude ausgewählt, Auswahlkarten geschlossen, Verwaltungsbereiche geöffnet und ein Flugziel über die Oberfläche gesetzt werden.
+- **Dann:** Planetenauswahl bleibt im System; die Oberflächenaktion öffnet genau die ausgewählte Welt. B/C zeigen kompakte Karten, deren Fläche Welteingaben sperrt und nach dem Schließen wieder freigibt. Kopfzeile, Karte und modale Einstellungen lösen keinen Flug aus und verbrauchen keinen wartenden Zielbefehl. Ein gültiges Weltziel verlässt den Zielmodus und erreicht die gemeinsame Simulationswarteschlange. Reine Navigation erhält den vollständigen Spielzustand.
+- **Bildkontrolle:** Alle drei System-/Oberflächenansichten, aufgebaute Kolonie, Flottenauswahl, Einstellungen und Menü in 1440 × 900 und 1280 × 720. Konzepttafel und tatsächliche Playerbilder getrennt ausweisen. [Nachweis](GUI_WELTRAUM_NACHWEIS.md).
+
 ## TEST-025 Räumliche Darstellung und Relief
 
 - **Regeln:** GUI-003 bis GUI-006, CORE-007/008; D-029 und T-037.

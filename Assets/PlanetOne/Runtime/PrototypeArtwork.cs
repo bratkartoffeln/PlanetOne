@@ -50,7 +50,7 @@ namespace PlanetOne.Runtime
             string key=mode+":"+color.ToString()+":"+(label=="Gelände"?"grid":mode==7?label:"");Material material;
             if(artMaterials.TryGetValue(key,out material))return material;
             material=new Material(mode==10?Resources.Load<Shader>("SpaceBackdrop"):worldShader){name="PlanetOne "+label};
-            if(mode==10){artMaterials[key]=material;return material;}
+            if(mode==10){material.SetTexture("_MainTex",Resources.Load<Texture2D>("NebulaBackdrop"));artMaterials[key]=material;return material;}
             material.color=color;
             material.SetTexture("_MainTex",surfaceAtlas);material.SetFloat("_SurfaceKind",mode);material.SetFloat("_HexTerrain",label=="Gelände"?1:0);
             int variant=0;foreach(char c in label)variant=(variant*31+c)%997;material.SetFloat("_Variant",variant/99f);
