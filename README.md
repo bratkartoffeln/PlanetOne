@@ -103,6 +103,8 @@ Der Core-Test nutzt Roslyn aus Visual Studio Build Tools; dafür ist kein dotnet
 
 ## Versionierung und Git-Abschluss
 
+GitHub prüft Pull Requests und baut Windows-Pakete. Der getrennte Workflow **Release Windows download** veröffentlicht nach manuellem Start den geprüften aktuellen `main`-Build als Installer und portable ZIP. Einrichtung, Unity-Secrets, Pflichtcheck und tatsächlicher Prüfstand stehen in [CI_RELEASE](docs/CI_RELEASE.md).
+
 Die Produktversion steht zentral in [VERSION](VERSION). Sie wird mit `tools/Version.ps1` geprüft und in die Unity-Produkteinstellungen übernommen. Der Player zeigt `Application.version`; Engineversion, Paketversionen und Savegame-Format haben ihre eigenen Versionsstände.
 
 ```powershell

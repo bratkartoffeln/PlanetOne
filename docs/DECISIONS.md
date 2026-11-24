@@ -2,6 +2,11 @@
 
 Stand: 23. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.3 ergänzt M4-Raumfahrt, physische interplanetare Versorgung und Forschung. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
 
+## Ergänzung CI und Releases (24. November 2026)
+
+- **D-022, Vorgabe:** GitHub testet und baut PRs gegen `main` als Merge-Voraussetzung. Eine ausschließlich manuell gestartete Release-Pipeline bietet den aktuellen Build zum Download an.
+- **T-018, entschieden:** Gehostete GitHub-Runner, Core-/Versionsprüfungen, Unity-Windows-Build und Installer-Paketierung mit gemeinsamem Pflichtcheck. Release übernimmt das geprüfte Artefakt des exakten aktuellen `main`-Commits. Installer pro Benutzer sowie portable ZIP; keine kostenpflichtige Signatur und kein lokaler öffentlicher PR-Runner. Unity-Secrets sind eine separat einzurichtende Voraussetzung. Nachweise und Bedienung: [CI_RELEASE](CI_RELEASE.md).
+
 ## Ergänzungen für M4
 
 - **D-021, Vorgabe:** Nach abgeschlossenem M3 den nächsten Meilenstein umsetzen; Nutzerauftrag vom 23. November 2026. M4 umfasst P08–P10, einschließlich Prüfungen und beauftragter Versionsintegration.
