@@ -110,18 +110,29 @@ namespace PlanetOne.Runtime
             Require(ReferenceEquals(original, controller.Simulation), "Space and surface share one simulation instance");
             Require(controller.OpenPlanetId == 1, "Surface view opens Aster");
             PlanetState planet = original.FindPlanet(1);
+            int checkedCenters=0,checkedEdges=0;
             for (int y = 0; y < planet.Height; y++) for (int x = 0; x < planet.Width; x++)
             {
+                if(!controller.IsSurfacePointVisible(x,y))continue;
                 var picked = controller.SurfaceCellAtScreen(controller.SurfaceScreenPoint(x, y));
-                if (picked.X != x || picked.Y != y) throw new InvalidOperationException("Hex camera picking mismatch");
+                if (picked.X != x || picked.Y != y) throw new InvalidOperationException("Hex camera picking mismatch at "+x+","+y+" -> "+picked.X+","+picked.Y);
+                checkedCenters++;
                 for (int d = 0; d < 6; d++)
                 {
                     var n = HexGrid.Neighbor(x, y, d);
+                    if(!controller.IsSurfacePointVisible(x+(n.X-x)*0.51,y+(n.Y-y)*0.51))continue;
                     picked = controller.SurfaceCellAtScreen(controller.SurfaceScreenPoint(x + (n.X-x)*0.51, y + (n.Y-y)*0.51));
                     if (picked.X != n.X || picked.Y != n.Y) throw new InvalidOperationException("Hex edge camera picking mismatch");
+                    checkedEdges++;
                 }
             }
-            Require(true, "Camera picking resolves all 252 hex centers and their six neighboring edges");
+            Require(checkedCenters>45 && checkedEdges>240,"Relief camera resolves visible hex centers and edges: "+checkedCenters+" / "+checkedEdges);
+            float low=float.MaxValue,high=float.MinValue;
+            for(int y=0;y<planet.Height;y++)for(int x=0;x<planet.Width;x++){float h=controller.SurfaceElevation(x,y);low=Mathf.Min(low,h);high=Mathf.Max(high,h);}
+            Require(high-low>1.5f,"Surface has real mountain and valley elevations");
+            float savedHeight=controller.SurfaceElevation(3,4);
+            controller.SetView(0);controller.SetView(1);
+            Require(Mathf.Approximately(savedHeight,controller.SurfaceElevation(3,4)),"Reopening a world preserves deterministic relief");
             int previousBuildings = planet.Buildings.Count;
             int initialFood = GoodsOnPlanet(planet, ResourceKind.Food);
             int initialMetal = GoodsOnPlanet(planet, ResourceKind.Metal);
@@ -188,6 +199,23 @@ namespace PlanetOne.Runtime
             Require(controller.RenderedShipmentCount == planet.Shipments.Count, "Visible couriers match the shared simulation");
             yield return Capture("surface.png");
             Require(captureFailure == null, captureFailure ?? "Surface screenshot written after simulation advance");
+            string beforeOrbit=SaveCodec.ToJson(original.State);
+            foreach(float yaw in new[]{45f,135f,225f,315f})
+            {
+                controller.SetOrbitCamera(yaw,38);yield return null;
+                int visible=0;
+                for(int y=0;y<planet.Height;y++)for(int x=0;x<planet.Width;x++)
+                {
+                    if(!controller.IsSurfacePointVisible(x,y))continue;
+                    var cell=controller.SurfaceCellAtScreen(controller.SurfaceScreenPoint(x,y));
+                    if(cell.X!=x || cell.Y!=y)throw new InvalidOperationException("Rotated relief picking mismatch at "+yaw+": "+x+","+y);
+                    visible++;
+                }
+                Require(visible>30,"Rotated terrain selection resolves visible cells at "+yaw+" degrees: "+visible);
+                yield return Capture("surface-orbit-"+yaw+".png");Require(captureFailure==null,captureFailure??"Orbit frame captured");
+            }
+            Require(SaveCodec.ToJson(original.State)==beforeOrbit,"Orbit and elevation changes preserve the complete simulation");
+            controller.SetOrbitCamera(0,50);
 
             // Separate disruption checks follow the uninterrupted twenty-minute economy period.
             BuildingState mine = FindBuilding(planet, BuildingKind.Mine);
@@ -261,7 +289,17 @@ namespace PlanetOne.Runtime
             yield return Capture("military-defense.png");
             Require(captureFailure == null, captureFailure ?? "Defense screenshot written");
             Require(controller.RequestUnitOrder(tank.Id, CommandKind.MoveUnit, 8, 2), "Reserve movement queued through normal input adapter");
-            AdvanceSeconds(12);
+            Vector3 tankBefore=controller.UnitView(tank.Id).position;
+            AdvanceSeconds(1);yield return null;
+            var tankView=controller.UnitView(tank.Id);Vector3 tankDelta=tankView.position-tankBefore;tankDelta.y=0;
+            Vector3 tankForward=tankView.forward;tankForward.y=0;
+            Require(tankDelta.sqrMagnitude>0.001f && Vector3.Dot(tankForward.normalized,tankDelta.normalized)>0.99f,"Vehicle hull faces actual movement on the terrain");
+            Quaternion stoppedHeading=tankView.rotation;yield return null;
+            Require(Quaternion.Angle(stoppedHeading,tankView.rotation)<0.01f,"Paused vehicle preserves its heading");
+            controller.SetOrbitCamera(120,42);yield return null;
+            Require(Quaternion.Angle(stoppedHeading,tankView.rotation)<0.01f,"Camera rotation does not rotate the vehicle model");
+            yield return Capture("military-orbit.png");Require(captureFailure==null,captureFailure??"Rotated vehicle frame captured");controller.SetOrbitCamera(0,50);
+            AdvanceSeconds(11);
             Require(Math.Abs(tank.X - 8) < 0.01 && Math.Abs(tank.Y - 2) < 0.01, "Mobile reserve reaches the northern approach around existing buildings");
             MilitaryFixture.OrderAttack(controller.Simulation, true);
             MilitaryFixture.OrderAttack(controller.Simulation, false);
@@ -291,7 +329,11 @@ namespace PlanetOne.Runtime
             yield return Capture("space-fleet.png");
             Require(captureFailure == null, captureFailure ?? "Fleet screenshot written");
             Require(controller.RequestSpaceOrder(CommandKind.FlyShip, colonyShip.Id, planet: 3), "Flight to moving moon queued");
-            AdvanceSeconds(2);
+            Vector3 shipBefore=controller.ShipView(colonyShip.Id).position;
+            AdvanceSeconds(2);yield return null;
+            var shipView=controller.ShipView(colonyShip.Id);Vector3 shipDelta=shipView.position-shipBefore;shipDelta.y=0;
+            Require(shipDelta.sqrMagnitude>0.01f && Vector3.Dot(shipView.forward,shipDelta.normalized)>0.99f,"Spacecraft hull faces its actual flight direction");
+            controller.SetOrbitCamera(65,35);yield return null;yield return Capture("space-orbit.png");Require(captureFailure==null,captureFailure??"Spatial fleet frame captured");controller.SetOrbitCamera(0,50);
             controller.SetView(1); controller.SetView(2); controller.SetView(0);
             Require(ReferenceEquals(space, controller.Simulation), "Flight keeps simulation identity across surface switches");
             Require(controller.SaveGame(), "In-flight space state saves");

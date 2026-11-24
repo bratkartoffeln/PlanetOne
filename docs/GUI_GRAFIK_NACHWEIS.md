@@ -1,5 +1,7 @@
 # GUI und Grafik – Version 1.0.9
 
+Historischer Lieferstand. Die Nutzervorgabe wurde danach ausdrücklich um bildgetreue Umsetzung der Konzepttafel, natürliches Relief und vollständig räumliche Modelle erweitert. Maßgeblich sind D-029 sowie [Version 1.0.10](3D_GRAFIK_NACHWEIS.md).
+
 Auftrag vom 24. November 2026: die gesamte Oberfläche und Grafik überarbeiten, Materialien/Texturen ergänzen und alle drei vorgestellten Layouts in den Einstellungen auswählbar machen. Dies ist eine zusätzliche Präsentationslieferung auf M7, kein vorgezogener Abschluss von M8.
 
 ## Bedienung
@@ -26,7 +28,7 @@ Layout, Wabengrenzen und Oberflächengröße werden lokal unter `Application.per
 - Planetare Land-/Wasserflächen, Wolken und Polkappen sowie Mondoberflächen, Sternstruktur und zurückhaltender Nebelhintergrund werden prozedural im Shader erzeugt. Bekannte Objekte verwenden weiterhin die vorhandenen Sichtregeln.
 - Sämtliche Verwaltungsbereiche nutzen die gemeinsame Schrift-, Schaltflächen-, Eingabe- und Panelgestaltung. Die GUI bleibt Unity-IMGUI; es wird keine zweite Bedienlogik eingeführt.
 
-Die Konzepttafel aus dem Chat war eine Stil-/Layoutstudie, kein Screenshot und keine zugesagte fotorealistische Assetbibliothek. Die Lieferung bleibt eine stilisierte, geometrische Echtzeitdarstellung. Es gibt keine neue 3D-Orbitalspielregel, Animationserweiterung oder veränderte Spielbalance.
+Die damalige Lieferung war eine stilisierte, geometrische Echtzeitdarstellung. Die anschließende Nutzervorgabe D-029 verlangt ausdrücklich die Bildtreue zur Konzepttafel und räumlich drehbare Modelle; die vereinfachte Interpretation als reine Stilrichtung ist damit überholt. Die Konzepttafel selbst ist weiterhin kein Screenshot des implementierten Players.
 
 ## Referenzen und Herkunft
 

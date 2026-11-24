@@ -104,6 +104,10 @@ namespace PlanetOne.Runtime
             sceneCamera.farClipPlane = 300f;
             sceneCamera.tag = "MainCamera";
             sceneCamera.cullingMask = ~(1 << 30);
+            var sun=new GameObject("Sonnenlicht").AddComponent<Light>();sun.transform.SetParent(transform,false);
+            sun.type=LightType.Directional;sun.intensity=1.35f;sun.color=new Color(1,0.91f,0.79f);sun.transform.rotation=Quaternion.Euler(48,-35,0);sun.shadows=LightShadows.Soft;
+            RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(0.32f,0.39f,0.47f);RenderSettings.ambientEquatorColor=new Color(0.18f,0.20f,0.23f);RenderSettings.ambientGroundColor=new Color(0.11f,0.09f,0.06f);
+            QualitySettings.shadows=ShadowQuality.All;QualitySettings.shadowDistance=70;QualitySettings.shadowResolution=ShadowResolution.High;
             var backdrop = new GameObject("Vollbild-Hintergrund").AddComponent<Camera>();
             backdrop.transform.SetParent(transform,false);backdrop.depth=-100;backdrop.cullingMask=0;
             backdrop.clearFlags=CameraClearFlags.SolidColor;backdrop.backgroundColor=Background;
@@ -133,9 +137,13 @@ namespace PlanetOne.Runtime
         private void OnDestroy()
         {
             if (hexMesh != null) Destroy(hexMesh);
+            foreach(var mesh in modelMeshes.Values)Destroy(mesh);
             foreach (var material in materials.Values) Destroy(material);
             foreach(var material in artMaterials.Values)Destroy(material);
             foreach(var icon in buildingIcons.Values)Destroy(icon);
+            if(domeGlass!=null)Destroy(domeGlass);
+            if(reliefMesh!=null)Destroy(reliefMesh);
+            if(reliefMap!=null)Destroy(reliefMap);
             if(panelTexture!=null)Destroy(panelTexture);if(buttonTexture!=null)Destroy(buttonTexture);if(hoverTexture!=null)Destroy(hoverTexture);
         }
 
@@ -143,6 +151,7 @@ namespace PlanetOne.Runtime
         {
             if (Input.GetKeyDown(KeyCode.Escape)) { if(settingsOpen) settingsOpen=false; else if(menuOpen) menuOpen=false; else if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue) {CancelPlacement();militaryTargetMode=null;} else menuOpen=true; selectionStart=null; shipSelectionStart=null; return; }
             if(settingsOpen || menuOpen) return;
+            HandleOrbitCamera();
             if (Input.GetKeyDown(KeyCode.Space)) TogglePause();
             if (Input.GetKeyDown(KeyCode.F5)) SaveGame();
             if (Input.GetKeyDown(KeyCode.F9)) LoadGame();
@@ -159,7 +168,7 @@ namespace PlanetOne.Runtime
                 if (pan.sqrMagnitude > 0)
                 {
                     var planet = simulation.FindPlanet(openPlanetId);
-                    surfaceFocus += pan.normalized * Time.unscaledDeltaTime * 8f;
+                    surfaceFocus += Quaternion.Euler(0,cameraYaw,0)*pan.normalized * Time.unscaledDeltaTime * 8f;
                     surfaceFocus.x = Mathf.Clamp(surfaceFocus.x, 1, planet.Width - 2);
                     surfaceFocus.z = Mathf.Clamp(surfaceFocus.z, 1, planet.Height - 2);
                     UpdateCamera();
@@ -226,7 +235,7 @@ namespace PlanetOne.Runtime
                     if (!valid) placementReason = "Eine vorhandene Straße zum Entfernen auswählen.";
                 }
                 ghost.gameObject.SetActive(inside);
-                ghost.position = SurfacePosition(hoverX, 0.15f, hoverY);
+                ConformMarker(ghost,hoverX,hoverY);
                 ghost.GetComponent<LineRenderer>().sharedMaterial = MaterialFor(valid ? (removingRoad ? Amber : Cyan) : Danger);
                 if (Input.GetMouseButtonDown(0))
                 {
@@ -261,7 +270,7 @@ namespace PlanetOne.Runtime
             spaceRoot.SetParent(transform, false);
             planetViews.Clear(); shipViews.Clear(); selectedShips.Clear();
             orbitViews.Clear();
-            MakePrimitive(PrimitiveType.Sphere, "Stern", spaceRoot, Vector3.zero, Vector3.one * 2.1f, Amber);
+            MakePrimitive(PrimitiveType.Sphere,"Stern",spaceRoot,Vector3.zero,Vector3.one*2.8f,Amber);
             MakePrimitive(PrimitiveType.Quad,"Sternennebel",spaceRoot,new Vector3(0,-9,0),new Vector3(180,180,1),Color.white).rotation=Quaternion.Euler(90,0,0);
             var random = new System.Random(831);
             for (int i = 0; i < 320; i++)
@@ -276,7 +285,7 @@ namespace PlanetOne.Runtime
             {
                 bool isMoon = planet.ParentId > 0;
                 Color color = planet.OwnerId == PlayerFactionId ? (planet.Id == 1 ? Cyan : new Color(0.55f, 0.64f, 0.84f)) : new Color(0.60f, 0.61f, 0.57f);
-                Transform body = MakePrimitive(PrimitiveType.Sphere, (isMoon?"Mond ":"Planet ")+planet.Name, spaceRoot, Vector3.zero, Vector3.one * (isMoon ? 0.65f : 1.55f), color);
+                Transform body = MakePrimitive(PrimitiveType.Sphere,(isMoon?"Mond ":"Planet ")+planet.Name,spaceRoot,Vector3.zero,Vector3.one*(isMoon?0.9f:2.4f),color);
                 planetViews[planet.Id] = body;
                 var orbit = MakeLine("Umlaufbahn " + planet.Name, spaceRoot, Border, 0.025f, true);
                 orbit.positionCount = 96;
@@ -320,6 +329,7 @@ namespace PlanetOne.Runtime
             CancelPlacement();
             spaceRoot.gameObject.SetActive(planetId == 0);
             if (surfaceRoot != null) Destroy(surfaceRoot.gameObject);
+            if(reliefMesh!=null)Destroy(reliefMesh);reliefCollider=null;
             surfaceRoot = null;
             ghost = null;
             selectedMarker = null;
@@ -333,7 +343,7 @@ namespace PlanetOne.Runtime
             {
                 PlanetState planet = simulation.FindPlanet(planetId);
                 surfaceFocus = SurfacePosition((planet.Width - 1) * 0.5, 0, (planet.Height - 1) * 0.5);
-                surfaceZoom = 8f;
+                surfaceZoom = 3.8f;
                 BuildSurface(planet);
             }
             UpdateCamera();
@@ -344,26 +354,23 @@ namespace PlanetOne.Runtime
             surfaceRoot = new GameObject("Oberfläche " + planet.Name).transform;
             surfaceRoot.SetParent(transform, false);
             roadViews = new Transform[planet.Width * planet.Height];
+            roadVisualHash=0;BuildRelief(planet);
             for (int y = 0; y < planet.Height; y++)
             for (int x = 0; x < planet.Width; x++)
             {
                 int terrain = planet.Terrain[y * planet.Width + x];
-                Color tile = new Color(0.70f, 0.65f, 0.54f);
-                MakeHex("Gelände", surfaceRoot, SurfacePosition(x, -0.10f, y), new Vector3(1f, 0.14f, 1f), tile);
                 if (terrain == 1)
                 {
-                    var rock = MakePrimitive(PrimitiveType.Sphere, "Fels", surfaceRoot, SurfacePosition(x, 0.18f, y), new Vector3(0.65f, 0.45f, 0.7f), new Color(0.22f, 0.29f, 0.30f));
-                    rock.rotation = Quaternion.Euler(0, (x * 11 + y * 17) % 90, 0);
+                    for(int i=0;i<3;i++)Rock(surfaceRoot,SurfacePosition(x+(i-1)*0.21f,0.1f,y+i*0.09f),new Vector3(0.48f,0.45f+i*0.17f,0.6f),x+y*planet.Width+i);
                 }
                 if (terrain == 3)
                 {
-                    var crystal = MakePrimitive(PrimitiveType.Cube, "Kristallvorkommen", surfaceRoot, SurfacePosition(x, 0.25f, y), new Vector3(0.35f, 0.6f, 0.35f), new Color(0.6f, 0.4f, 0.9f));
-                    crystal.rotation = Quaternion.Euler(0, 45, 20);
+                    for(int i=0;i<4;i++)
+                    {var crystal=HullPart(surfaceRoot,SurfacePosition(x+(i-1.5f)*0.13f,0.19f,y),new Vector3(0.16f,0.16f,0.4f+i*0.08f),new Color(0.6f,0.4f,0.9f));crystal.localRotation=Quaternion.Euler(-70+i*9,0,i*21);}
                 }
                 if (terrain == 2)
                 {
-                    MakeHex("Erzvorkommen", surfaceRoot, SurfacePosition(x, 0.01f, y), new Vector3(0.73f, 0.08f, 0.73f), new Color(0.48f, 0.33f, 0.20f));
-                    MakePrimitive(PrimitiveType.Cube, "Erz", surfaceRoot, SurfacePosition(x + 0.12f, 0.11f, y), new Vector3(0.18f, 0.18f, 0.28f), Amber);
+                    for(int i=0;i<4;i++)Rock(surfaceRoot,SurfacePosition(x+(i-1.5f)*0.13f,0.03f,y+(i%2)*0.17f),new Vector3(0.28f,0.22f,0.3f),x+y+i);
                 }
             }
             ghost = MakeHexOutline("Bauvorschau", surfaceRoot, Cyan, 0.055f);
@@ -376,6 +383,7 @@ namespace PlanetOne.Runtime
         private void UpdateSurface()
         {
             PlanetState planet = simulation.FindPlanet(openPlanetId);
+            RefreshRoadVisuals(planet);
             for (int i = 0; i < planet.Roads.Length; i++)
             {
                 if (!planet.Roads[i])
@@ -385,7 +393,7 @@ namespace PlanetOne.Runtime
                     continue;
                 }
                 if (roadViews[i] == null)
-                    roadViews[i] = MakeHex("Straße", surfaceRoot, SurfacePosition(i % planet.Width, 0, i / planet.Width), new Vector3(0.92f, 0.06f, 0.92f), new Color(0.24f, 0.32f, 0.33f));
+                    roadViews[i] = BuildRoad(i%planet.Width,i/planet.Width,planet);
             }
             obsoleteBuildings.Clear();
             foreach (long id in buildingViews.Keys) obsoleteBuildings.Add(id);
@@ -422,12 +430,13 @@ namespace PlanetOne.Runtime
                 Transform view;
                 if (!shipmentViews.TryGetValue(shipment.Id, out view))
                 {
-                    view = MakePrimitive(PrimitiveType.Cube, "Transport", surfaceRoot, Vector3.zero, new Vector3(0.19f, 0.12f, 0.27f), Amber);
+                    view=new GameObject("Gütertransporter").transform;view.SetParent(surfaceRoot,false);
+                    BuildVehicleModel(view,UnitKind.Engineer,Amber,true);view.localScale=Vector3.one*0.42f;
                     shipmentViews[shipment.Id] = view;
                 }
                 obsoleteShipments.Remove(shipment.Id);
                 SimPoint position = simulation.GetShipmentPosition(shipment);
-                view.position = SurfacePosition(position.X, 0.17f, position.Y);
+                UpdateGroundPose(view,position.X,position.Y);
             }
             foreach (long id in obsoleteShipments)
             {
@@ -436,7 +445,7 @@ namespace PlanetOne.Runtime
             }
             BuildingState selected = FindSelected(planet);
             selectedMarker.gameObject.SetActive(selected != null);
-            if (selected != null) selectedMarker.position = SurfacePosition(selected.X, 0.14f, selected.Y);
+            if (selected != null) ConformMarker(selectedMarker,selected.X,selected.Y);
             UpdateMilitaryViews(planet);
         }
 
@@ -445,12 +454,16 @@ namespace PlanetOne.Runtime
             var root = new GameObject(Definitions.Get(building.Kind).Name).transform;
             root.SetParent(surfaceRoot, false);
             root.localPosition = SurfacePosition(building.X, 0, building.Y);
+            float ground=root.localPosition.y;
+            for(int i=0;i<6;i++){Vector3 corner=root.position+HexCorner(i,0.89f);ground=Mathf.Max(ground,ReliefHeight(corner.x,corner.z));}
+            root.localPosition=new Vector3(root.localPosition.x,ground+0.015f,root.localPosition.z);
+            for(int i=0;i<6;i++)
+            {Vector3 foot=HexCorner(i,0.79f),world=root.position+foot;float depth=root.position.y-ReliefHeight(world.x,world.z);if(depth>0.05f)Rod(root,"Fundamentstütze",foot-Vector3.up*depth,foot+Vector3.up*0.04f,0.1f,Steel);}
             BoxCollider pickCollider = root.gameObject.AddComponent<BoxCollider>();
             pickCollider.center = new Vector3(0, 0.55f, 0);
             pickCollider.size = new Vector3(0.90f, 1.1f, 0.90f);
             buildingPickIds[pickCollider.GetInstanceID()] = building.Id;
 
-            MakeHex("Fundament", root, new Vector3(0, 0.08f, 0), new Vector3(0.86f, 0.16f, 0.86f), new Color(0.22f, 0.29f, 0.32f));
             Transform status = MakePrimitive(PrimitiveType.Cube, "Betriebsanzeige", root, new Vector3(0, 0.17f, -0.39f), new Vector3(0.36f, 0.055f, 0.055f), Cyan);
             buildingIndicators[building.Id] = status.GetComponent<Renderer>();
             PopulateBuildingModel(root,building.Kind);
@@ -459,56 +472,7 @@ namespace PlanetOne.Runtime
 
         private void PopulateBuildingModel(Transform root,BuildingKind kind)
         {
-            Color accent=BuildingColor(kind);
-            switch (kind)
-            {
-                case BuildingKind.JumpGate:
-                    for(int segment=0;segment<8;segment++)
-                    {
-                        float angle=segment*Mathf.PI/4;
-                        var arch=MakePrimitive(PrimitiveType.Cube,"Sprungtorring",root,new Vector3(Mathf.Cos(angle)*0.3f,0.55f+Mathf.Sin(angle)*0.3f,0),new Vector3(0.26f,0.10f,0.16f),Cyan);
-                        arch.localRotation=Quaternion.Euler(0,0,segment*45+90);
-                    }
-                    MakePrimitive(PrimitiveType.Cube,"Torstütze",root,new Vector3(0,0.22f,0),new Vector3(0.65f,0.15f,0.36f),Muted);
-                    break;
-                case BuildingKind.Wall:
-                    MakePrimitive(PrimitiveType.Cube, "Mauer", root, new Vector3(0, 0.4f, 0), new Vector3(0.8f, 0.8f, 0.8f), Muted); break;
-                case BuildingKind.Gate:
-                    MakePrimitive(PrimitiveType.Cube, "Torpfosten", root, new Vector3(-0.35f, 0.4f, 0), new Vector3(0.15f, 0.8f, 0.6f), Cyan);
-                    MakePrimitive(PrimitiveType.Cube, "Torpfosten", root, new Vector3(0.35f, 0.4f, 0), new Vector3(0.15f, 0.8f, 0.6f), Cyan);
-                    MakePrimitive(PrimitiveType.Cube, "Tor", root, new Vector3(0, 0.85f, 0), new Vector3(0.8f, 0.12f, 0.6f), Cyan); break;
-                case BuildingKind.GunTower: case BuildingKind.AntiTankTower: case BuildingKind.FlakTower: case BuildingKind.ArtilleryTower:
-                    MakePrimitive(PrimitiveType.Cylinder, "Geschützsockel", root, new Vector3(0, 0.4f, 0), new Vector3(0.65f, 0.35f, 0.65f), Muted);
-                    MakePrimitive(PrimitiveType.Cube, "Geschütz", root, new Vector3(0.25f, 0.8f, 0), new Vector3(0.9f, 0.12f, 0.15f), Amber); break;
-                case BuildingKind.Headquarters:
-                    MakePrimitive(PrimitiveType.Cube, "Zentrale", root, new Vector3(0, 0.42f, 0), new Vector3(0.63f, 0.65f, 0.63f), accent);
-                    MakePrimitive(PrimitiveType.Cube, "Antenne", root, new Vector3(0.16f, 0.96f, 0.16f), new Vector3(0.06f, 0.45f, 0.06f), Ink);
-                    break;
-                case BuildingKind.Mine:
-                    MakePrimitive(PrimitiveType.Cylinder, "Förderturm", root, new Vector3(0, 0.45f, 0), new Vector3(0.38f, 0.30f, 0.38f), accent);
-                    MakePrimitive(PrimitiveType.Cube, "Ausleger", root, new Vector3(0, 0.80f, 0), new Vector3(0.68f, 0.10f, 0.24f), Ink);
-                    break;
-                case BuildingKind.SolarPlant:
-                    var panel = MakePrimitive(PrimitiveType.Cube, "Solarfläche", root, new Vector3(0, 0.4f, 0), new Vector3(0.85f, 0.08f, 0.69f), accent);
-                    panel.localRotation = Quaternion.Euler(-20f, 0, 0);
-                    break;
-                case BuildingKind.Smelter:
-                    MakePrimitive(PrimitiveType.Cube, "Schmelze", root, new Vector3(0, 0.32f, 0), new Vector3(0.70f, 0.48f, 0.62f), accent);
-                    MakePrimitive(PrimitiveType.Cube, "Abzug", root, new Vector3(0.19f, 0.76f, 0.16f), new Vector3(0.17f, 0.47f, 0.17f), Muted);
-                    break;
-                case BuildingKind.Farm:
-                    for (int i = 0; i < 3; i++) MakePrimitive(PrimitiveType.Cube, "Pflanzreihe", root, new Vector3(-0.25f + i * 0.25f, 0.23f, 0), new Vector3(0.13f, 0.22f, 0.70f), accent);
-                    break;
-                case BuildingKind.Housing:
-                    MakePrimitive(PrimitiveType.Cube, "Wohnmodul", root, new Vector3(-0.20f, 0.37f, 0), new Vector3(0.32f, 0.58f, 0.65f), accent);
-                    MakePrimitive(PrimitiveType.Cube, "Wohnmodul", root, new Vector3(0.20f, 0.29f, 0), new Vector3(0.32f, 0.42f, 0.65f), accent);
-                    break;
-                default:
-                    MakePrimitive(PrimitiveType.Cube, "Betrieb", root, new Vector3(0, 0.34f, 0), new Vector3(0.72f, 0.50f, 0.70f), accent);
-                    MakePrimitive(PrimitiveType.Cube, "Dach", root, new Vector3(0, 0.63f, 0), new Vector3(0.76f, 0.08f, 0.74f), Ink * 0.7f);
-                    break;
-            }
-            DecorateBuilding(root,kind);
+            BuildDetailedModel(root,kind);
         }
 
         private void UpdateCamera()
@@ -518,13 +482,13 @@ namespace PlanetOne.Runtime
             sceneCamera.pixelRect = WorldViewport;
             if (openPlanetId == 0)
             {
-                sceneCamera.transform.position = new Vector3(0, 48, -30);
+                sceneCamera.transform.position = Quaternion.Euler(cameraPitch,cameraYaw,0)*new Vector3(0,0,-56);
                 sceneCamera.transform.LookAt(Vector3.zero);
                 sceneCamera.orthographicSize = spaceZoom;
             }
             else
             {
-                sceneCamera.transform.position = surfaceFocus + new Vector3(0, 22, -18);
+                sceneCamera.transform.position = surfaceFocus + Quaternion.Euler(cameraPitch,cameraYaw,0)*new Vector3(0,0,-30);
                 sceneCamera.transform.LookAt(surfaceFocus);
                 sceneCamera.orthographicSize = surfaceZoom;
             }
@@ -581,7 +545,8 @@ namespace PlanetOne.Runtime
             GUILayout.BeginArea(new Rect(area.x + 17, area.y + 18, area.width - 34, area.height - 30));
             sidebarScroll = GUILayout.BeginScrollView(sidebarScroll, false, true);
             GUILayout.BeginVertical(GUILayout.Width(area.width - 70));
-            if(CurrentLayout==InterfaceLayout.CommandCenter) { Rect radar=GUILayoutUtility.GetRect(240,130);DrawRadar(radar);GUILayout.Space(12); }
+            if(CurrentLayout==InterfaceLayout.CommandCenter) { Rect radar=GUILayoutUtility.GetRect(240,135);DrawRadar(radar);GUILayout.Space(12); }
+            DrawSectionNavigation();
             DrawAiSession();
             if(showingDiplomacy){DrawDiplomacyPanel();GUILayout.EndVertical();GUILayout.EndScrollView();GUILayout.EndArea();return;}
             if (showingSpacePanel) { DrawSpacePanel(); GUILayout.EndVertical(); GUILayout.EndScrollView(); GUILayout.EndArea(); return; }

@@ -13,3 +13,11 @@ Vollständiger Generierungsprompt:
 `PrototypeArtwork.cs` erstellt Katalogbilder aus derselben Modellroutine wie die Spielwelt. `PrototypePresentation.cs` erzeugt die GUI-Mikrotexturen. `PlanetOneSurface.shader` enthält die prozeduralen Planeten-, Mond-, Stern-, Kristall- und Nebeloberflächen. Sicht- und Besitzanzeigen bleiben bewusst einfache kontrastreiche Markierungen.
 
 Die Layoutstudie im Chat ist ein Vorschauartefakt und wird nicht als Laufzeitgrafik ausgeliefert. Recherche und konkrete Umsetzung: [GUI_GRAFIK_NACHWEIS](GUI_GRAFIK_NACHWEIS.md).
+
+## Modellreferenzen für 1.0.10
+
+- `GUI_REFERENCE.png`: ursprüngliche, im Chat erzeugte Layout-/Grafiktafel mit den drei Ansichten; verbindliche visuelle Zielreferenz nach D-029.
+- `ColonyModelReference.png`: mit Imagegen am 24. November 2026 erzeugte transparente Gebäudestudie, vier mal vier Ansichten. Inhaltliche Vorgaben: weiß-graue Keramik, Metall, cyanfarbene Fenster, industrielle orange Akzente, Zentrale, Farmkuppeln, Solarzellen, Industrie, Häfen und militärische Anlagen entsprechend der ursprünglichen Tafel.
+- `SpaceModelReference.png`: mit Imagegen am selben Tag erzeugte transparente Raumfahrtstudie, vier mal zwei Ansichten. Inhaltliche Vorgaben: eigene PlanetOne-Schiffe, detaillierte Rümpfe, Brücken, Frachtmodule und blaue Triebwerke, ergänzt um Himmelskörper in der Materialsprache der Zieltafel.
+
+Diese beiden zusätzlichen Tafeln sind Modellreferenzen, keine im Player verwendeten Sprites. Die vollständigen ursprünglichen Generierungsprompts dieser beiden Studien sind im Repository nicht archiviert; die obige Beschreibung ist eine Zusammenfassung. Laufzeitmodelle entstehen als echte Meshes in `PrototypeModels3D.cs` und `PrototypeModelGeometry.cs`; Glas nutzt `HabitatGlass.shader`, der unbeleuchtete Weltraumhintergrund `SpaceBackdrop.shader`. Keine Grafikdateien der genannten Referenzspiele wurden übernommen.

@@ -65,7 +65,7 @@ namespace PlanetOne.Runtime
             UnitState nearest = null; float best = 24;
             foreach (var u in p.Units)
             {
-                if (u.Destroyed || !simulation.CanSeeEntity(p, PlayerFactionId, u.Id)) continue;
+                if (u.Destroyed || !simulation.CanSeeEntity(p, PlayerFactionId, u.Id) || !IsSurfacePointVisible(u.X,u.Y,0.3f)) continue;
                 var screen = sceneCamera.WorldToScreenPoint(SurfacePosition(u.X, 0.3f, u.Y));
                 float distance = Vector2.Distance(Input.mousePosition, screen);
                 if (distance < best) { nearest = u; best = distance; }
@@ -111,6 +111,7 @@ namespace PlanetOne.Runtime
                     var p = simulation.FindPlanet(openPlanetId);
                     foreach (var u in p.Units)
                     {
+                        if(!IsSurfacePointVisible(u.X,u.Y,0.3f))continue;
                         var screen = sceneCamera.WorldToScreenPoint(SurfacePosition(u.X, 0.3f, u.Y));
                         if (screen.x >= Math.Min(start.x, end.x) && screen.x <= Math.Max(start.x, end.x) &&
                             screen.y >= Math.Min(start.y, end.y) && screen.y <= Math.Max(start.y, end.y)) SelectUnit(u.Id, true);
@@ -132,22 +133,11 @@ namespace PlanetOne.Runtime
                     if (!visible) continue;
                     t = new GameObject(Definitions.Get(u.Kind).Name).transform; t.SetParent(surfaceRoot, false);
                     Color color = DiplomaticColor(u.OwnerId);
-                    bool infantry = u.Kind == UnitKind.Infantry || u.Kind == UnitKind.AntiTank;
-                    MakePrimitive(infantry ? PrimitiveType.Capsule : PrimitiveType.Cube, "Verband", t,
-                        new Vector3(0, 0.23f, 0), infantry ? new Vector3(0.25f, 0.25f, 0.25f) : new Vector3(0.55f, 0.28f, 0.4f), color);
-                    if (!infantry) MakePrimitive(PrimitiveType.Cube, "Rollenmarkierung", t, new Vector3(0.15f, 0.45f, 0),
-                        new Vector3(u.Kind == UnitKind.Artillery ? 0.75f : 0.4f, 0.09f, 0.1f), u.Kind == UnitKind.Engineer ? Amber : Ink);
-                    if(!infantry)for(int side=-1;side<=1;side+=2)
-                        MakePrimitive(PrimitiveType.Cube,"Kettenlaufwerk",t,new Vector3(0,0.13f,side*0.22f),new Vector3(0.6f,0.13f,0.1f),Muted);
-                    else
-                    {
-                        MakePrimitive(PrimitiveType.Sphere,"Helm",t,new Vector3(0,0.49f,0),Vector3.one*0.16f,Ink);
-                        MakePrimitive(PrimitiveType.Cube,"Ausrüstung",t,new Vector3(0.13f,0.3f,0),new Vector3(0.24f,0.055f,0.06f),Muted);
-                    }
+                    BuildVehicleModel(t,u.Kind,color);
                     unitViews[u.Id] = t;
                 }
                 t.gameObject.SetActive(visible);
-                if (visible) t.position = SurfacePosition(u.X, 0.1f, u.Y);
+                if (visible) UpdateGroundPose(t,u.X,u.Y);
             }
             selectedUnits.RemoveAll(id => !p.Units.Exists(u => u.Id == id && !u.Destroyed));
         }
@@ -160,7 +150,7 @@ namespace PlanetOne.Runtime
                 GUI.Label(new Rect(20, TopHeight + 12, 730, 28), "M3 TESTFIXTURE · endliche Bestände · keine Fraktions-KI", headingStyle);
             foreach (var u in p.Units)
             {
-                if (u.Destroyed || !simulation.CanSeeEntity(p, PlayerFactionId, u.Id)) continue;
+                if (u.Destroyed || !simulation.CanSeeEntity(p, PlayerFactionId, u.Id) || !IsSurfacePointVisible(u.X,u.Y,0.6f)) continue;
                 var screen = sceneCamera.WorldToScreenPoint(SurfacePosition(u.X, 0.6f, u.Y));
                 if (!sceneCamera.pixelRect.Contains(screen)) continue;
                 float x = screen.x / scale, y = (Screen.height - screen.y) / scale;

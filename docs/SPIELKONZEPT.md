@@ -215,7 +215,7 @@ Grundlage: WIN-001 bis WIN-008, D-013.
 
 Verbindlich sind Unity und C#, eingerichtet mit Unity 6000.3.29f1. Der erste Build richtet sich an Windows mit Maus und Tastatur. Weitere Desktop-, Web- und Mobilziele sowie Konsolen benötigen eigene Export- und Bediennachweise.
 
-Die Gestaltung bleibt minimalistisch: dunkler Weltraum, einfache Geometrie, zurückhaltende Palette, orthografische Kamera und gut lesbare Zustände. Beschriftung und Formen ergänzen Farben. Sichtbare Spieltexte und Dokumentation sind zunächst Deutsch; technische Identifikatoren Englisch. Texte werden für spätere Übersetzung von der Logik getrennt.
+Der frühere minimalistische Rahmen wurde durch D-028/D-029 erweitert: eigene Texturen, detaillierte räumliche Gebäude/Fahrzeuge/Schiffe, natürliches Relief mit Bergen und Tälern sowie drei wählbare Layouts nach der Konzepttafel. Die orthografische Kamera lässt sich drehen und neigen; Fahrzeuge richten sich nach der Bewegung aus. Dunkler Weltraum und gut lesbare Zustände bleiben wesentlich. Beschriftung und Formen ergänzen Farben. Sichtbare Spieltexte und Dokumentation sind zunächst Deutsch; technische Identifikatoren Englisch. Texte werden für spätere Übersetzung von der Logik getrennt. [Umsetzung und Abnahmegrenzen](3D_GRAFIK_NACHWEIS.md).
 
 Ein Unity-unabhängiger C#-Kern verwaltet gemeinsame Welt, feste Simulationsschritte und stabile Identitäten. Spieler und KI nutzen dieselbe validierte Befehlsschnittstelle. Darstellung und Eingabegeräte sind getrennte Adapter. Definitionen für Kosten, Zeiten und Reichweiten sind von veränderlichem Zustand getrennt.
 
