@@ -1,5 +1,11 @@
 # Entscheidungen und Plattformstrategie
 
+## GUI und Grafik (24. November 2026)
+
+- **D-028, Vorgabe:** Komplette GUI und Grafik mit Texturen überarbeiten. Referenzen: Command & Conquer, Haegemonia und Solar 2. Nach Vorlage dreier Layoutkonzepte beauftragt der Nutzer ausdrücklich alle drei mit Auswahl in den Einstellungen. Dies erweitert den früheren minimalistischen Assetumfang; Waben und Spielregeln bleiben erhalten.
+- **T-034, entschieden:** Version 1.0.9 baut auf dem M7-Branch 1.0.8 auf. Drei Layouts teilen eine Bedienlogik und dieselbe Simulation. Anzeigeeinstellungen liegen separat in `presentation.json`; das Savegame-Schema bleibt unverändert. Eigener Materialatlas, prozedurale Materialien und Katalogbilder aus den realen Modellen; keine kopierten Assets der Referenzspiele.
+- **T-035, entschieden:** Vollständige GUI-Bilder über einen separaten Windows-Desktop mittels `CreateDesktop`/`CreateProcess`, ohne `SwitchDesktop` oder globale Eingabe. Zusätzlich bleiben fensterlose GPU- und Core-Tests erhalten. Physische manuelle Bedienung und M8-Plattform-/Lastabnahme werden nicht daraus abgeleitet. [Nachweis](GUI_GRAFIK_NACHWEIS.md).
+
 Stand: 24. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.8 ergänzt lokal geprüftes M7 auf M6 und dem Hexraster. M5 und CI sind über PR #4/#5 in main integriert; die vollständige manuelle M5-Abnahme bleibt offen. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
 
 ## Diplomatie und Sieg: M7 (24. November 2026)

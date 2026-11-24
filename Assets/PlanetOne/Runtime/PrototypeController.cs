@@ -13,13 +13,10 @@ namespace PlanetOne.Runtime
         private static readonly Color Panel = new Color(0.043f, 0.065f, 0.093f);
         private static readonly Color Border = new Color(0.13f, 0.21f, 0.27f);
         private static readonly Color Ink = new Color(0.86f, 0.93f, 0.95f);
-        private static readonly Color Muted = new Color(0.44f, 0.57f, 0.65f);
+        private static readonly Color Muted = new Color(0.61f, 0.70f, 0.77f);
         private static readonly Color Cyan = new Color(0.37f, 0.83f, 0.82f);
         private static readonly Color Amber = new Color(0.94f, 0.66f, 0.32f);
         private static readonly Color Danger = new Color(0.94f, 0.37f, 0.36f);
-        private const float SideWidth = 278f;
-        private const float TopHeight = 68f;
-        private const float BottomHeight = 88f;
 
         private GameSimulation simulation;
         private Camera sceneCamera;
@@ -92,6 +89,7 @@ namespace PlanetOne.Runtime
 
         private void Awake()
         {
+            LoadPresentationSettings();
             simulation = GameSimulation.CreateDefault();
             Application.targetFrameRate = 60;
             worldShader = Resources.Load<Shader>("PlanetOneSurface");
@@ -105,6 +103,10 @@ namespace PlanetOne.Runtime
             sceneCamera.nearClipPlane = 0.1f;
             sceneCamera.farClipPlane = 300f;
             sceneCamera.tag = "MainCamera";
+            sceneCamera.cullingMask = ~(1 << 30);
+            var backdrop = new GameObject("Vollbild-Hintergrund").AddComponent<Camera>();
+            backdrop.transform.SetParent(transform,false);backdrop.depth=-100;backdrop.cullingMask=0;
+            backdrop.clearFlags=CameraClearFlags.SolidColor;backdrop.backgroundColor=Background;
             BuildSpace();
             SetView(0);
             Notify("Willkommen. Öffne einen Planeten, um seine Kolonie aufzubauen.");
@@ -132,10 +134,15 @@ namespace PlanetOne.Runtime
         {
             if (hexMesh != null) Destroy(hexMesh);
             foreach (var material in materials.Values) Destroy(material);
+            foreach(var material in artMaterials.Values)Destroy(material);
+            foreach(var icon in buildingIcons.Values)Destroy(icon);
+            if(panelTexture!=null)Destroy(panelTexture);if(buttonTexture!=null)Destroy(buttonTexture);if(hoverTexture!=null)Destroy(hoverTexture);
         }
 
         private void HandleKeyboard()
         {
+            if (Input.GetKeyDown(KeyCode.Escape)) { if(settingsOpen) settingsOpen=false; else if(menuOpen) menuOpen=false; else if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue) {CancelPlacement();militaryTargetMode=null;} else menuOpen=true; selectionStart=null; shipSelectionStart=null; return; }
+            if(settingsOpen || menuOpen) return;
             if (Input.GetKeyDown(KeyCode.Space)) TogglePause();
             if (Input.GetKeyDown(KeyCode.F5)) SaveGame();
             if (Input.GetKeyDown(KeyCode.F9)) LoadGame();
@@ -162,7 +169,7 @@ namespace PlanetOne.Runtime
 
         private void HandleWorldInput()
         {
-            if (!sceneCamera.pixelRect.Contains(Input.mousePosition))
+            if (!IsWorldPoint(Input.mousePosition))
             {
                 if (ghost != null) ghost.gameObject.SetActive(false);
                 return;
@@ -255,8 +262,9 @@ namespace PlanetOne.Runtime
             planetViews.Clear(); shipViews.Clear(); selectedShips.Clear();
             orbitViews.Clear();
             MakePrimitive(PrimitiveType.Sphere, "Stern", spaceRoot, Vector3.zero, Vector3.one * 2.1f, Amber);
+            MakePrimitive(PrimitiveType.Quad,"Sternennebel",spaceRoot,new Vector3(0,-9,0),new Vector3(180,180,1),Color.white).rotation=Quaternion.Euler(90,0,0);
             var random = new System.Random(831);
-            for (int i = 0; i < 80; i++)
+            for (int i = 0; i < 320; i++)
             {
                 float x = (float)(random.NextDouble() * 100 - 50);
                 float z = (float)(random.NextDouble() * 100 - 50);
@@ -268,7 +276,7 @@ namespace PlanetOne.Runtime
             {
                 bool isMoon = planet.ParentId > 0;
                 Color color = planet.OwnerId == PlayerFactionId ? (planet.Id == 1 ? Cyan : new Color(0.55f, 0.64f, 0.84f)) : new Color(0.60f, 0.61f, 0.57f);
-                Transform body = MakePrimitive(PrimitiveType.Sphere, planet.Name, spaceRoot, Vector3.zero, Vector3.one * (isMoon ? 0.65f : 1.25f), color);
+                Transform body = MakePrimitive(PrimitiveType.Sphere, (isMoon?"Mond ":"Planet ")+planet.Name, spaceRoot, Vector3.zero, Vector3.one * (isMoon ? 0.65f : 1.55f), color);
                 planetViews[planet.Id] = body;
                 var orbit = MakeLine("Umlaufbahn " + planet.Name, spaceRoot, Border, 0.025f, true);
                 orbit.positionCount = 96;
@@ -340,11 +348,11 @@ namespace PlanetOne.Runtime
             for (int x = 0; x < planet.Width; x++)
             {
                 int terrain = planet.Terrain[y * planet.Width + x];
-                Color tile = new Color(0.12f, 0.19f, 0.19f);
-                MakeHex("Gelände", surfaceRoot, SurfacePosition(x, -0.10f, y), new Vector3(0.96f, 0.14f, 0.96f), tile);
+                Color tile = new Color(0.70f, 0.65f, 0.54f);
+                MakeHex("Gelände", surfaceRoot, SurfacePosition(x, -0.10f, y), new Vector3(1f, 0.14f, 1f), tile);
                 if (terrain == 1)
                 {
-                    var rock = MakePrimitive(PrimitiveType.Cube, "Fels", surfaceRoot, SurfacePosition(x, 0.18f, y), new Vector3(0.65f, 0.45f, 0.7f), new Color(0.22f, 0.29f, 0.30f));
+                    var rock = MakePrimitive(PrimitiveType.Sphere, "Fels", surfaceRoot, SurfacePosition(x, 0.18f, y), new Vector3(0.65f, 0.45f, 0.7f), new Color(0.22f, 0.29f, 0.30f));
                     rock.rotation = Quaternion.Euler(0, (x * 11 + y * 17) % 90, 0);
                 }
                 if (terrain == 3)
@@ -441,11 +449,18 @@ namespace PlanetOne.Runtime
             pickCollider.center = new Vector3(0, 0.55f, 0);
             pickCollider.size = new Vector3(0.90f, 1.1f, 0.90f);
             buildingPickIds[pickCollider.GetInstanceID()] = building.Id;
-            Color accent = BuildingColor(building.Kind);
+
             MakeHex("Fundament", root, new Vector3(0, 0.08f, 0), new Vector3(0.86f, 0.16f, 0.86f), new Color(0.22f, 0.29f, 0.32f));
             Transform status = MakePrimitive(PrimitiveType.Cube, "Betriebsanzeige", root, new Vector3(0, 0.17f, -0.39f), new Vector3(0.36f, 0.055f, 0.055f), Cyan);
             buildingIndicators[building.Id] = status.GetComponent<Renderer>();
-            switch (building.Kind)
+            PopulateBuildingModel(root,building.Kind);
+            return root;
+        }
+
+        private void PopulateBuildingModel(Transform root,BuildingKind kind)
+        {
+            Color accent=BuildingColor(kind);
+            switch (kind)
             {
                 case BuildingKind.JumpGate:
                     for(int segment=0;segment<8;segment++)
@@ -493,17 +508,14 @@ namespace PlanetOne.Runtime
                     MakePrimitive(PrimitiveType.Cube, "Dach", root, new Vector3(0, 0.63f, 0), new Vector3(0.76f, 0.08f, 0.74f), Ink * 0.7f);
                     break;
             }
-            return root;
+            DecorateBuilding(root,kind);
         }
 
         private void UpdateCamera()
         {
             lastScreenWidth = Screen.width;
             lastScreenHeight = Screen.height;
-            float scale = UiScale;
-            float width = Mathf.Max(1, Screen.width - SideWidth * scale);
-            float height = Mathf.Max(1, Screen.height - (TopHeight + BottomHeight) * scale);
-            sceneCamera.pixelRect = new Rect(0, BottomHeight * scale, width, height);
+            sceneCamera.pixelRect = WorldViewport;
             if (openPlanetId == 0)
             {
                 sceneCamera.transform.position = new Vector3(0, 48, -30);
@@ -518,23 +530,29 @@ namespace PlanetOne.Runtime
             }
         }
 
-        private float UiScale { get { return Mathf.Clamp(Screen.height / 900f, 0.8f, 1.25f); } }
+        private float UiScale { get { return Mathf.Min(presentation.Scale, Mathf.Min(Screen.width / 1200f, Screen.height / 820f)); } }
 
         private void OnGUI()
         {
             if (simulation == null) return;
-            HandleSelectionEvents(); HandleSpaceEvents();
+            if(!settingsOpen && !menuOpen) { HandleSelectionEvents(); HandleSpaceEvents(); }
             EnsureStyles();
             float scale = UiScale;
             Matrix4x4 original = GUI.matrix;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
             float width = Screen.width / scale;
             float height = Screen.height / scale;
-            DrawTopBar(width);
-            DrawSidebar(width, height);
-            DrawBottomBar(width, height);
+            PreparePresentationSkin();
+            bool previousEnabled=GUI.enabled;
+            GUI.enabled=previousEnabled && !settingsOpen && !menuOpen;
             if (openPlanetId == 0) { DrawPlanetLabels(scale); DrawShipLabels(scale); }
             else { DrawBuildingLabels(scale); DrawMilitaryLabels(scale); }
+            DrawPresentationTop(width);
+            DrawPresentationNavigation(width,height);
+            DrawSidebar(width, height);
+            DrawPresentationBottom(width, height);
+            GUI.enabled=previousEnabled;
+            DrawPresentationDialogs(width,height);
             GUI.matrix = original;
         }
 
@@ -554,34 +572,18 @@ namespace PlanetOne.Runtime
             selectedButtonStyle = new GUIStyle(buttonStyle); selectedButtonStyle.normal.textColor = Cyan;
         }
 
-        private void DrawTopBar(float width)
-        {
-            Fill(new Rect(0, 0, width, TopHeight), Panel);
-            Fill(new Rect(0, TopHeight - 1, width, 1), Border);
-            GUI.Label(new Rect(22, 12, 220, 30), "PLANET ONE", titleStyle);
-            GUI.Label(new Rect(23, 42, 230, 20), "KOLONIEPROTOTYP  ·  v" + Application.version, smallStyle);
-            string place = openPlanetId == 0 ? "Systemübersicht" : simulation.FindPlanet(openPlanetId).Name;
-            GUI.Label(new Rect(260, 12, 200, 25), place, headingStyle);
-            GUI.Label(new Rect(260, 35, 230, 20), "Gemeinsame Simulationszeit  " + FormatTime(simulation.State.Tick * Definitions.TickSeconds), smallStyle);
-            float x = width - 385;
-            if (Button(new Rect(x, 18, 91, 32), simulation.State.Paused ? "▶ Weiter" : "Ⅱ Pause", simulation.State.Paused)) TogglePause();
-            if (Button(new Rect(x + 98, 18, 58, 32), simulation.State.TimeScale.ToString("0") + "×", false)) SetSimulationSpeed(simulation.State.TimeScale == 1 ? 2 : 1);
-            if (Button(new Rect(x + 163, 18, 95, 32), "Speichern", false)) SaveGame();
-            if (Button(new Rect(x + 265, 18, 95, 32), "Laden", false)) LoadGame();
-        }
-
         private void DrawSidebar(float width, float height)
         {
-            Rect area = new Rect(width - SideWidth, TopHeight, SideWidth, height - TopHeight - BottomHeight);
-            Fill(area, Panel);
+            if(!SidebarVisible)return;
+            Rect area = SidebarRect(width,height);
+            DrawPanel(area);
             Fill(new Rect(area.x, area.y, 1, area.height), Border);
             GUILayout.BeginArea(new Rect(area.x + 17, area.y + 18, area.width - 34, area.height - 30));
             sidebarScroll = GUILayout.BeginScrollView(sidebarScroll, false, true);
             GUILayout.BeginVertical(GUILayout.Width(area.width - 70));
+            if(CurrentLayout==InterfaceLayout.CommandCenter) { Rect radar=GUILayoutUtility.GetRect(240,130);DrawRadar(radar);GUILayout.Space(12); }
             DrawAiSession();
-            if(GUILayout.Button(showingDiplomacy?"Diplomatie schließen":"Diplomatie und Sprungtor",buttonStyle,GUILayout.Height(32)))showingDiplomacy=!showingDiplomacy;
             if(showingDiplomacy){DrawDiplomacyPanel();GUILayout.EndVertical();GUILayout.EndScrollView();GUILayout.EndArea();return;}
-            if (GUILayout.Button(showingSpacePanel ? "Zur Kolonieübersicht" : "Raumfahrt und Forschung", buttonStyle, GUILayout.Height(32))) { showingSpacePanel = !showingSpacePanel; sidebarScroll = Vector2.zero; }
             if (showingSpacePanel) { DrawSpacePanel(); GUILayout.EndVertical(); GUILayout.EndScrollView(); GUILayout.EndArea(); return; }
             if (openPlanetId == 0)
             {
@@ -629,11 +631,9 @@ namespace PlanetOne.Runtime
                 }
                 else
                 {
-                    if (GUILayout.Button(showingMilitary ? "Wirtschaft anzeigen" : "Militär und Einheiten", buttonStyle, GUILayout.Height(32)))
-                    { showingMilitary = !showingMilitary; sidebarScroll = Vector2.zero; }
                     if (showingMilitary)
                     { DrawMilitaryPanel(planet); GUILayout.EndVertical(); GUILayout.EndScrollView(); GUILayout.EndArea(); return; }
-                    DrawColonySummary(planet);
+                    if(presentationSection==0) DrawColonySummary(planet);
                     GUILayout.Space(14);
                     GUILayout.BeginHorizontal();
                     if (GUILayout.Button("Bauen", !showingDetails ? selectedButtonStyle : buttonStyle, GUILayout.Height(30))) showingDetails = false;
@@ -659,14 +659,13 @@ namespace PlanetOne.Runtime
             string cost = "";
             if (definition.Cost[(int)ResourceKind.Metal] > 0) cost += definition.Cost[(int)ResourceKind.Metal] + " M";
             if (definition.Cost[(int)ResourceKind.Parts] > 0) cost += "  " + definition.Cost[(int)ResourceKind.Parts] + " B";
-            if (GUILayout.Button(definition.Name + "  ·  " + cost, placement == kind ? selectedButtonStyle : buttonStyle, GUILayout.Height(30)))
+            if (GUILayout.Button(new GUIContent(definition.Name + "\n" + cost, BuildingIcon(kind)), placement == kind ? selectedBuildStyle : buildStyle, GUILayout.Height(104)))
             {
                 placement = placement == kind ? (BuildingKind?)null : kind;
                 placingRoad = false;
                 removingRoad = false;
                 selectedBuildingId = 0;
             }
-            GUILayout.Space(3);
         }
 
         private void DrawBuildingDetails(BuildingState building)
@@ -757,14 +756,22 @@ namespace PlanetOne.Runtime
 
         private void DrawBuildTools()
         {
-            DrawBuildButton(BuildingKind.Farm);
-            DrawBuildButton(BuildingKind.SolarPlant);
-            DrawBuildButton(BuildingKind.Mine);
-            DrawBuildButton(BuildingKind.Smelter);
-            DrawBuildButton(BuildingKind.Workshop);
-            DrawBuildButton(BuildingKind.Housing);
-            DrawBuildButton(BuildingKind.Warehouse);
-            for (int kind = (int)BuildingKind.Barracks; kind <= (int)BuildingKind.JumpGate; kind++) DrawBuildButton((BuildingKind)kind);
+            string[] categories={"Aufbau","Industrie","Militär"};
+            buildCategory=GUILayout.Toolbar(buildCategory,categories,buttonStyle);
+            GUILayout.Space(8);
+            int column=0;
+            foreach(BuildingKind kind in Enum.GetValues(typeof(BuildingKind)))
+            {
+                if(kind==BuildingKind.Headquarters)continue;
+                string name=kind.ToString();
+                bool military=name.Contains("Tower") || kind==BuildingKind.Wall || kind==BuildingKind.Gate || kind==BuildingKind.Barracks || name.Contains("Vehicle") || name.Contains("Depot");
+                bool basic=kind==BuildingKind.Farm || kind==BuildingKind.SolarPlant || kind==BuildingKind.Housing || kind==BuildingKind.Warehouse;
+                if(buildCategory!=(military?2:basic?0:1))continue;
+                if(column%2==0)GUILayout.BeginHorizontal();
+                DrawBuildButton(kind);column++;
+                if(column%2==0)GUILayout.EndHorizontal();
+            }
+            if(column%2!=0)GUILayout.EndHorizontal();
             GUILayout.Space(4);
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Straße bauen", placingRoad ? selectedButtonStyle : buttonStyle, GUILayout.Height(30)))
@@ -816,20 +823,6 @@ namespace PlanetOne.Runtime
                 sample.Tick = simulation.State.Tick;
                 sample.Produced = planet.FoodProducedTotal;
             }
-        }
-
-        private void DrawBottomBar(float width, float height)
-        {
-            Fill(new Rect(0, height - BottomHeight, width, BottomHeight), Panel);
-            Fill(new Rect(0, height - BottomHeight, width, 1), Border);
-            string message = Time.unscaledTime < notificationUntil ? notification : "";
-            if (string.IsNullOrEmpty(message))
-            {
-                if (placement.HasValue || placingRoad || removingRoad) message = placementReason ?? (removingRoad ? "Straße zum Entfernen wählen. Fracht bleibt bei den Transportern." : "Bauplatz wählen. Material wird über das Straßennetz angeliefert.");
-                else message = openPlanetId == 0 ? "Planeten anklicken, um ihre Oberflächen zu öffnen." : "Gebäude auswählen, um Bestand und Betriebszustand zu prüfen.";
-            }
-            GUI.Label(new Rect(22, height - BottomHeight + 15, width - 42, 30), message, bodyStyle);
-            GUI.Label(new Rect(22, height - 30, width - 42, 20), "LEERTASTE  Pause     TAB  System     WASD  Kamera     MAUSRAD  Zoom     F5 / F9  Speichern / Laden     ESC  Bauauswahl beenden", smallStyle);
         }
 
         private void DrawPlanetLabels(float scale)
@@ -937,6 +930,8 @@ namespace PlanetOne.Runtime
             {
                 if (building.Id != id) continue;
                 CancelPlacement();
+                contextOpen=true;
+                showingSpacePanel=false;showingDiplomacy=false;showingMilitary=false;presentationSection=1;
                 selectedBuildingId = id;
                 showingDetails = true;
                 sidebarScroll = Vector2.zero;
@@ -1015,7 +1010,7 @@ namespace PlanetOne.Runtime
             item.transform.SetParent(parent, false);
             item.transform.localPosition = position;
             item.transform.localScale = scale;
-            item.GetComponent<Renderer>().sharedMaterial = MaterialFor(color);
+            item.GetComponent<Renderer>().sharedMaterial = ArtMaterial(objectName,color,shape==PrimitiveType.Sphere);
             Collider collider = item.GetComponent<Collider>();
             if (collider != null) Destroy(collider);
             return item.transform;

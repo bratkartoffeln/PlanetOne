@@ -268,6 +268,13 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ## M8 Gesamtprüfung und Export
 
+### Zusätzlicher Auftrag: GUI und Grafik, 1.0.9
+
+- **Status:** Implementiert; lokale Prüfungen und Git-Integrationsstand siehe [GUI_GRAFIK_NACHWEIS](GUI_GRAFIK_NACHWEIS.md). Kein Abschluss von P19–P21.
+- **Grundlage:** Nutzerauftrag D-028 nach Layoutauswahl; M7 als Entwicklungsbasis. Regeln GUI-001 bis GUI-004, CORE-007/008 und die bestehenden Sichtgrenzen.
+- **Umfang:** Drei gespeicherte Layouts, skalierbare Oberfläche, Spielmenü/Einstellungen, bebilderter Baukatalog, Texturen und Materialfamilien, überarbeitete Gebäude-/Einheitenmodelle, Planeten und Weltraum.
+- **Abnahme:** Sofortiger Layoutwechsel ohne Simulationsänderung, korrekte Wabenauswahl und getrennte GUI-/Welteingabe; gemeinsame Funktionen in allen Ansichten. Reale GUI-Bilder auf isoliertem Desktop, keine Störung des Arbeitsdesktops. Grenzen der manuellen/Plattformprüfung separat ausweisen.
+
 ### P19 Speicherstände und Integrationsgrenzen absichern
 
 - **Status:** Offen. **Abhängigkeit:** P18.

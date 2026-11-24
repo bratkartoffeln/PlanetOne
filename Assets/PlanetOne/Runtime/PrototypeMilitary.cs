@@ -33,6 +33,7 @@ namespace PlanetOne.Runtime
             if (u == null) return false;
             if (!additive) selectedUnits.Clear();
             if (!selectedUnits.Contains(id)) selectedUnits.Add(id);
+            contextOpen=true;showingDiplomacy=false;showingSpacePanel=false;
             selectedBuildingId = 0; showingMilitary = true; CancelPlacement(); return true;
         }
 
@@ -99,10 +100,11 @@ namespace PlanetOne.Runtime
             // Read queued mouse-event positions instead of the frame's final pointer position.
             // Very short drags can deliver down and up within the same rendered frame.
             Vector2 point = new Vector2(e.mousePosition.x, Screen.height - e.mousePosition.y);
-            if (e.type == EventType.MouseDown && sceneCamera.pixelRect.Contains(point)) selectionStart = point;
+            if (e.type == EventType.MouseDown && IsWorldPoint(point)) selectionStart = point;
             if (e.type == EventType.MouseUp && selectionStart.HasValue)
             {
                 Vector2 start = selectionStart.Value, end = point; selectionStart = null;
+                if(!IsWorldPoint(end))return;
                 if (Vector2.Distance(start, end) > 12)
                 {
                     if (!e.shift) selectedUnits.Clear();
@@ -135,6 +137,13 @@ namespace PlanetOne.Runtime
                         new Vector3(0, 0.23f, 0), infantry ? new Vector3(0.25f, 0.25f, 0.25f) : new Vector3(0.55f, 0.28f, 0.4f), color);
                     if (!infantry) MakePrimitive(PrimitiveType.Cube, "Rollenmarkierung", t, new Vector3(0.15f, 0.45f, 0),
                         new Vector3(u.Kind == UnitKind.Artillery ? 0.75f : 0.4f, 0.09f, 0.1f), u.Kind == UnitKind.Engineer ? Amber : Ink);
+                    if(!infantry)for(int side=-1;side<=1;side+=2)
+                        MakePrimitive(PrimitiveType.Cube,"Kettenlaufwerk",t,new Vector3(0,0.13f,side*0.22f),new Vector3(0.6f,0.13f,0.1f),Muted);
+                    else
+                    {
+                        MakePrimitive(PrimitiveType.Sphere,"Helm",t,new Vector3(0,0.49f,0),Vector3.one*0.16f,Ink);
+                        MakePrimitive(PrimitiveType.Cube,"Ausrüstung",t,new Vector3(0.13f,0.3f,0),new Vector3(0.24f,0.055f,0.06f),Muted);
+                    }
                     unitViews[u.Id] = t;
                 }
                 t.gameObject.SetActive(visible);
@@ -172,7 +181,7 @@ namespace PlanetOne.Runtime
                 if (s.FactionId == PlayerFactionId && !simulation.IsCellVisible(p, PlayerFactionId, s.X, s.Y))
                 {
                     var point = sceneCamera.WorldToScreenPoint(SurfacePosition(s.X, 0.2f, s.Y));
-                    if (sceneCamera.pixelRect.Contains(point)) GUI.Label(new Rect(point.x / scale - 38, (Screen.height - point.y) / scale, 140, 25), "? Letzte Sichtung", smallStyle);
+                    if (IsWorldPoint(point)) GUI.Label(new Rect(point.x / scale - 38, (Screen.height - point.y) / scale, 140, 25), "? Letzte Sichtung", smallStyle);
                 }
             if (selectionStart.HasValue && Input.GetMouseButton(0))
             {

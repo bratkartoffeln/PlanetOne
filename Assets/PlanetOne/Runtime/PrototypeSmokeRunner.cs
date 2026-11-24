@@ -28,6 +28,7 @@ namespace PlanetOne.Runtime
         private IEnumerator Start()
         {
             if (!IsRequested) { Destroy(this); yield break; }
+            Application.runInBackground=true;
             Exception setupFailure = null;
             try
             {
@@ -64,6 +65,41 @@ namespace PlanetOne.Runtime
             yield return null;
             yield return null;
             Require(original.State.Tick == pausedTick, "Pause freezes simulation across rendered frames");
+            string presentationPath=Path.Combine(outputDirectory,"presentation-test.json");
+            controller.ConfigurePresentationTestPath(presentationPath);
+            string unchanged=SaveCodec.ToJson(original.State);
+            foreach(InterfaceLayout layout in Enum.GetValues(typeof(InterfaceLayout)))
+            {
+                Require(controller.SetInterfaceLayout(layout),"Layout switches: "+layout);
+                controller.ReloadPresentationSettings();
+                Require(controller.CurrentLayout==layout,"Layout survives settings reload: "+layout);
+                controller.SetView(1);yield return null;
+                controller.OpenPresentationSection(1);yield return null;
+                var center=controller.SurfaceScreenPoint(8,6);
+                var cell=controller.SurfaceCellAtScreen(center);
+                Require(cell.X==8 && cell.Y==6,"Layout camera preserves hex picking: "+layout);
+                Require(!controller.IsWorldPoint(new Vector2(20,Screen.height-20)),"Header never sends a world command: "+layout);
+                controller.SetSettingsVisible(true);
+                Require(!controller.IsWorldPoint(controller.WorldViewport.center),"Settings block world input: "+layout);
+                controller.SetSettingsVisible(false);
+                Require(SaveCodec.ToJson(original.State)==unchanged,"Layout preserves complete simulation state: "+layout);
+                yield return Capture("layout-"+layout+"-surface.png");
+                Require(captureFailure==null,captureFailure??("Surface frame captured: "+layout));
+                controller.SetView(0);yield return null;
+                yield return Capture("layout-"+layout+"-space.png");
+                Require(captureFailure==null,captureFailure??("System frame captured: "+layout));
+            }
+            File.WriteAllText(presentationPath,"{\"Layout\":999,\"Scale\":0}");controller.ReloadPresentationSettings();
+            Require(controller.CurrentLayout==InterfaceLayout.CommandCenter && controller.WorldViewport.width>0,"Invalid preferences recover to a usable layout");
+            Require(controller.HasSurfaceAtlas,"Authored material atlas loaded in the Windows player");
+            controller.ExportBuildingCatalogue(outputDirectory);
+            Require(File.Exists(Path.Combine(outputDirectory,"building-Headquarters.png")),"Building catalogue renders actual textured models");
+            controller.SetInterfaceLayout(InterfaceLayout.CommandCenter);
+            controller.SetView(0);
+            controller.SetSettingsVisible(true);
+            yield return Capture("presentation-settings.png");
+            Require(captureFailure==null,captureFailure??"Settings frame captured");
+            controller.SetSettingsVisible(false);
             Require(controller.SetSimulationSpeed(2) && original.State.TimeScale == 2, "Speed control submits a validated 2x command");
             Require(controller.SetSimulationSpeed(1) && original.State.TimeScale == 1 && original.State.Tick == pausedTick, "Returning to 1x preserves the paused simulation tick");
             yield return Capture("space.png");

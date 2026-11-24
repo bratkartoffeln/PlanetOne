@@ -71,7 +71,7 @@ namespace PlanetOne.Runtime
             var item = new GameObject(name);
             item.transform.SetParent(parent, false); item.transform.localPosition = position; item.transform.localScale = scale;
             item.AddComponent<MeshFilter>().sharedMesh = hexMesh;
-            item.AddComponent<MeshRenderer>().sharedMaterial = MaterialFor(color);
+            item.AddComponent<MeshRenderer>().sharedMaterial = ArtMaterial(name,color,false);
             return item.transform;
         }
 
