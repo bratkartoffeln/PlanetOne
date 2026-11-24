@@ -48,6 +48,8 @@ Lokal am 24. November 2026 bestanden: 58 Core-Tests; zwölf Versionswerkzeugtest
 
 Der Branchschutz wurde über die GitHub-API eingerichtet und aus der Antwort verifiziert: PR erforderlich, aktueller Branch und `PR validation` der GitHub-Actions-App erforderlich, Administratoren eingeschlossen, kein Force-Push/Löschen. Bei Einrichtung waren keine Unity-Secrets vorhanden. Der erfolgreiche Remote-Unity-Build und damit der Merge bleiben bis zur Einrichtung der Secrets offen. Die manuelle Veröffentlichung wurde nicht ausgelöst; ein tatsächlicher Release-Upload ist noch ungeprüft.
 
+Erster Remote-Nachweis: [CI-Lauf 45341142534](https://github.com/bratkartoffeln/PlanetOne/actions/runs/45341142534) zu [PR #4](https://github.com/bratkartoffeln/PlanetOne/pull/4). Core-, Versions- und Release-Prüfungen sind auf GitHub erfolgreich. Der Unity-Job scheitert ausdrücklich an fehlenden Aktivierungs-Secrets; Paketierung wird deshalb übersprungen und der Merge bleibt blockiert. Die Release-Prüfungen führen den tatsächlichen Workflow-Code mit simulierten API-/Dateiantworten aus: Erfolgsfall sowie sieben Fehlerfälle, ohne Veröffentlichung.
+
 Der grafische Integrationstest bleibt lokal (`tools/Test-Prototype.ps1 -Visible`); die CI behauptet keine visuelle Bedienungsabnahme. Andere Exportplattformen, Codesignatur und Store-Veröffentlichungen gehören nicht zu diesem Auftrag.
 
 Referenzen: [GameCI Builder](https://game.ci/docs/github/builder/), [GitHub Branchschutz](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches), [Inno Setup Benutzerinstallation](https://jrsoftware.org/ishelp/topic_setup_privilegesrequired.htm).
