@@ -81,7 +81,7 @@ namespace PlanetOne.Runtime
         public int RenderedShipmentCount { get { return shipmentViews.Count; } }
         public int PlayerFactionId { get { return simulation.State.PlayerFactionId; } }
         public static string SavePath { get { return Path.Combine(Application.persistentDataPath, "prototype-save.json"); } }
-        public string ActiveSavePath { get { return smokeSavePath ?? (simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "space-fixture-save.json") : simulation.State.MilitaryTestFixture ? Path.Combine(Application.persistentDataPath, "military-fixture-save.json") : SavePath); } }
+        public string ActiveSavePath { get { return smokeSavePath ?? (simulation.State.InvasionTestFixture ? Path.Combine(Application.persistentDataPath, "invasion-fixture-save.json") : simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "space-fixture-save.json") : simulation.State.MilitaryTestFixture ? Path.Combine(Application.persistentDataPath, "military-fixture-save.json") : SavePath); } }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureBootstrap()
@@ -289,6 +289,7 @@ namespace PlanetOne.Runtime
         private void UpdateSpace()
         {
             UpdateShipViews();
+            UpdateInvasionViews();
             foreach (PlanetState planet in simulation.State.Planets)
             {
                 bool known = simulation.IsPlanetKnown(PlayerFactionId, planet.Id);
@@ -306,7 +307,7 @@ namespace PlanetOne.Runtime
         public void SetView(int planetId)
         {
             if (planetId != 0 && simulation.FindPlanet(planetId) == null) return;
-            if (planetId != 0 && (!simulation.IsPlanetKnown(PlayerFactionId, planetId) || simulation.FindPlanet(planetId).OwnerId != 0 && simulation.FindPlanet(planetId).OwnerId != PlayerFactionId)) { Notify("Keine eigene oder aufgeklärte unbesiedelte Oberfläche."); return; }
+            if (planetId != 0 && !simulation.IsPlanetKnown(PlayerFactionId, planetId)) { Notify("Oberfläche ist noch unbekannt."); return; }
             openPlanetId = planetId;
             selectedBuildingId = 0;
             showingDetails = false;
@@ -393,6 +394,7 @@ namespace PlanetOne.Runtime
                 }
                 float height = building.Built ? 1f : Mathf.Lerp(0.18f, 0.95f, (float)(building.BuildProgress / Math.Max(0.01, Definitions.Get(building.Kind).BuildSeconds)));
                 view.localScale = new Vector3(1, height, 1);
+                view.gameObject.SetActive(simulation.IsCellVisible(planet,PlayerFactionId,building.X,building.Y) || GameSimulation.BuildingOwner(planet,building)==PlayerFactionId);
                 Renderer indicator;
                 if (buildingIndicators.TryGetValue(building.Id, out indicator))
                     indicator.sharedMaterial = MaterialFor(building.Deconstructing ? Amber : (!building.Enabled ? Muted : (building.CycleActive ? Cyan : BuildingColor(building.Kind))));
@@ -594,6 +596,7 @@ namespace PlanetOne.Runtime
                 GUILayout.Space(16);
                 GUILayout.Label("DEMONSTRATIONEN", headingStyle);
                 if (GUILayout.Button("M4 Aufbau und Raumfahrt", buttonStyle, GUILayout.Height(34))) StartSpaceFixture();
+                if (GUILayout.Button("M5 Invasion prüfen", buttonStyle, GUILayout.Height(34))) StartInvasionFixture();
                 if (GUILayout.Button("M3 Prüfkarte öffnen", buttonStyle, GUILayout.Height(34))) StartMilitaryFixture();
                 GUILayout.Label("Separate Testarmeen und Vorräte. Deine laufende Kolonie bleibt im Speicher erhalten.", smallStyle);
             }
@@ -605,6 +608,7 @@ namespace PlanetOne.Runtime
                 if (planet.OwnerId != PlayerFactionId)
                 {
                     GUILayout.Label(planet.OwnerId == 0 ? "UNBESIEDELTE WELT" : "FREMDE KOLONIE", headingStyle);
+                    DrawMilitaryPanel(planet);
                     GUILayout.Space(10);
                     GUILayout.Label(planet.OwnerId == 0 ? "Diese Welt kann mit einem angekommenen Kolonieschiff gegründet werden. Flotte öffnen, Ziel wählen und gründen." : "Diese Kolonie kann von deiner Fraktion nicht gesteuert werden.", mutedStyle);
                 }
@@ -652,6 +656,8 @@ namespace PlanetOne.Runtime
 
         private void DrawBuildingDetails(BuildingState building)
         {
+            if(GameSimulation.BuildingOwner(simulation.FindPlanet(building.PlanetId),building)!=PlayerFactionId)
+            { GUILayout.Label(Definitions.Get(building.Kind).Name+" · fremde Anlage",headingStyle);GUILayout.Label("Mit Infanterie vor Ort sichern.",bodyStyle);return; }
             GUILayout.Label(Definitions.Get(building.Kind).Name.ToUpperInvariant(), headingStyle);
             GUILayout.Label(building.Status ?? (building.Built ? "Betriebsbereit" : "Im Bau"), mutedStyle);
             GUILayout.Label("Struktur: " + building.Health.ToString("0") + " / " + Definitions.BuildingHealth(building.Kind), smallStyle);
@@ -743,7 +749,7 @@ namespace PlanetOne.Runtime
             DrawBuildButton(BuildingKind.Workshop);
             DrawBuildButton(BuildingKind.Housing);
             DrawBuildButton(BuildingKind.Warehouse);
-            for (int kind = (int)BuildingKind.Barracks; kind <= (int)BuildingKind.ElectronicsFactory; kind++) DrawBuildButton((BuildingKind)kind);
+            for (int kind = (int)BuildingKind.Barracks; kind <= (int)BuildingKind.OrbitalBattery; kind++) DrawBuildButton((BuildingKind)kind);
             GUILayout.Space(4);
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Straße bauen", placingRoad ? selectedButtonStyle : buttonStyle, GUILayout.Height(30)))

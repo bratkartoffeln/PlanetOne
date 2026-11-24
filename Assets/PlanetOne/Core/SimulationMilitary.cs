@@ -35,9 +35,8 @@ namespace PlanetOne.Core
             foreach (var u in p.Units)
                 if (!u.Destroyed && u.OwnerId == faction && u.Layer == TargetLayer.Ground &&
                     Distance(u.X, u.Y, x, y) <= Definitions.Get(u.Kind).Sight && HasLineOfSight(p, u.X, u.Y, x, y)) return true;
-            if (faction == p.OwnerId)
-                foreach (var b in p.Buildings)
-                    if (b.Built && !b.Destroyed && !b.Deconstructing && Distance(b.X, b.Y, x, y) <= Definitions.BuildingSight &&
+            foreach (var b in p.Buildings)
+                    if (BuildingOwner(p,b) == faction && b.Built && !b.Destroyed && !b.Deconstructing && Distance(b.X, b.Y, x, y) <= Definitions.BuildingSight &&
                         HasLineOfSight(p, b.X, b.Y, x, y)) return true;
             return false;
         }
@@ -47,7 +46,7 @@ namespace PlanetOne.Core
             var u = p.Units.Find(v => v.Id == id && !v.Destroyed);
             if (u != null) return u.OwnerId == faction || IsCellVisible(p, faction, u.X, u.Y);
             var b = p.Buildings.Find(v => v.Id == id && !v.Destroyed);
-            return b != null && (faction == p.OwnerId || IsCellVisible(p, faction, b.X, b.Y));
+            return b != null && (faction == BuildingOwner(p,b) || IsCellVisible(p, faction, b.X, b.Y));
         }
 
         public bool CanTraverse(PlanetState p, int faction, UnitKind kind, int x, int y)
@@ -56,9 +55,9 @@ namespace PlanetOne.Core
             var building = p.Buildings.Find(b => b.X == x && b.Y == y && !b.Destroyed);
             if (building == null) return true;
             if (building.Kind == BuildingKind.Gate && building.Built && !building.Deconstructing)
-                return faction == p.OwnerId || (!AtWar(faction, p.OwnerId) && p.GatePermissions.Exists(g => g.GateId == building.Id && g.FactionId == faction));
+                return faction == BuildingOwner(p,building) || (!AtWar(faction, BuildingOwner(p,building)) && p.GatePermissions.Exists(g => g.GateId == building.Id && g.FactionId == faction));
             // Friendly infantry may occupy completed civilian buildings for cover.
-            return kind == UnitKind.Infantry && faction == p.OwnerId && building.Built && !building.Deconstructing &&
+            return kind == UnitKind.Infantry && faction == BuildingOwner(p,building) && building.Built && !building.Deconstructing &&
                 building.Kind < BuildingKind.Barracks;
         }
 
@@ -97,7 +96,7 @@ namespace PlanetOne.Core
             if (c.Kind == CommandKind.RecruitUnit)
             {
                 var b = p.Buildings.Find(v => v.Id == c.TargetId);
-                if (p.OwnerId != c.IssuerId || b == null || !b.Built || b.Destroyed || b.Deconstructing)
+                if (b == null || BuildingOwner(p,b) != c.IssuerId || !b.Built || b.Destroyed || b.Deconstructing)
                 { Report(c, false, "PermissionDenied", "Keine eigene betriebsfähige Produktionsstätte."); return; }
                 if (!Enum.IsDefined(typeof(UnitKind), c.IntValue) || Definitions.Producer((UnitKind)c.IntValue) != b.Kind)
                 { Report(c, false, "InvalidUnit", "Dieser Einheitentyp benötigt eine andere Produktionsstätte."); return; }
@@ -164,7 +163,7 @@ namespace PlanetOne.Core
             var u = p.Units.Find(v => v.Id == id && !v.Destroyed);
             if (u != null) { x = u.X; y = u.Y; owner = u.OwnerId; layer = u.Layer; return true; }
             var b = p.Buildings.Find(v => v.Id == id && !v.Destroyed);
-            if (b != null) { x = b.X; y = b.Y; owner = p.OwnerId; layer = TargetLayer.Ground; return true; }
+            if (b != null) { x = b.X; y = b.Y; owner = BuildingOwner(p,b); layer = TargetLayer.Ground; return true; }
             x = y = 0; owner = 0; layer = TargetLayer.Ground; return false;
         }
 
@@ -173,7 +172,7 @@ namespace PlanetOne.Core
             foreach (var b in p.Buildings)
             {
                 if (b.Destroyed || b.Deconstructing) continue;
-                if (b.RecruitKind >= 0) TickRecruitment(p, b);
+                if (b.RecruitKind >= 0 && BuildingOwner(p,b)==p.OwnerId) TickRecruitment(p, b);
                 if (Definitions.IsTower(b.Kind)) TickTower(p, b);
             }
             foreach (var u in p.Units)
@@ -259,7 +258,7 @@ namespace PlanetOne.Core
                     if (!other.Destroyed && other.Layer == TargetLayer.Ground && AtWar(u.OwnerId, other.OwnerId) &&
                         Distance(other.X, other.Y, u.GoalX, u.GoalY) <= Definitions.AreaFireRadius) HurtUnit(p, other, d.Damage, u.Kind);
                 var b = p.Buildings.Find(v => !v.Destroyed && v.X == u.GoalX && v.Y == u.GoalY);
-                if (b != null && AtWar(u.OwnerId, p.OwnerId)) HurtBuilding(p, b, d.Damage);
+                if (b != null && AtWar(u.OwnerId, BuildingOwner(p,b))) HurtBuilding(p, b, d.Damage);
                 return;
             }
             if (u.Order == UnitOrder.Resupply || u.Order == UnitOrder.Repair)
@@ -367,7 +366,7 @@ namespace PlanetOne.Core
             var weapon = Definitions.GetTower(b.Kind);
             if (b.Ammunition == 0) { b.Status = "Munition fehlt; Nahrung und Bauteile anliefern"; return; }
             if (b.FireCooldown > 0) return;
-            long target = FindWeaponTarget(p, p.OwnerId, b.X, b.Y, weapon.Range, weapon.Indirect, weapon.AntiAir);
+            long target = FindWeaponTarget(p, BuildingOwner(p,b), b.X, b.Y, weapon.Range, weapon.Indirect, weapon.AntiAir);
             if (target == 0) return;
             b.Ammunition--; b.FireCooldown = weapon.Interval;
             var enemy = p.Units.Find(u => u.Id == target);

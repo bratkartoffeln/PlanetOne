@@ -9,7 +9,7 @@ namespace PlanetOne.Core
     /// <summary>Portable JSON snapshot codec. File locations and atomic writes belong to the platform adapter.</summary>
     public static partial class SaveCodec
     {
-        public const int CurrentVersion = 4;
+        public const int CurrentVersion = 5;
         private const int MaximumJsonLength = 4 * 1024 * 1024;
 
         public static string ToJson(GameState state)
@@ -34,6 +34,7 @@ namespace PlanetOne.Core
                     if (state != null && state.Version == 1) MigrateVersionOne(state);
                     if (state != null && state.Version == 2) MigrateMilitary(state);
                     if (state != null && state.Version == 3) MigrateSpace(state);
+                    if (state != null && state.Version == 4) MigrateInvasion(state);
                     Validate(state);
                     return state;
                 }
@@ -187,6 +188,7 @@ namespace PlanetOne.Core
                 }
             }
             ValidateSpace(state, factionIds, entityIds);
+            ValidateInvasion(state, factionIds, entityIds);
             foreach (long id in entityIds) Require(id < state.NextEntityId, "Nächste Entitätskennung ist bereits belegt.");
             foreach (var p in state.Planets)
             {

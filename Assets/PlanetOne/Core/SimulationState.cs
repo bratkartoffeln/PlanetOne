@@ -6,10 +6,11 @@ namespace PlanetOne.Core
 {
     public enum ResourceKind { Food, Ore, Metal, Parts, Crystals, Electronics }
     public enum BuildingKind { Headquarters, Mine, Smelter, SolarPlant, Warehouse, Workshop, Farm, Housing,
-        Barracks, VehicleFactory, MilitaryDepot, GunTower, AntiTankTower, FlakTower, ArtilleryTower, Wall, Gate, Spaceport, Laboratory, CrystalMine, ElectronicsFactory }
+        Barracks, VehicleFactory, MilitaryDepot, GunTower, AntiTankTower, FlakTower, ArtilleryTower, Wall, Gate, Spaceport, Laboratory, CrystalMine, ElectronicsFactory, ShieldGenerator, OrbitalBattery }
     public enum CommandKind { PlaceBuilding, PlaceRoad, RemoveRoad, CancelConstruction, DemolishBuilding,
         SetBuildingEnabled, SetBuildingPriority, SetPaused, SetTimeScale,
-        RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget, BuildShip, FlyShip, GuardPlanet, EscortShip, Colonize, StartResearch, SetSupplyPolicy, AssignFreight, CancelFreight, SetAutoSupply, SetTradeRoute, MoveShipPosition }
+        RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget, BuildShip, FlyShip, GuardPlanet, EscortShip, Colonize, StartResearch, SetSupplyPolicy, AssignFreight, CancelFreight, SetAutoSupply, SetTradeRoute, MoveShipPosition,
+        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters }
     public enum ShipmentPhase { Loading, InTransit, Unloading, Returning, Recovering }
     public enum RelationKind { Peace, War }
 
@@ -87,7 +88,9 @@ namespace PlanetOne.Core
     [DataContract, Serializable]
     public sealed class GameState
     {
-        [DataMember] public int Version = 4;
+        [DataMember] public int Version = 5;
+        [DataMember] public bool InvasionTestFixture;
+        [DataMember] public List<BeachheadState> Beachheads = new List<BeachheadState>();
         [DataMember] public List<ShipState> Ships = new List<ShipState>();
         [DataMember] public List<TradeRoute> Routes = new List<TradeRoute>();
         [DataMember] public List<SpaceSighting> SpaceSightings = new List<SpaceSighting>();
@@ -159,6 +162,12 @@ namespace PlanetOne.Core
     [DataContract, Serializable]
     public sealed class BuildingState
     {
+        // Zero inherits strategic ownership until a contested occupation fixes a local owner.
+        [DataMember] public int OwnerId;
+        [DataMember] public int CapturingFaction;
+        [DataMember] public double CaptureProgress;
+        [DataMember] public long RestoreWorkerId;
+        [DataMember] public double RestoreProgress;
         [DataMember] public long Id;
         [DataMember] public int PlanetId;
         [DataMember] public int X;

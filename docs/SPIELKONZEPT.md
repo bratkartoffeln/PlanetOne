@@ -242,7 +242,7 @@ Dokumentierte Nachweise: Windows-Build, 28 Core-Tests und 58 programmatische Pr�
 | M2 | Lokale Koloniewirtschaft | Technisch abgenommen nach T-006 |
 | M3 | Bodentruppen, Gefechte, Türme, Mauern und Nachschub | P06 und P07 in 1.0.2 abgeschlossen |
 | M4 | Schiffsbau, Kolonisierung, Frachter und Forschung | P08–P10 in 1.0.3 abgeschlossen |
-| M5 | Raumkampf, Landung und durchgängige Invasion | Offen |
+| M5 | Raumkampf, Landung und durchgängige Invasion | In 1.0.5 lokal umgesetzt und automatisiert geprüft; manuelle Abnahme/Git-Integration offen, siehe [M5_NACHWEIS](M5_NACHWEIS.md) |
 | M6 | Eigenständige wirtschaftliche und militärische KI | Offen |
 | M7 | Verträge, Koalitionen und gemeinsamer Sieg | Offen |
 | M8 | Gesamtintegration, Exporte und Referenzszenario | Offen |

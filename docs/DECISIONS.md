@@ -1,6 +1,13 @@
 # Entscheidungen und Plattformstrategie
 
-Stand: 23. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.3 ergänzt M4-Raumfahrt, physische interplanetare Versorgung und Forschung. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
+Stand: 24. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.5 ergänzt lokal geprüftes M5. Git-Integration und vollständige manuelle M5-Abnahme sind noch offen. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
+
+## Ergänzungen für M5 (24. November 2026)
+
+- **D-023, Vorgabe:** Nächsten Meilenstein M5 mit P11–P13 umsetzen. Tests ohne Screenreader; nachfolgend ausdrücklich ohne Computer-Use-Skill und ohne Störung des laufenden Arbeitsdesktops. VirtualBox ist bei Bedarf als isolierte Testumgebung erlaubt.
+- **T-019, entschieden:** Produktversion 1.0.5 auf separatem Versionsbranch, abhängig vom noch ungemergten CI-Stand 1.0.4. Speicherformat 5 ergänzt wirkliche Truppenobjekte im Träger, Hülle/Munition, Werftproduktion, Übergangsphasen, Landeköpfe und lokalen Gebäudebesitz; V4 migriert ohne Ressourcenänderung.
+- **T-020, Arbeitsannahme:** Orbitalwerft als planetengebundene Station aus realem Hafenbau; militärischer Werftbau mit einzelnen Warenübertragungen. Vier Transportplätze, lokale 2×2-Landezonen, acht Sekunden Übergang/Sicherung, sechs Sekunden Feldbau/Verwaltungsreparatur. Strategischer Besitz und örtlicher Anlagenbesitz bleiben getrennt; fremde aktive Anlagen werden nicht automatisch übernommen.
+- **T-021, Nachweis:** 74 Core-Tests, Windows-Build und 103 grafische Einzelprüfungen im echten Player; M5-Renderbilder als Dateien kontrolliert. Vollständige manuelle Bedienungsabnahme und GitHub-Unity-Build bleiben offen. Details, Grenzen und Tests ohne Eingriffe in den Arbeitsdesktop: [M5_NACHWEIS](M5_NACHWEIS.md).
 
 ## Ergänzung CI und Releases (24. November 2026)
 

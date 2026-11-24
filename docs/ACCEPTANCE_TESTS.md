@@ -203,6 +203,10 @@ Die Karten sind zunächst Spezifikationen. Ihre ausführbaren Szenariodaten werd
 - **Dann:** Beobachtbar sind Aufbau, Forschung, physischer Transport, Raumkampf, eine Bodeninvasion, vorbereitete Verteidigung, Anpassung der KI und ein erfülltes Szenarioziel. Im kooperativen Durchlauf setzt ein Partner eine konkrete Zusage um und gewinnt gemeinsam mit dem Spieler.
 - **Zusatz:** KI-Fraktionen handeln auch untereinander. Ein Konvoiverlust erlaubt wirtschaftlichen Wiederaufbau, sofern die eigene Grundversorgung erhalten blieb. Subjektive Verständlichkeit und taktische Wahlmöglichkeiten werden separat protokolliert.
 
+## Lokaler M5 Nachweis vom 24. November 2026
+
+P11–P13 sind in Produktversion 1.0.5 implementiert und automatisiert geprüft. [M5_NACHWEIS](M5_NACHWEIS.md) ordnet 74 Core-Tests, erfolgreichen Windows-Build und 103 grafische Einzelprüfungen mit 14 Bilddateien den Transport-, Raumkampf-, Landungs-, Eroberungs- und Speicherregeln zu. Die vollständige manuelle Bedienungsabnahme und die verpflichtende GitHub-Unity-Prüfung bleiben offen. Auf Nutzeranweisung keine Screenreader-/Computer-Use-Tests und keine weiteren sichtbaren Tests auf dem laufenden Arbeitsdesktop. Die bisherige Grafikabnahme erfolgte vor dieser Einschränkung; Wiederholungen benötigen eine isolierte Sitzung.
+
 ## Ausgeführter M4 Nachweis vom 23. November 2026
 
 P08–P10 sind in Version 1.0.3 abgeschlossen. [M4_NACHWEIS](M4_NACHWEIS.md) dokumentiert die 58 Core-Tests, erfolgreichen Windows-Build, 91 grafischen Einzelprüfungen, elf kontrollierten Renderbilder und nativen Eingabeschritte. TEST-003/004 prüfen konkurrierende Reservierungen, Teilmengen, volle Lager, Abbruch und Verlust; der P08/P09-Anteil von TEST-005 prüft bewegte Ziele und Hintergrundsimulation. Die regulär finanzierte Kette bis Außenposten, Kristallimport, Elektronik und Sensorschiff erweitert TEST-006. TEST-011 und TEST-020 erhalten Raumaufklärung und militärisch-wirtschaftliche Save/Load-Fortsetzung einschließlich V3-Migration. Reale Konvoikämpfe aus P11, KI und vollständige Partie bleiben offen.

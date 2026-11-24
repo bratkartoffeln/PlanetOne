@@ -182,7 +182,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P11 Raumgefechte und lokale Orbitalbereiche
 
-- **Status:** Offen. **Abhängigkeit:** P07 und P10.
+- **Status:** In 1.0.5 implementiert und lokal automatisiert geprüft; vollständige manuelle Abnahme und Git-Integration offen. Siehe [M5_NACHWEIS](M5_NACHWEIS.md). **Abhängigkeit:** P07 und P10 erfüllt.
 - **Module:** Raumkampf, Eskorten, Rückzug, Reparatur, Orbitalbereiche.
 - **Umfang:** Orbitalwerft errichten und über reale Hafentransfers versorgen; Aufklärer, Korvette, Eskortfregatte und Torpedoschiff aus Material und Produktionszeit fertigen. Frachter abfangen und schützen, Schäden reparieren, lokale Gefahrenzonen um Planeten darstellen.
 - **Nicht enthalten:** Vollständige Flottenvielfalt oder planetare Eroberung.
@@ -191,7 +191,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P12 Verladung, Landung und Brückenkopf
 
-- **Status:** Offen. **Abhängigkeit:** P11.
+- **Status:** In 1.0.5 implementiert und lokal automatisiert geprüft; vollständige manuelle Abnahme und Git-Integration offen. Siehe [M5_NACHWEIS](M5_NACHWEIS.md). **Abhängigkeit:** P11 lokal umgesetzt.
 - **Module:** Truppentransport, Invasionszustände, Landezonen, Warnungen, Felddepots.
 - **Umfang:** Vorhandene Bodentruppen verladen, zu einer geeigneten Landefläche transportieren, sichtbar absteigen und entladen. Begrenzte Startvorräte, angreifbare Verstärkungstransporte und Evakuierung.
 - **Nicht enthalten:** Automatische Planeteneroberung oder kostenlos nachproduzierte Wellen.
@@ -200,7 +200,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P13 Eroberung und begrenzte Orbitalunterstützung
 
-- **Status:** Offen. **Abhängigkeit:** P12.
+- **Status:** In 1.0.5 implementiert und lokal automatisiert geprüft; vollständige manuelle Abnahme und Git-Integration offen. Siehe [M5_NACHWEIS](M5_NACHWEIS.md). **Abhängigkeit:** P12 lokal umgesetzt.
 - **Module:** Gebäudebesetzung, Besitzwechsel, Invasion, Orbitalfeuer, Schilde.
 - **Umfang:** Verwaltungszentrale und Versorgungspunkt tatsächlich sichern, Gebäude übernehmen und verbliebene Verteidiger weiterführen. Orbitalunterstützung mit Zielaufklärung, Vorbereitung und Gegenwehr; Schutzschild und planetare Abwehrbatterie in einfacher Form.
 - **Nicht enthalten:** Diplomatische Besitzabsprachen oder gemeinsamer Szenariosieg.

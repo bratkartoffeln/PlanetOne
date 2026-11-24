@@ -139,7 +139,7 @@ internal static class SpaceTests
     {
         BuildingState a,b; var s=Fixture(out a,out b); var ship=Ship(s); Cmd(s,CommandKind.AssignFreight,ship.Id,a.Id,2,2,20); Wait(s,()=>ship.Cargo[2]>0); s.Step(20);
         var restored=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(s.State))); s.Step(500); restored.Step(500); Check(SaveCodec.ToJson(s.State)==SaveCodec.ToJson(restored.State),"Freight continuation differs");
-        string old=SaveCodec.ToJson(GameSimulation.CreateDefault().State).Replace("\"Version\":4","\"Version\":3"); var migrated=SaveCodec.FromJson(old); Check(migrated.Version==4 && migrated.Ships.Count==0,"V3 migration failed");
+        string old=SaveCodec.ToJson(GameSimulation.CreateDefault().State).Replace("\"Version\":"+SaveCodec.CurrentVersion,"\"Version\":3"); var migrated=SaveCodec.FromJson(old); Check(migrated.Version==SaveCodec.CurrentVersion && migrated.Ships.Count==0,"V3 migration failed");
         restored.State.Ships[0].Cargo[2]=200; bool rejected=false; try { SaveCodec.Validate(restored.State); } catch(InvalidDataException) { rejected=true; } Check(rejected,"Corrupt cargo accepted");
     }
     private static void FullEconomy()

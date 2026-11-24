@@ -142,6 +142,7 @@ namespace PlanetOne.Core
                 TickMilitary(planet);
             }
             TickSpace();
+            TickInvasion();
             State.Tick++;
         }
 
@@ -221,6 +222,7 @@ namespace PlanetOne.Core
             if (!State.Factions.Exists(f => f.Id == command.IssuerId))
             { Report(command, false, "UnknownFaction", "Unbekannte Fraktion."); return; }
             if (p == null) { Report(command, false, "UnknownPlanet", "Unbekannter Planet."); return; }
+            if (command.Kind >= CommandKind.AttackShip) { ApplyInvasion(command); return; }
             if (command.Kind >= CommandKind.BuildShip) { ApplySpace(command); return; }
             if (command.Kind >= CommandKind.RecruitUnit) { ApplyMilitary(p, command); return; }
             if (p.OwnerId != command.IssuerId || p.OwnerId == 0)
@@ -249,7 +251,7 @@ namespace PlanetOne.Core
                 command.Kind == CommandKind.CancelConstruction || command.Kind == CommandKind.DemolishBuilding)
             {
                 var target = p.Buildings.Find(b => b.Id == command.TargetId);
-                if (target == null || target.Deconstructing)
+                if (target == null || target.Deconstructing || BuildingOwner(p,target)!=command.IssuerId)
                 { Report(command, false, "InvalidTarget", "Das Gebäude fehlt oder wird bereits zurückgebaut."); return; }
                 if (target.Kind == BuildingKind.Headquarters)
                 { Report(command, false, "ProtectedHeadquarters", "Das Kommandozentrum sichert die Grundversorgung."); return; }
