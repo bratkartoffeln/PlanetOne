@@ -351,14 +351,15 @@ namespace PlanetOne.Core
             int[] previous = new int[p.Terrain.Length];
             for (int i = 0; i < previous.Length; i++) previous[i] = -1;
             var queue = new Queue<int>(); queue.Enqueue(start); previous[start] = start;
-            int[] dx = { 1, 0, -1, 0 }; int[] dy = { 0, 1, 0, -1 };
+
             while (queue.Count > 0)
             {
                 int current = queue.Dequeue();
                 if (current == finish) break;
-                for (int direction = 0; direction < 4; direction++)
+                for (int direction = 0; direction < 6; direction++)
                 {
-                    int x = current % p.Width + dx[direction], y = current / p.Width + dy[direction];
+                    var neighbor = HexGrid.Neighbor(current % p.Width, current / p.Width, direction);
+                    int x = neighbor.X, y = neighbor.Y;
                     if (x < 0 || y < 0 || x >= p.Width || y >= p.Height) continue;
                     int next = y * p.Width + x;
                     if (previous[next] >= 0 || (next != finish && !p.Roads[next])) continue;

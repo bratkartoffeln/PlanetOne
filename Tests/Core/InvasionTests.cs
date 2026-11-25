@@ -75,7 +75,7 @@ internal static class InvasionTests
         var s=World();var ship=InvasionFixture.AddShip(s,2,1,ShipKind.LandingTransport);
         s.State.Relations[0].Relation=RelationKind.Peace;Check(!Cmd(s,CommandKind.LandTransport,ship.Id,planet:2,x:3,y:9),"Peace landing");
         s.State.Relations[0].Relation=RelationKind.War;Check(!Cmd(s,CommandKind.LandTransport,ship.Id,planet:2,x:8,y:6),"Building landing");
-        var shield=InvasionFixture.AddBuilding(s,2,BuildingKind.ShieldGenerator,4,8);shield.Operational=true;
+        var shield=InvasionFixture.AddBuilding(s,2,BuildingKind.ShieldGenerator,3,7);shield.Operational=true;
         Check(s.LandingError(ship,s.FindPlanet(2),3,9)!=null,"Shield bypassed");shield.Operational=false;Check(s.LandingError(ship,s.FindPlanet(2),3,9)==null,"Inactive shield blocks");
     }
     private static void Flak()
@@ -107,8 +107,8 @@ internal static class InvasionTests
     private static void Migration()
     {
         var s=World();var ship=InvasionFixture.AddShip(s,1,1,ShipKind.Freighter);ship.Cargo[2]=12;
-        string json=SaveCodec.ToJson(s.State).Replace("\"Version\":5","\"Version\":4");var restored=SaveCodec.FromJson(json);
-        Check(restored.Version==5 && restored.Ships[0].Health==100 && restored.Ships[0].Cargo[2]==12,"V4 migration changed cargo");
+        string json=SaveCodec.ToJson(s.State).Replace("\"Version\":"+SaveCodec.CurrentVersion,"\"Version\":4");var restored=SaveCodec.FromJson(json);
+        Check(restored.Version==SaveCodec.CurrentVersion && restored.Ships[0].Health==100 && restored.Ships[0].Cargo[2]==12,"V4 migration changed cargo");
     }
     private static void Fixture()
     {var s=InvasionFixture.Create();Check(s.State.InvasionTestFixture && s.State.Ships.Find(v=>v.Kind==ShipKind.LandingTransport).Troops.Count==4,"Fixture transport missing");SaveCodec.Validate(s.State);}

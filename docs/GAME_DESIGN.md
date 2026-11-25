@@ -56,7 +56,7 @@ Die normale Aufbaukarte besitzt zwei eigene Kolonien und einen neutralen Mond. B
 
 ## 4 Kolonie und Oberfläche
 
-**SURFACE-001** Jeder bebaubare Himmelskörper besitzt zunächst genau eine zusammenhängende Kolonieregion. Aufbau und Bodengefecht finden auf derselben Karte mit denselben Gebäuden, Straßen und Vorräten statt.
+**SURFACE-001** Jeder bebaubare Himmelskörper besitzt zunächst genau eine zusammenhängende Kolonieregion. Aufbau und Bodengefecht finden auf derselben Karte mit denselben Gebäuden, Straßen und Vorräten statt. Die Bodenfelder sind regelmäßige Sechsecke in Wabenstruktur. Jedes innere Feld besitzt sechs über gemeinsame Kanten erreichbare Nachbarn; Darstellung, Auswahl, Bau, Straßen und Bodennavigation verwenden dieses Raster. Reichweiten und Sicht beziehen sich auf seine tatsächliche Geometrie.
 
 **SURFACE-002** Die Karte besitzt mehrere glaubwürdige Angriffsoptionen. Gelände beeinflusst Begehbarkeit, Befahrbarkeit, Sicht und Deckung. Eine zufällige Platzierung darf notwendige Zugänge nicht ausschließlich durch unzerstörbare Barrieren sperren.
 
@@ -196,6 +196,8 @@ Arbeitsannahme M1/M2: Nahrung wird am Kommandozentrum tatsächlich verbraucht, e
 **INV-001** Eine Invasionsoperation besitzt die nachvollziehbaren Phasen Aufklärung, Sammlung, Anflug, Abstieg, Brückenkopf, Bodenoperation und Sicherung. Abbruch und Evakuierung sind mögliche Übergänge. Die Phasen beschreiben tatsächliche Bedingungen und ersetzen keine frei steuerbaren Gefechte.
 
 **INV-002** Örtliche Raumkontrolle senkt das Transportrisiko. Eine vollständige Vernichtung aller feindlichen Schiffe im System ist keine Landebedingung. Verbliebene Gegner können den Anflug und spätere Lieferungen weiterhin angreifen.
+
+Arbeitsannahme ab 1.0.6 zu INV-003: Die Landezone besteht aus einer zentralen Wabe und ihren sechs Nachbarn. Alle sieben müssen frei und ohne aktiven gegnerischen Schild sein; überlappende Landereservierungen sind unzulässig. Vier Truppenplätze bleiben unabhängig von der Flächengröße.
 
 **INV-003** Eine Landezone muss ausreichend groß, begehbar und erreichbar sein. Gebäude, ungeeignetes Gelände und aktive lokale Schutzanlagen können die Auswahl begrenzen. Ein aktiver Flächenschild verhindert direkte Landung innerhalb seines Schutzbereichs; Bodentruppen können von außen heranrücken.
 

@@ -65,7 +65,7 @@ namespace PlanetOne.Runtime
             foreach (var u in p.Units)
             {
                 if (u.Destroyed || !simulation.CanSeeEntity(p, PlayerFactionId, u.Id)) continue;
-                var screen = sceneCamera.WorldToScreenPoint(new Vector3((float)u.X, 0.3f, (float)u.Y));
+                var screen = sceneCamera.WorldToScreenPoint(SurfacePosition(u.X, 0.3f, u.Y));
                 float distance = Vector2.Distance(Input.mousePosition, screen);
                 if (distance < best) { nearest = u; best = distance; }
             }
@@ -109,7 +109,7 @@ namespace PlanetOne.Runtime
                     var p = simulation.FindPlanet(openPlanetId);
                     foreach (var u in p.Units)
                     {
-                        var screen = sceneCamera.WorldToScreenPoint(new Vector3((float)u.X, 0.3f, (float)u.Y));
+                        var screen = sceneCamera.WorldToScreenPoint(SurfacePosition(u.X, 0.3f, u.Y));
                         if (screen.x >= Math.Min(start.x, end.x) && screen.x <= Math.Max(start.x, end.x) &&
                             screen.y >= Math.Min(start.y, end.y) && screen.y <= Math.Max(start.y, end.y)) SelectUnit(u.Id, true);
                     }
@@ -138,7 +138,7 @@ namespace PlanetOne.Runtime
                     unitViews[u.Id] = t;
                 }
                 t.gameObject.SetActive(visible);
-                if (visible) t.position = new Vector3((float)u.X, 0.1f, (float)u.Y);
+                if (visible) t.position = SurfacePosition(u.X, 0.1f, u.Y);
             }
             selectedUnits.RemoveAll(id => !p.Units.Exists(u => u.Id == id && !u.Destroyed));
         }
@@ -152,7 +152,7 @@ namespace PlanetOne.Runtime
             foreach (var u in p.Units)
             {
                 if (u.Destroyed || !simulation.CanSeeEntity(p, PlayerFactionId, u.Id)) continue;
-                var screen = sceneCamera.WorldToScreenPoint(new Vector3((float)u.X, 0.6f, (float)u.Y));
+                var screen = sceneCamera.WorldToScreenPoint(SurfacePosition(u.X, 0.6f, u.Y));
                 if (!sceneCamera.pixelRect.Contains(screen)) continue;
                 float x = screen.x / scale, y = (Screen.height - screen.y) / scale;
                 string marker = selectedUnits.Contains(u.Id) ? "▶ " : "";
@@ -164,14 +164,14 @@ namespace PlanetOne.Runtime
                 Fill(new Rect(x - 18, y - 3, 36 * (float)(u.Health / Definitions.Get(u.Kind).Health), 4), u.OwnerId == PlayerFactionId ? Cyan : Danger);
                 if (selectedUnits.Contains(u.Id) && u.Order != UnitOrder.Hold)
                 {
-                    var goal = sceneCamera.WorldToScreenPoint(new Vector3(u.GoalX, 0.15f, u.GoalY));
+                    var goal = sceneCamera.WorldToScreenPoint(SurfacePosition(u.GoalX, 0.15f, u.GoalY));
                     GUI.Label(new Rect(goal.x / scale - 8, (Screen.height - goal.y) / scale - 12, 80, 24), "× Ziel", bodyStyle);
                 }
             }
             foreach (var s in p.Sightings)
                 if (s.FactionId == PlayerFactionId && !simulation.IsCellVisible(p, PlayerFactionId, s.X, s.Y))
                 {
-                    var point = sceneCamera.WorldToScreenPoint(new Vector3(s.X, 0.2f, s.Y));
+                    var point = sceneCamera.WorldToScreenPoint(SurfacePosition(s.X, 0.2f, s.Y));
                     if (sceneCamera.pixelRect.Contains(point)) GUI.Label(new Rect(point.x / scale - 38, (Screen.height - point.y) / scale, 140, 25), "? Letzte Sichtung", smallStyle);
                 }
             if (selectionStart.HasValue && Input.GetMouseButton(0))

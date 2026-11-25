@@ -74,6 +74,18 @@ namespace PlanetOne.Runtime
             Require(ReferenceEquals(original, controller.Simulation), "Space and surface share one simulation instance");
             Require(controller.OpenPlanetId == 1, "Surface view opens Aster");
             PlanetState planet = original.FindPlanet(1);
+            for (int y = 0; y < planet.Height; y++) for (int x = 0; x < planet.Width; x++)
+            {
+                var picked = controller.SurfaceCellAtScreen(controller.SurfaceScreenPoint(x, y));
+                if (picked.X != x || picked.Y != y) throw new InvalidOperationException("Hex camera picking mismatch");
+                for (int d = 0; d < 6; d++)
+                {
+                    var n = HexGrid.Neighbor(x, y, d);
+                    picked = controller.SurfaceCellAtScreen(controller.SurfaceScreenPoint(x + (n.X-x)*0.51, y + (n.Y-y)*0.51));
+                    if (picked.X != n.X || picked.Y != n.Y) throw new InvalidOperationException("Hex edge camera picking mismatch");
+                }
+            }
+            Require(true, "Camera picking resolves all 252 hex centers and their six neighboring edges");
             int previousBuildings = planet.Buildings.Count;
             int initialFood = GoodsOnPlanet(planet, ResourceKind.Food);
             int initialMetal = GoodsOnPlanet(planet, ResourceKind.Metal);
@@ -389,6 +401,13 @@ namespace PlanetOne.Runtime
         {
             captureFailure = null;
             string path = Path.Combine(outputDirectory, fileName);
+            if (Application.isBatchMode)
+            {
+                yield return null;
+                try { controller.CaptureWorld(path); }
+                catch (Exception exception) { captureFailure = "Offscreen render failed: " + exception.Message; }
+                yield break;
+            }
             yield return new WaitForEndOfFrame();
             try
             {
@@ -427,6 +446,7 @@ namespace PlanetOne.Runtime
             results.Insert(0, success ? "PASS PlanetOne graphics smoke" : "FAIL PlanetOne graphics smoke");
             if (exception != null) results.Add(exception.ToString());
             results.Add("This is a programmatic render/integration check, not a complete manual usability test.");
+            if (Application.isBatchMode) results.Add("Headless batch mode: world rendered via Camera.Render/RenderTexture; IMGUI and manual input not visually tested.");
             try
             {
                 if (!string.IsNullOrEmpty(outputDirectory)) File.WriteAllLines(Path.Combine(outputDirectory, "smoke-result.txt"), results.ToArray());

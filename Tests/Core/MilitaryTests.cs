@@ -95,7 +95,7 @@ internal static class MilitaryTests
     {
         var s = Empty(); var p = s.FindPlanet(1); for (int y = 3; y <= 8; y++) p.Terrain[y * p.Width + 6] = 1;
         var u = Unit(s, UnitKind.Tank, 1, 3, 5); Command(s, u, CommandKind.MoveUnit, 10, 5);
-        for (int i = 0; i < 300; i++) { double x = u.X, y = u.Y; s.Step(); Check(Math.Abs(u.X - x) + Math.Abs(u.Y - y) <= 0.081, "Unit teleported"); }
+        for (int i = 0; i < 300; i++) { double x = u.X, y = u.Y; s.Step(); Check(HexGrid.Distance(u.X, u.Y, x, y) <= Definitions.Get(u.Kind).Speed * Definitions.TickSeconds + 0.000001, "Unit teleported"); }
         Check(Math.Abs(u.X - 10) < 0.01 && Math.Abs(u.Y - 5) < 0.01, "Reserve failed first route");
         p.Terrain[2 * p.Width + 6] = 1; Command(s, u, CommandKind.RetreatUnit, 3, 10); s.Step(400);
         Check(u.X == 3 && u.Y == 10, "Retreat failed alternate route");

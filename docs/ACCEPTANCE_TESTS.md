@@ -30,6 +30,15 @@ Die Karten sind zunächst Spezifikationen. Ihre ausführbaren Szenariodaten werd
 - **Dann:** Beide Läufe besitzen dieselben Mengen und Fortschritte. Kamera und Renderbildrate verändern die Simulation nicht.
 - **Zusatz:** In Pause verändern sich weder Produktion noch Bewegung, Forschung, Schaden oder Vertragsfristen. Eingereihte Befehle dürfen sich ändern; sie werden nach Fortsetzen geordnet und erneut validiert.
 
+## TEST-023 Wabenraster und Spielstandübernahme
+
+- **Pakete:** P03, P04, P06, P07, P12. **Regeln:** SURFACE-001/005, COMBAT, INV-003, ARCH-002/005.
+- **Gegeben:** Gerade und ungerade Hexzeilen, Randfelder, ein laufender Kurier, ein Bodenweg und ein alter V5-Spielstand.
+- **Wenn:** Jede der sechs Kanten ausgewählt und überquert wird, Straßen schräg anschließen, Deckung/Sicht geprüft und zwei Träger zu Landungen befohlen werden.
+- **Dann:** Maus-/Kameraprojektion und sichtbare Wabe stimmen überein; sechs gleich lange Nachbarschritte, keine Verbindung über nicht benachbarte Quadratdiagonalen. Bau erhält reale Lieferungen. Sicht und Deckung folgen den Hexzellen. Sieben Landezellen werden geprüft und exklusiv reserviert.
+- **Spielstand:** Migration verändert außer der Schemaversion keine Bestände, Kennungen oder gespeicherten Wege. Fortsetzung und erneutes Save/Load sind reproduzierbar; neue Regelentscheidungen verwenden Hexgeometrie.
+- **Nachweis:** Acht Core-Szenarien plus Kamera-Picking im fensterlosen Player, [HEXRASTER_NACHWEIS](HEXRASTER_NACHWEIS.md).
+
 ## TEST-002 Lokale Waren und Produktionsunterbrechung
 
 - **Pakete:** P04, P05. **Regeln:** SURFACE-005, ECO-002, ECO-005, ECO-006.

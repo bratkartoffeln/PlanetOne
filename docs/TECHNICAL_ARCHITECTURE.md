@@ -30,6 +30,10 @@ Umlaufbahnen, Bauvorschau, Lieferbewegungen und Reichweiten sind funktionale Dar
 - **ARCH-004:** Ein Ansichtswechsel lädt Darstellung nach Bedarf, erhält aber die Simulation aller betroffenen Orte. Ausgeblendete Kämpfe werden nach denselben Regeln berechnet.
 - **ARCH-005:** Daten und Logik werden ausreichend getrennt, um zentrale Regeln ohne Renderfenster prüfen zu können. Die Architektur verlangt keinen späteren kostenlosen Enginewechsel und kein selbst entwickeltes universelles Framework.
 
+## Oberflächengeometrie ab 1.0.6
+
+`HexGrid` im Unity-unabhängigen Core definiert das odd-r-Wabenraster. Ganzzahlige Adressen sind Spalte/Zeile; benachbarte Mittelpunkte haben Abstand eins. Kontinuierliche Bodenpositionen interpolieren den Zeilenversatz zwischen Nachbarzentren. Rendering, Kamera-Picking, Straßen- und Truppenwege, Sicht, Reichweite, Deckung und Landezonen nutzen dieselbe Geometrie. Raumpositionen behalten ihre kartesische Bedeutung. Speicherformat 6 übernimmt die bisherigen Feldadressen und Wege ohne Änderung an Ressourcen oder Identitäten; Details: [HEXRASTER_NACHWEIS](HEXRASTER_NACHWEIS.md).
+
 ## Systemgrenzen
 
 | Modul | Verantwortlich für | Darf nicht selbst bestimmen |
