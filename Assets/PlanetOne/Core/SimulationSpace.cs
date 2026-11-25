@@ -72,7 +72,7 @@ namespace PlanetOne.Core
                 }
                 else if (!TryFreight(ship, b, target, c.IntValue, c.Amount)) error = "Kein freier Frachter, exportierbarer Bestand oder Zielplatz.";
             }
-            else if (ship.Freight != null || Total(ship.Cargo) > 0 && ship.Kind != ShipKind.ColonyShip && ship.Kind != ShipKind.LandingTransport) error = "Frachtauftrag zuerst abschließen oder abbrechen.";
+            else if (ship.Freight != null || ship.Mining != null || Total(ship.Cargo) > 0 && ship.Kind != ShipKind.ColonyShip && ship.Kind != ShipKind.LandingTransport) error = "Frachtauftrag zuerst abschließen oder abbrechen.";
             else if (c.Kind == CommandKind.Colonize) error = Colonize(ship, p);
             else if (c.Kind == CommandKind.MoveShipPosition)
             {
@@ -176,6 +176,7 @@ namespace PlanetOne.Core
             {
                 if (ship.Destroyed || ship.Consumed) continue;
                 if (ship.Kind == ShipKind.OrbitalYard || ship.TransportPhase != TransportPhase.Space) continue;
+                if (ship.Mining != null) { TickMining(ship); continue; }
                 if (ship.Freight == null && ship.Kind == ShipKind.Freighter && Total(ship.Cargo) > 0) RecoverCargo(ship);
                 if (ship.Freight == null && Total(ship.Cargo) == 0)
                 {
@@ -223,7 +224,7 @@ namespace PlanetOne.Core
         }
         private bool TryFreight(ShipState ship, BuildingState source, BuildingState target, int resource, int requested)
         {
-            if (ship.Kind != ShipKind.Freighter || ship.Freight != null || Total(ship.Cargo) != 0 || !PortOwned(source, ship.OwnerId) || !PortOwned(target, ship.OwnerId) || source.PlanetId == target.PlanetId) return false;
+            if (ship.Kind != ShipKind.Freighter || ship.Freight != null || ship.Mining != null || Total(ship.Cargo) != 0 || !PortOwned(source, ship.OwnerId) || !PortOwned(target, ship.OwnerId) || source.PlanetId == target.PlanetId) return false;
             int available = source.Inventory[resource] - source.ReservedOutgoing[resource] - source.Supply.ExportReserve[resource];
             int amount = Math.Min(Math.Min(requested, Definitions.Ships[(int)ship.Kind].Capacity), Math.Min(available, FreeSpace(target)));
             if (amount <= 0) return false;
@@ -278,6 +279,7 @@ namespace PlanetOne.Core
         }
         private void CancelFreight(ShipState ship)
         {
+            CancelMining(ship);
             var job = ship.Freight;
             if (job != null)
             {
@@ -314,7 +316,7 @@ namespace PlanetOne.Core
         }
         private void CancelPortWork(PlanetState p, BuildingState b)
         {
-            foreach (var ship in State.Ships) if (ship.Freight != null && (ship.Freight.SourceId == b.Id || ship.Freight.TargetId == b.Id)) CancelFreight(ship);
+            foreach (var ship in State.Ships) if (ship.Mining != null && ship.Mining.PortId == b.Id || ship.Freight != null && (ship.Freight.SourceId == b.Id || ship.Freight.TargetId == b.Id)) CancelFreight(ship);
             if (b.ShipBuildPaid && b.ShipBuildKind >= 0)
             {
                 var d = Definitions.Ships[b.ShipBuildKind];

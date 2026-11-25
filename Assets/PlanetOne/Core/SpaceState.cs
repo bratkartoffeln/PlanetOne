@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 namespace PlanetOne.Core
 {
     public enum ShipKind { Freighter, ColonyShip, SurveyShip, OrbitalYard, Scout, Corvette, EscortFrigate, TorpedoShip, LandingTransport }
-    public enum ShipOrder { Hold, Fly, Guard, Escort, Freight, MovePosition, Attack, Retreat, Repair, Bombard }
+    public enum ShipOrder { Hold, Fly, Guard, Escort, Freight, MovePosition, Attack, Retreat, Repair, Bombard, Mine }
     public enum FreightPhase { Collect, Loading, Deliver, Unloading }
     public enum Technology { Transport, Colonization, CrystalMining, Electronics, Sensors }
 
@@ -24,6 +24,7 @@ namespace PlanetOne.Core
         [DataMember] public int Crew;
         [DataMember] public int[] Cargo = new int[6];
         [DataMember] public FreightJob Freight;
+        [DataMember] public MiningJob Mining;
         [DataMember] public string Status = "Bereit";
     }
     [DataContract, Serializable]

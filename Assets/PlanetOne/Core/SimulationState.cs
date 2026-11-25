@@ -10,7 +10,7 @@ namespace PlanetOne.Core
     public enum CommandKind { PlaceBuilding, PlaceRoad, RemoveRoad, CancelConstruction, DemolishBuilding,
         SetBuildingEnabled, SetBuildingPriority, SetPaused, SetTimeScale,
         RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget, BuildShip, FlyShip, GuardPlanet, EscortShip, Colonize, StartResearch, SetSupplyPolicy, AssignFreight, CancelFreight, SetAutoSupply, SetTradeRoute, MoveShipPosition,
-        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters, ProposeTreaty, AcceptTreaty, RejectTreaty, WithdrawTreaty, TerminateTreaty, BreachTreaty, DeclareWar, DispatchTrade, PledgeShip, StartJointOperation, CancelJointOperation, ActivateGate, Surrender }
+        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters, ProposeTreaty, AcceptTreaty, RejectTreaty, WithdrawTreaty, TerminateTreaty, BreachTreaty, DeclareWar, DispatchTrade, PledgeShip, StartJointOperation, CancelJointOperation, ActivateGate, Surrender, MineAsteroid }
     public enum ShipmentPhase { Loading, InTransit, Unloading, Returning, Recovering }
     public enum RelationKind { Peace, War }
 
@@ -83,6 +83,7 @@ namespace PlanetOne.Core
         [DataMember] public int IntValue;
         [DataMember] public bool BoolValue;
         [DataMember] public long ActorId;
+        [DataMember] public long DestinationId;
         [DataMember] public int Amount, Minimum, Reserve;
         [DataMember] public TreatyTerms Terms;
     }
@@ -90,7 +91,10 @@ namespace PlanetOne.Core
     [DataContract, Serializable]
     public sealed class GameState
     {
-        [DataMember] public int Version = 10;
+        [DataMember] public int Version = 11;
+        [DataMember] public List<AsteroidBelt> AsteroidBelts = new List<AsteroidBelt>();
+        [DataMember] public List<AsteroidState> Asteroids = new List<AsteroidState>();
+        [DataMember] public int SpaceMinedOre;
         [DataMember] public bool DiplomacyScenario;
         [DataMember] public List<TreatyState> Treaties=new List<TreatyState>();
         [DataMember] public List<EvacuationState> Evacuations=new List<EvacuationState>();

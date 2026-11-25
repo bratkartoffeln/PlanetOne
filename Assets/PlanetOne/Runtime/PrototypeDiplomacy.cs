@@ -16,7 +16,7 @@ namespace PlanetOne.Runtime
         public void StartDiplomacyScenario()
         {
             if(!simulation.State.AiScenario&&!simulation.State.InvasionTestFixture&&!simulation.State.SpaceTestFixture&&!simulation.State.MilitaryTestFixture)priorSession=simulation;
-            simulation=GameSimulation.CreateDiplomacyScenario();foodRates.Clear();controlGroups.Clear();shipGroups.Clear();showingSpacePanel=false;showingMilitary=false;showingDiplomacy=true;BuildSpace();SetView(0);Notify(simulation.State.LastMessage);
+            simulation=GameSimulation.CreateDiplomacyScenario(System.Environment.TickCount);foodRates.Clear();controlGroups.Clear();shipGroups.Clear();showingSpacePanel=false;showingMilitary=false;showingDiplomacy=true;BuildSpace();SetView(0);Notify(simulation.State.LastMessage);
         }
         public bool RequestDiplomacy(SimCommand command)
         {command.Id=simulation.NextCommandId();command.IssuerId=PlayerFactionId;return simulation.Enqueue(command);}

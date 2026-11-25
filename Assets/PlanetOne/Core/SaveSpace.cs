@@ -22,7 +22,11 @@ namespace PlanetOne.Core
             Require(state.Ships != null, "Schiffsliste fehlt.");
             foreach (var ship in state.Ships)
             {
-                Require(ship != null, "Schiff fehlt."); var job = ship.Freight; if (job == null) continue;
+                Require(ship != null, "Schiff fehlt."); if(ship.Mining!=null) {
+                    Require(ship.Mining.Amount>0 && ship.Mining.Amount<=Definitions.Ships[0].Capacity, "Invalid mining reservation.");
+                    if(incoming.ContainsKey(ship.Mining.PortId))incoming[ship.Mining.PortId][(int)ResourceKind.Ore]+=ship.Mining.Amount;
+                }
+                var job = ship.Freight; if (job == null) continue;
                 Require(Enum.IsDefined(typeof(ResourceKind), job.Resource) && job.Amount > 0, "Ungültige Raumfracht.");
                 if (job.Phase <= FreightPhase.Loading && outgoing.ContainsKey(job.SourceId)) outgoing[job.SourceId][(int)job.Resource] += job.Amount;
                 if (incoming.ContainsKey(job.TargetId)) incoming[job.TargetId][(int)job.Resource] += job.Amount;

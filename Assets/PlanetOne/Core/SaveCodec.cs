@@ -9,7 +9,7 @@ namespace PlanetOne.Core
     /// <summary>Portable JSON snapshot codec. File locations and atomic writes belong to the platform adapter.</summary>
     public static partial class SaveCodec
     {
-        public const int CurrentVersion = 10;
+        public const int CurrentVersion = 11;
         private const int MaximumJsonLength = 4 * 1024 * 1024;
 
         public static string ToJson(GameState state)
@@ -42,6 +42,7 @@ namespace PlanetOne.Core
                     if(state!=null && state.Version==7) MigrateDiplomacy(state);
                     if(state!=null && state.Version==8) MigrateOrbits(state);
                     if(state!=null && state.Version==9) MigrateEnvironments(state);
+                    if(state!=null && state.Version==10) MigrateAsteroids(state);
                     Validate(state);
                     return state;
                 }
@@ -204,6 +205,7 @@ namespace PlanetOne.Core
                 }
             }
             ValidateSpace(state, factionIds, entityIds);
+            ValidateAsteroids(state, entityIds);
             ValidateInvasion(state, factionIds, entityIds);
             foreach(var treaty in state.Treaties)Require(entityIds.Add(treaty.Id),"Vertragskennung kollidiert mit einer bestehenden Entität.");
             foreach (long id in entityIds) Require(id < state.NextEntityId, "Nächste Entitätskennung ist bereits belegt.");

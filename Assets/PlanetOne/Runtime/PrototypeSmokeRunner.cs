@@ -573,6 +573,34 @@ namespace PlanetOne.Runtime
             Require(!wheel && container && platform,"Gas colony renders flying cargo and floating bases without wheels");
             yield return Capture("gas-air-freight.png");Require(captureFailure==null,captureFailure??"Air freight captured");
             Require(controller.SaveGame() && controller.LoadGame(),"Planet environments and airborne cargo load in the real player");
+            controller.StartAsteroidFixture();var mining=controller.Simulation;controller.SetOrbitCamera(0,50);
+            foreach(var world in mining.State.Planets)
+                Require(controller.CelestialView(world.Id).localScale.x<=controller.StarView.localScale.x*.5f,"Planet radius limited to half the star radius: "+world.Name);
+            Require(controller.CelestialView(3).localScale.x<controller.CelestialView(2).localScale.x*.3f,"Moon is much smaller than its parent");
+            foreach(var world in mining.State.Planets)
+            {var position=mining.GetOrbitPosition(world.Id);Require(Vector3.Distance(controller.CelestialView(world.Id).position,PrototypeController.SpacePosition(position.X,position.Y))<.001f,"Scaled orbit and planet position agree: "+world.Name);}
+            Require(controller.CoronaSymmetry(0,0)<.03f && controller.CoronaSymmetry(6,0)<.03f && controller.CoronaSymmetry(-6,53)<.03f,"Corona stays symmetric at centre and both panned edges including rotation");
+            controller.ShowSpacePanel(0);yield return null;yield return Capture("asteroid-system.png");Require(captureFailure==null,captureFailure??"Scaled system captured");
+            controller.SetSpaceFocus(new Vector3(9,0,0));yield return null;yield return Capture("corona-panned.png");Require(captureFailure==null,captureFailure??"Off-centre corona captured");
+            var deposit=mining.State.Asteroids[0];var miner=mining.State.Ships.Find(s=>s.Kind==ShipKind.Freighter);var miningPort=mining.FindPlanet(1).Buildings.Find(b=>b.Kind==BuildingKind.Spaceport);
+            controller.SelectShip(miner.Id);controller.FocusAsteroid(deposit.Id);Require(controller.RequestAsteroidApproach(miner.Id,deposit.Id),"Asteroid approach uses ordinary ship orders");
+            AdvanceSeconds(24);yield return null;
+            Require(mining.IsAsteroidVisible(1,deposit),"Scouting reveals the real deposit");
+            foreach(var asteroid in mining.State.Asteroids) {
+                var size=controller.AsteroidView(asteroid.Id).GetComponent<Renderer>().bounds.size;
+                Require(Mathf.Max(size.x,Mathf.Max(size.y,size.z))<controller.CelestialView(3).lossyScale.x*.1f,"Asteroid geometry remains below a tenth of the moon diameter: "+asteroid.Id);
+            }
+            Require(controller.RequestSpaceOrder(CommandKind.MineAsteroid,miner.Id,deposit.Id,1,amount:12),"Mining submitted through the common command adapter");
+            AdvanceSeconds(8);yield return null;
+            Require(miner.Mining!=null && miner.Cargo[1]>0 && miner.Cargo[1]<12 && miningPort.ReservedIncoming[1]==12,"Mining loads partial real cargo and reserves its return capacity");
+            foreach(InterfaceLayout layout in Enum.GetValues(typeof(InterfaceLayout)))
+            {controller.SetInterfaceLayout(layout);controller.SelectShip(miner.Id);controller.FocusAsteroid(deposit.Id);yield return null;yield return Capture("asteroid-mining-"+layout+".png");Require(captureFailure==null,captureFailure??"Mining panel captured");}
+            string miningSave=SaveCodec.ToJson(mining.State);Require(controller.SaveGame() && controller.LoadGame() && SaveCodec.ToJson(controller.Simulation.State)==miningSave,"Active mining reloads exactly in the player");
+            mining=controller.Simulation;miner=mining.State.Ships.Find(s=>s.Id==miner.Id);deposit=mining.State.Asteroids.Find(a=>a.Id==deposit.Id);
+            AdvanceSeconds(50);yield return null;
+            Require(miner.Mining==null && miner.Freight==null && miner.Cargo[1]==0 && mining.State.SpaceMinedOre==12 && deposit.InitialOre-deposit.RemainingOre==12,"Mined ore returns and unloads once at a working port");
+            controller.SetInterfaceLayout(InterfaceLayout.CommandCenter);controller.SelectShip(miner.Id);controller.SelectAsteroid(deposit.Id);
+            yield return Capture("asteroid-delivered.png");Require(captureFailure==null,captureFailure??"Mining delivery captured");
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)

@@ -28,6 +28,7 @@ namespace PlanetOne.Core
             state.Planets.Add(CreatePlanet(state, 5, "Sahra", -1, 0, 7.2, 3.8));
             state.Planets.Add(CreatePlanet(state, 6, "Pelagia", -1, 0, 12.5, 5.2));
             state.Planets.Add(CreatePlanet(state, 7, "Zephyr", -1, 0, 52, 1.6));
+            AsteroidGeneration.Populate(state);
             var simulation = new GameSimulation(state);
             simulation.UpdateSpaceKnowledge();
             return simulation;
@@ -113,7 +114,7 @@ namespace PlanetOne.Core
             // Copy the intent. The presentation cannot change an already queued command afterwards.
             State.PendingCommands.Add(new SimCommand { Id = command.Id, IssuerId = command.IssuerId,
                 Kind = command.Kind, PlanetId = command.PlanetId, X = command.X, Y = command.Y,
-                Building = command.Building, TargetId = command.TargetId, ActorId = command.ActorId, IntValue = command.IntValue, BoolValue = command.BoolValue, Amount = command.Amount, Minimum = command.Minimum, Reserve = command.Reserve, Terms = command.Terms==null?null:CopyAiValue(command.Terms) });
+                Building = command.Building, TargetId = command.TargetId, ActorId = command.ActorId, DestinationId = command.DestinationId, IntValue = command.IntValue, BoolValue = command.BoolValue, Amount = command.Amount, Minimum = command.Minimum, Reserve = command.Reserve, Terms = command.Terms==null?null:CopyAiValue(command.Terms) });
             if(command.IssuerId==State.PlayerFactionId) State.LastMessage = State.Paused ? "Befehl für die Fortsetzung vorgemerkt." : "Befehl vorgemerkt.";
             return true;
         }
@@ -245,6 +246,7 @@ namespace PlanetOne.Core
             if (!State.Factions.Exists(f => f.Id == command.IssuerId))
             { Report(command, false, "UnknownFaction", "Unbekannte Fraktion."); return; }
             if (!FactionActive(command.IssuerId)) { Report(command,false,"FactionInactive","Ausgeschiedene Fraktion kann keine Aufträge erteilen."); return; }
+            if (command.Kind == CommandKind.MineAsteroid) { ApplyMining(command); return; }
             if (command.Kind >= CommandKind.ProposeTreaty) { ApplyDiplomacy(command); return; }
             if (p == null) { Report(command, false, "UnknownPlanet", "Unbekannter Planet."); return; }
             if (command.Kind >= CommandKind.AttackShip) { ApplyInvasion(command); return; }

@@ -109,6 +109,8 @@ internal static class HexGridTests
         string migrated=SaveCodec.ToJson(state).Replace("\"AiScenario\":false,", "").Replace("\"ComputerFactions\":[],", "");
         foreach(string added in new[]{"\"DiplomacyScenario\":false,","\"DiplomacyEvents\":[],","\"Evacuations\":[],","\"GateProjects\":[],","\"Treaties\":[],","\"Winners\":[],",",\"Status\":0",",\"Terms\":null",",\"TreatyId\":0","\"PaymentLeg\":false,"})migrated=migrated.Replace(added,"");
         migrated=migrated.Replace(",\"Winners\":[]", "");
+        migrated=migrated.Replace("\"AsteroidBelts\":[],", "").Replace("\"Asteroids\":[],", "").Replace("\"SpaceMinedOre\":0,", "").Replace("\"Mining\":null,", "");
+        migrated=migrated.Replace("\"DestinationId\":0,", "");
         // V9 deliberately slows legacy orbits while preserving their position at migration.
         string orbitalFields="\"Orbit(Eccentricity|Periapsis|PeriodSeconds|Phase)\":[^,}]+,";
         migrated=System.Text.RegularExpressions.Regex.Replace(migrated,orbitalFields,"");

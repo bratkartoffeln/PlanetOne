@@ -44,6 +44,7 @@ internal static class CoreTests
         DiplomacyTests.Register(Run);
         OrbitTests.Register(Run);
         PlanetEnvironmentTests.Register(Run);
+        AsteroidTests.Register(Run);
         Console.WriteLine(failures == 0 ? "All " + checks + " core tests passed." : failures + " test(s) failed.");
         return failures == 0 ? 0 : 1;
     }

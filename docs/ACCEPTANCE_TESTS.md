@@ -1,5 +1,17 @@
 # Abnahmeszenarien für PlanetOne
 
+## TEST-029 Größenverhältnisse, Sonnenkorona und Asteroidenabbau
+
+- **Grundlage:** D-033, T-048 bis T-050, GUI-010, SPACE-011, ECO-015; zusätzliche Arbeit auf M7, kein Abschluss von M8.
+- Mehrere Seeds erzeugen sowohl Systeme mit als auch ohne Gürtel. Derselbe Seed erzeugt denselben Zustand. Gürtel schneiden keine planetaren Peri-/Apoapsisbereiche, auch nach Hinzufügen von Helios. Speichern, Laden und Ansichtswechsel würfeln keine Vorkommen neu.
+- Planetenkugeln erreichen maximal den halben Sternradius; Mond kleiner als 30 Prozent des Hauptplaneten, tatsächliche Asteroiden-Mesh-Ausdehnung kleiner als zehn Prozent des Monddurchmessers. Bahnen, Schiffe und Auswahlziele bleiben deckungsgleich.
+- Korona mittig, seitlich verschoben und mit gedrehter Kamera prüfen: GPU-Pixelvergleich der Leuchtstärke links/rechts des Sterns, zusätzlich sichtbare Systembilder. Kein einseitiger Lichtsaum zur Bildschirmmitte.
+- Unaufgeklärte Asteroiden zeigen keine Bestände. Fremde, beschäftigte oder ungeeignete Schiffe sowie fehlende Technologie, erschöpfte Vorkommen und volle Häfen werden abgewiesen. Bei mehreren Häfen wird der ausdrücklich gewählte Hafen reserviert.
+- Zwei Frachter können dieselbe endliche Lagerstätte nicht überbuchen. Teilabbau befindet sich wirklich an Bord, senkt den Restbestand und erhöht den gemeinsamen Abbauzähler genau einmal. Anflug, Abbau, Rückflug und zeitabhängige Hafenentladung sind getrennte Phasen.
+- Abbruch nach Teilabbau, Schiffszerstörung und Hafenbesitzwechsel geben nur offene Reservierungen frei. Fracht bleibt an Bord, wird physisch zurückgeführt oder als Verlust verbucht; ein feindlicher Hafen erhält keine Ware.
+- Während Abbau, Rückflug und Entladung speichern/laden und die identische Fortsetzung prüfen. Manipulierte Reservierungen, Ladungen und Verweise ablehnen. Echte V10-Datei migrieren und alle bisherigen Daten unverändert nachweisen.
+- Drei GUI-Layouts auf isoliertem Desktop kontrollieren, einschließlich Hafenwahl, Ladungsanzeige und Bestandsänderung. Kein Screenreader, kein Computer-Use und keine Eingaben auf dem Arbeitsdesktop.
+
 ## TEST-028 Planetentypen, Luftfracht und Oberflächenkamera
 
 - **Grundlage:** D-032, T-045 bis T-047, SPACE-006/009/010, ECO-014, GUI-009, RES-001; zusätzliche Arbeit auf M7, kein Abschluss von M8.

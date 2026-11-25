@@ -101,7 +101,7 @@ namespace PlanetOne.Runtime
             sceneCamera.backgroundColor = Background;
             sceneCamera.orthographic = true;
             sceneCamera.nearClipPlane = 0.1f;
-            sceneCamera.farClipPlane = 300f;
+            sceneCamera.farClipPlane = 1400f;
             sceneCamera.tag = "MainCamera";
             sceneCamera.cullingMask = ~((1 << 30) | (1 << 29));
             var sun=new GameObject("Sonnenlicht").AddComponent<Light>();sun.transform.SetParent(transform,false);
@@ -195,7 +195,7 @@ namespace PlanetOne.Runtime
             float wheel = Input.mouseScrollDelta.y;
             if (Math.Abs(wheel) > 0.001f)
             {
-                if (openPlanetId == 0) spaceZoom = Mathf.Clamp(spaceZoom - wheel * 1.2f, 6f, 90f);
+                if (openPlanetId == 0) spaceZoom = Mathf.Clamp(spaceZoom * Mathf.Pow(0.85f,wheel), .25f, 200f);
                 else surfaceZoom = Mathf.Clamp(surfaceZoom - wheel * 0.5f, 3f, 24f);
                 UpdateCamera();
             }
@@ -284,30 +284,32 @@ namespace PlanetOne.Runtime
                 selectedPlanetId=known==null?0:known.Id;
             }
             orbitViews.Clear();
-            var star=MakePrimitive(PrimitiveType.Sphere,"Stern",spaceRoot,Vector3.zero,Vector3.one*8.6f,new Color(1,0.50f,0.055f));CreateStarCorona(star);
+            var star=MakePrimitive(PrimitiveType.Sphere,"Stern",spaceRoot,Vector3.zero,Vector3.one*StarDiameter,new Color(1,0.50f,0.055f));CreateStarCorona(star);
             spaceFocus=Vector3.zero;BuildSpaceBackdrop();
             float maxOrbit = 12f;
             foreach (PlanetState planet in simulation.State.Planets)
             {
                 bool isMoon = planet.ParentId > 0;
-                Transform body = CreateCelestial(planet,spaceRoot,Vector3.zero,planet.Kind==PlanetKind.GasGiant?7.8f:isMoon?1.1f:3.5f*(float)PlanetEnvironment.RadiusEarths(planet.Kind));
+                Transform body = CreateCelestial(planet,spaceRoot,Vector3.zero,PlanetDiameter(planet));
                 planetViews[planet.Id] = body;
                 var orbit = MakeLine("Umlaufbahn " + planet.Name, spaceRoot, new Color(0.13f,0.27f,0.36f), 0.018f, true);
                 orbit.positionCount = 96;
                 for (int i = 0; i < 96; i++)
                 {
                     var orbitPoint=OrbitalMotion.PositionAtMeanAnomaly(planet,i*OrbitalMotion.Tau/96);
-                    orbit.SetPosition(i,new Vector3((float)orbitPoint.X,0,(float)orbitPoint.Y));
+                    orbit.SetPosition(i,SpacePosition(orbitPoint.X,orbitPoint.Y));
                 }
                 orbitViews[planet.Id] = orbit.transform;
                 if (!isMoon && simulation.IsPlanetKnown(PlayerFactionId,planet.Id)) maxOrbit = Mathf.Max(maxOrbit, (float)(planet.OrbitRadius*(1+planet.OrbitEccentricity)));
             }
-            spaceZoom = maxOrbit*0.73f+2;
+            BuildAsteroidViews();
+            spaceZoom = maxOrbit*SpaceDistanceScale*0.73f+2;
             UpdateSpace();
         }
 
         private void UpdateSpace()
         {
+            UpdateAsteroidViews();
             UpdateShipViews();
             UpdateInvasionViews();
             foreach (PlanetState planet in simulation.State.Planets)
@@ -315,13 +317,13 @@ namespace PlanetOne.Runtime
                 bool known = simulation.IsPlanetKnown(PlayerFactionId, planet.Id);
                 planetViews[planet.Id].gameObject.SetActive(known); orbitViews[planet.Id].gameObject.SetActive(known);
                 SimPoint point = simulation.GetOrbitPosition(planet.Id);
-                planetViews[planet.Id].position = new Vector3((float)point.X, 0, (float)point.Y);
+                planetViews[planet.Id].position = SpacePosition(point.X,point.Y);
                 planetViews[planet.Id].rotation=PlanetAxialRotation(planet.Id,simulation.State.Tick*Definitions.TickSeconds,planet.Kind);
                 celestialMaterials[planet.Id].SetVector("_SunDirection",new Vector4(-(float)point.X,2,-(float)point.Y,0));
                 if (planet.ParentId > 0)
                 {
                     SimPoint parent = simulation.GetOrbitPosition(planet.ParentId);
-                    orbitViews[planet.Id].position = new Vector3((float)parent.X, 0, (float)parent.Y);
+                    orbitViews[planet.Id].position = SpacePosition(parent.X,parent.Y);
                 }
             }
         }
@@ -496,7 +498,7 @@ namespace PlanetOne.Runtime
             sceneCamera.pixelRect = WorldViewport;
             if (openPlanetId == 0)
             {
-                sceneCamera.transform.position = spaceFocus+Quaternion.Euler(Mathf.Clamp(cameraPitch-15,25,70),cameraYaw,0)*new Vector3(0,0,-56);
+                sceneCamera.transform.position = spaceFocus+Quaternion.Euler(Mathf.Clamp(cameraPitch-15,25,70),cameraYaw,0)*new Vector3(0,0,-Mathf.Max(300,spaceZoom*3));
                 sceneCamera.transform.LookAt(spaceFocus);
                 sceneCamera.orthographicSize = spaceZoom;
             }
@@ -524,7 +526,7 @@ namespace PlanetOne.Runtime
             PreparePresentationSkin();
             bool previousEnabled=GUI.enabled;
             GUI.enabled=previousEnabled && !settingsOpen && !menuOpen;
-            if (openPlanetId == 0) { DrawPlanetNameplates(scale); DrawShipLabels(scale); }
+            if (openPlanetId == 0) { DrawPlanetNameplates(scale); DrawShipLabels(scale); DrawAsteroidLabels(scale); }
             else { DrawBuildingLabels(scale); DrawMilitaryLabels(scale); }
             DrawPresentationTop(width);
             DrawPresentationNavigation(width,height);

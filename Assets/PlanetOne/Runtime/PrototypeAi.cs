@@ -8,7 +8,7 @@ namespace PlanetOne.Runtime
         public void StartAiScenario()
         {
             if(!simulation.State.AiScenario&&!simulation.State.InvasionTestFixture&&!simulation.State.SpaceTestFixture&&!simulation.State.MilitaryTestFixture)priorSession=simulation;
-            simulation=GameSimulation.CreateAiScenario();foodRates.Clear();controlGroups.Clear();shipGroups.Clear();
+            simulation=GameSimulation.CreateAiScenario(System.Environment.TickCount);foodRates.Clear();controlGroups.Clear();shipGroups.Clear();
             showingSpacePanel=false;showingMilitary=false;BuildSpace();SetView(0);Notify(simulation.State.LastMessage);
         }
 

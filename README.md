@@ -4,6 +4,12 @@ PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, ph
 
 Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung verbindet klare Geometrie mit texturierten Oberflächen und dunklem Weltraum. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
 
+## Größenverhältnisse, Korona und Asteroidenabbau in 1.0.14
+
+Planeten bleiben unter dem halben Sternradius, Monde sind wesentlich kleiner und Asteroiden erreichen weniger als ein Zehntel des Monddurchmessers. Die sichtbaren Bahnabstände sind um Faktor **2,2** vergrößert. Die Sonnenkorona bleibt beim Verschieben und Drehen rund um den Stern verteilt.
+
+Neue diplomatische und KI-Partien erzeugen einen zufälligen System-Seed. Manche Systeme enthalten einen dünn besetzten Asteroidengürtel außerhalb der Gesteinsplaneten und innerhalb des Gasriesen. Unter **Flotte → Asteroidenabbau** ein Vorkommen auswählen, mit einem Schiff erkunden und einen freien Frachter mit erforschtem Raumtransport hinschicken. **Erz abbauen und heimbringen** führt bis zu 40 Erz zum ausgewählten eigenen Raumhafen zurück. Vorkommen sind endlich, die Fracht bleibt bis zur tatsächlichen Entladung an Bord. **Spielmenü → Testszenarien → Asteroidenabbau** bietet eine separate Prüfkarte mit regulär aufgebauter Wirtschaft und bezahltem Frachter. Ältere Spielstände erhalten keine nachträglich erzeugten Lagerstätten. [Bedienung, Recherche und Nachweis](docs/ASTEROIDEN_NACHWEIS.md).
+
 ## Planetentypen, Landschaften und Luftfracht in 1.0.13
 
 Sechs Welttypen verbinden passende Planetenkugeln mit Fels-, Wüsten-, Pflanzen-, Insel-, Eis- und Gaslandschaften. Neue Karten bieten **28 × 22 Waben** statt 18 × 14. Der Boden ist wieder sichtbar texturiert; Ebenen, Dünen, Höhenzüge und Küsten ersetzen die einheitliche Talform. **Rechte Maustaste halten und ziehen** verschiebt jetzt auch die Oberfläche. Kurze Rechtsklicks bleiben Einheitenbefehle.
