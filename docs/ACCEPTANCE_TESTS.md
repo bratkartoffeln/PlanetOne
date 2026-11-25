@@ -1,5 +1,12 @@
 # Abnahmeszenarien für PlanetOne
 
+## TEST-032 Objektbefehle und Kontextmenüs
+
+- **Grundlage:** GUI-012, D-036, T-055/056, P20.
+- **Ablauf:** In allen drei Layouts ein eigenes Gebäude/eine Einheit wählen, Menü am unteren Bildschirmrand öffnen, Priorität/Betrieb über die tatsächlichen Befehle ändern. Mit gewähltem Schiff eine Welt rechts anklicken und ausdrücklich den Flug auslösen. Menüs per Escape/Außenklick schließen; während eines offenen Menüs Besitz wechseln, Ansicht wechseln und einen modalen Dialog öffnen. Mit ausgewählter Truppe am Gelände rechts ziehen.
+- **Erwartung:** Öffnen/Navigieren verändert keine Simulation. Erst die konkrete Aktion übergibt genau den gewünschten Actor-/Target-/Planet-Bezug. Besitz-/Sicht-/Existenzänderung verhindert veraltete Aktionen. Kein Durchklicken, kein Kamera-/Einheitenbefehl durch Menübedienung, kein Befehl durch Ziehen. Rückbau benötigt Bestätigung und erreicht danach den echten Gebäudelifecycle. Menü bleibt bei 1280×720, 1440×900 und großer Skalierung erreichbar. Spezialbefehle sind an die passenden Einheitentypen gebunden.
+- **Nachweis:** Isolierter Windows-Player, echte GUI-Bilder und gemeinsame Eingabeadapter; keine physische manuelle Bedienung behaupten. [Ergebnisse](BEFEHLS_GUI_NACHWEIS.md).
+
 ## TEST-031 M8 – echte Dateien, erreichbares Material und vollständiger Export
 
 - **Grundlage:** P19–P21, TEST-020 bis TEST-022, ARCH-014 bis ARCH-016, D-035 und T-052 bis T-054.

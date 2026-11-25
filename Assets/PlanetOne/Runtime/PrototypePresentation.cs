@@ -26,7 +26,7 @@ namespace PlanetOne.Runtime
             "Große Spielfläche, schwebende Werkzeugleiste und ausblendbare Details." };
         public InterfaceLayout CurrentLayout { get { return (InterfaceLayout)presentation.Layout; } }
         private float TopHeight { get { return 44; } }
-        private float BottomHeight { get { return CurrentLayout == InterfaceLayout.OrbitalBridge ? 160 : CurrentLayout==InterfaceLayout.OpenSpace?88:72; } }
+        private float BottomHeight { get { return CurrentLayout == InterfaceLayout.OrbitalBridge ? 160 : CurrentLayout==InterfaceLayout.OpenSpace?110:72; } }
         private float SideWidth { get { return CurrentLayout==InterfaceLayout.CommandCenter?300:380; } }
         private bool SidebarVisible { get { return CurrentLayout == InterfaceLayout.CommandCenter || panelOpen; } }
         private Rect SidebarRect(float width, float height)
@@ -42,7 +42,7 @@ namespace PlanetOne.Runtime
         }
         public bool IsWorldPoint(Vector2 screenPoint)
         {
-            if (settingsOpen || menuOpen || !WorldViewport.Contains(screenPoint)) return false;
+            if (settingsOpen || menuOpen || IsCommandMenuOpen || commandDismissFrame==Time.frameCount || !WorldViewport.Contains(screenPoint)) return false;
             var guiPoint = new Vector2(screenPoint.x/UiScale, (Screen.height-screenPoint.y)/UiScale);
             if(SidebarVisible && SidebarRect(Screen.width/UiScale,Screen.height/UiScale).Contains(guiPoint))return false;
             return !SelectionCardVisible || !SelectionCardRect(Screen.width/UiScale).Contains(guiPoint);
@@ -63,7 +63,7 @@ namespace PlanetOne.Runtime
         public bool SetInterfaceLayout(InterfaceLayout layout, bool persist = true)
         {
             if ((int)layout<0 || (int)layout>2) return false;
-            presentation.Layout=(int)layout; sidebarScroll=Vector2.zero;
+            CloseCommandMenu();presentation.Layout=(int)layout; sidebarScroll=Vector2.zero;
             contextOpen=true;panelOpen=false;
             selectionStart=null; shipSelectionStart=null;
             if(sceneCamera!=null) UpdateCamera();
@@ -84,11 +84,12 @@ namespace PlanetOne.Runtime
         }
         public void ConfigurePresentationTestPath(string path) { presentationPath=path; LoadPresentationSettings(); UpdateCamera(); }
         public void ReloadPresentationSettings() { LoadPresentationSettings(); UpdateCamera(); }
-        public void SetSettingsVisible(bool visible) { settingsOpen=visible; selectionStart=null; shipSelectionStart=null;CancelSpacePan(); }
-        public void SetMenuVisible(bool visible) { menuOpen=visible; selectionStart=null; shipSelectionStart=null;CancelSpacePan(); }
+        public void SetSettingsVisible(bool visible) { CloseCommandMenu();settingsOpen=visible; selectionStart=null; shipSelectionStart=null;CancelSpacePan(); }
+        public void SetMenuVisible(bool visible) { CloseCommandMenu();menuOpen=visible; selectionStart=null; shipSelectionStart=null;CancelSpacePan(); }
         public void OpenPresentationSection(int section)
         {
             if(section<0 || section>6)throw new ArgumentOutOfRangeException("section");
+            CloseCommandMenu();CancelPlacement();
             presentationSection=section;
             contextOpen=true;panelOpen=true;showingDetails=false;showingDiplomacy=false;showingSpacePanel=false;showingMilitary=false;
             spaceMoveTargetMode=false;militaryTargetMode=null;

@@ -31,6 +31,7 @@ namespace PlanetOne.Runtime
             var p = simulation.FindPlanet(openPlanetId);
             var u = p.Units.Find(v => v.Id == id && !v.Destroyed && v.OwnerId == PlayerFactionId);
             if (u == null) return false;
+            CloseCommandMenu();
             if (!additive) selectedUnits.Clear();
             if (!selectedUnits.Contains(id)) selectedUnits.Add(id);
             contextOpen=true;panelOpen=false;showingDiplomacy=false;showingSpacePanel=false;presentationSection=2;
@@ -194,7 +195,7 @@ namespace PlanetOne.Runtime
         private void DrawMilitaryPanel(PlanetState p)
         {
             GUILayout.Space(10); GUILayout.Label("BODENTRUPPEN", headingStyle);
-            GUILayout.Label("Klick / Umschalt: auswählen · Ziehen: Rahmen\nRechtsklick: Bewegen / Angriff · H: Halten\nStrg+1–3: Gruppe speichern · 1–3: auswählen", smallStyle);
+            GUILayout.Label("Klick / Umschalt: auswählen · Ziehen: Rahmen\nRechtsklick: Zielbefehle öffnen · H: Halten\nStrg+1–3: Gruppe speichern · 1–3: auswählen", smallStyle);
             if (simulation.State.MilitaryTestFixture)
             {
                 GUILayout.Label("TESTFIXTURE: vorbereitete, endliche Armeen", smallStyle);

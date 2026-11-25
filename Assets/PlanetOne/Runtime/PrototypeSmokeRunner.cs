@@ -8,7 +8,7 @@ using UnityEngine;
 namespace PlanetOne.Runtime
 {
     /// <summary>Explicit graphics-enabled player smoke test, never installed during normal play.</summary>
-    public sealed class PrototypeSmokeRunner : MonoBehaviour
+    public sealed partial class PrototypeSmokeRunner : MonoBehaviour
     {
         private string outputDirectory;
         private string captureFailure;
@@ -42,7 +42,7 @@ namespace PlanetOne.Runtime
             catch (Exception exception) { setupFailure = exception; }
             if (setupFailure != null) { Complete(false, setupFailure); yield break; }
 
-            IEnumerator run = RunChecks();
+            IEnumerator run = Array.IndexOf(Environment.GetCommandLineArgs(),"-commandUiOnly")>=0?RunCommandChecks():RunChecks();
             while (true)
             {
                 bool hasNext = false;
@@ -357,7 +357,8 @@ namespace PlanetOne.Runtime
             Require(captureFailure == null, captureFailure ?? "Defense screenshot written");
             Vector2 groundTarget=controller.SurfaceScreenPoint(8,2);int pendingGround=controller.Simulation.State.PendingCommands.Count;
             Require(controller.BeginSurfacePan(groundTarget) && controller.Simulation.State.PendingCommands.Count==pendingGround,"Short right click waits until release on the surface");
-            Require(controller.EndSpacePan(groundTarget) && controller.Simulation.State.PendingCommands.Count==pendingGround+1,"Short right click issues one ground movement order on release");
+            Require(controller.EndSpacePan(groundTarget) && controller.IsCommandMenuOpen && controller.Simulation.State.PendingCommands.Count==pendingGround,"Short right click opens ground commands without issuing an order");
+            Require(controller.InvokeContextCommand("move-here") && controller.Simulation.State.PendingCommands.Count==pendingGround+1,"Explicit context movement queues exactly one ground order");
             Vector3 tankBefore=controller.UnitView(tank.Id).position;
             AdvanceSeconds(1);yield return null;
             var tankView=controller.UnitView(tank.Id);Vector3 tankDelta=tankView.position-tankBefore;tankDelta.y=0;
@@ -418,7 +419,8 @@ namespace PlanetOne.Runtime
             Require(controller.RequestShipMoveAtScreen(controller.WorldViewport.center) && !controller.IsShipMovePending,"Move action accepts a world target and exits target mode");
             string beforeCancel=SaveCodec.ToJson(space.State);controller.BeginShipMove();controller.BeginSpacePan(controller.WorldViewport.center);
             Require(!controller.EndSpacePan(controller.WorldViewport.center) && !controller.IsShipMovePending && SaveCodec.ToJson(space.State)==beforeCancel,"Short right click cancels an explicit flight target without an extra order");
-            Require(controller.BeginSpacePan(controller.WorldViewport.center) && controller.EndSpacePan(controller.WorldViewport.center),"Short right click still submits the selected fleet order on release");
+            Require(controller.BeginSpacePan(controller.WorldViewport.center) && controller.EndSpacePan(controller.WorldViewport.center) && controller.IsCommandMenuOpen && SaveCodec.ToJson(space.State)==beforeCancel,"Short fleet right click opens a menu without an unintended flight");
+            controller.CloseCommandMenu();
             AdvanceSeconds(0.2);
             Require(colonyShip.Order==ShipOrder.MovePosition,"HUD movement reaches the shared simulation command queue");
             Require(controller.RequestSpaceOrder(CommandKind.FlyShip, colonyShip.Id, planet: 3), "Flight to moving moon queued");
@@ -682,6 +684,7 @@ namespace PlanetOne.Runtime
                 Require(measured.State.Winners.Contains(1)&&controller.ScenarioOutcomeText.Contains("Koloniekonsortium"),"Completed reference outcome names the player in the persistent result display");
                 if(measured.State.Winners.Contains(3))Require(controller.ScenarioOutcomeText.Contains("Helios-Verbund"),"Shared victory names the actual coalition partner in the result display");
             }
+            var commandChecks=RunCommandChecks();while(commandChecks.MoveNext())yield return commandChecks.Current;
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)

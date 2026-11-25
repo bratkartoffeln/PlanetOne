@@ -4,6 +4,8 @@ Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity 
 
 ## Aktueller Meilenstein M8 (1.0.15)
 
+Zusätzlicher Bedienungsauftrag **1.0.16**: Objektbefehle und Rechtsklickmenüs sind implementiert; Windows-Build, 161 Core-Tests, vollständiger 1440×900-Lauf mit 476 Einzelprüfungen und gezielter 1280×720-Lauf mit 78 Einzelprüfungen bestanden. [Recherche, Belege und Git-Grenze](BEFEHLS_GUI_NACHWEIS.md).
+
 P19–P21 sind lokal implementiert; 161 Core-Tests einschließlich beider vollständiger regulärer F05-Verläufe bestehen. [M8_NACHWEIS](M8_NACHWEIS.md) dokumentiert echte Dateisnapshots, Windows-/Installerprüfung, getrennte Leistungsmessungen und die offenen Abnahmegrenzen. Physische Maus-/Tastaturprüfung, subjektive Bewertung und Git-Integration bleiben ausdrücklich getrennt vom automatisierten Nachweis. Der historische M7-Stand steht in [M7_NACHWEIS](M7_NACHWEIS.md).
 
 ## Projektweite Rasteränderung 1.0.6
@@ -317,6 +319,8 @@ Die vorhergehende Grafiklieferung wird durch **1.0.10, räumliche Modelle und na
 - **Prüfung:** Automatisierte gespeicherte Übergangsszenarien und manueller Fortsetzungsvergleich. Sichtinformationen und KI-Planreservierungen werden mitgeprüft.
 
 ### P20 Plattformen, Bedienung und Leistung prüfen
+
+Ergänzung **1.0.16**: recherchierte Objektbefehle, Rechtsklickmenüs und aufgeteilte Flottenverwaltung nach GUI-012 / TEST-032. Umsetzung, Eingabeprüfung und Abnahmegrenzen im [Befehls-GUI-Nachweis](BEFEHLS_GUI_NACHWEIS.md).
 
 - **Status:** Windows-Build, 1440×900/1280×720-GUI, getrennte Leistungsbudgets sowie ZIP-/Installervergleich, Start aus Testinstallation und Deinstallation bestanden in 1.0.15; Laufdaten in [M8_NACHWEIS](M8_NACHWEIS.md). Physische manuelle Eingabe und andere Plattformen ungeprüft; kein uneingeschränkter Plattformabschluss. **Abhängigkeit:** P19.
 - **Module:** Plattformadapter, Eingabe, Darstellung, Benutzeroberfläche, Export.

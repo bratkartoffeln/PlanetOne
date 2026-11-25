@@ -4,6 +4,10 @@ PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, ph
 
 Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung verbindet klare Geometrie mit texturierten Oberflächen und dunklem Weltraum. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
 
+## Objektbefehle und Kontextmenüs in 1.0.16
+
+**Linksklick wählt aus, kurzer Rechtsklick öffnet passende Befehle, Rechtsziehen verschiebt die Kamera.** Die untere Leiste zeigt die wichtigsten Aktionen zur Auswahl; **Alle Befehle …** macht das Kontextmenü auch ohne Rechtsklick erreichbar. Gebäude bieten Betrieb, Priorität, Produktion und Details. Die Flottenverwaltung trennt Schiffe, Aufträge, Schiffbau und Abbau. Rückbau erfordert eine Bestätigung mit Rückgewinnung; Escape oder ein verbrauchter Klick daneben schließt ein Menü. [Recherche, Bedienung und Prüfstand](docs/BEFEHLS_GUI_NACHWEIS.md).
+
 ## M8: Referenzpartie und sichere Speicherstände in 1.0.15
 
 **Spielmenü → Referenzpartie · Drei Kolonien** startet drei gleich ausgestattete Kolonien, zwei umkämpfte Kristallmonde und zwei selbstständig wirtschaftende KI. **Sicherung laden** stellt ausdrücklich den vorherigen gültigen Spielstand wieder her. Baustellen reservieren nur Material aus erreichbaren Lagern; die KI erfüllt Handelszusagen auch bei laufender automatischer Versorgung. Der [M8-Nachweis](docs/M8_NACHWEIS.md) beschreibt die vollständigen regulären und kooperativen Durchläufe, Dateiprüfungen, Windows-Paketprüfung, Leistungsmessung und verbleibenden Abnahmegrenzen.
@@ -16,13 +20,13 @@ Neue diplomatische und KI-Partien erzeugen einen zufälligen System-Seed. Manche
 
 ## Planetentypen, Landschaften und Luftfracht in 1.0.13
 
-Sechs Welttypen verbinden passende Planetenkugeln mit Fels-, Wüsten-, Pflanzen-, Insel-, Eis- und Gaslandschaften. Neue Karten bieten **28 × 22 Waben** statt 18 × 14. Der Boden ist wieder sichtbar texturiert; Ebenen, Dünen, Höhenzüge und Küsten ersetzen die einheitliche Talform. **Rechte Maustaste halten und ziehen** verschiebt jetzt auch die Oberfläche. Kurze Rechtsklicks bleiben Einheitenbefehle.
+Sechs Welttypen verbinden passende Planetenkugeln mit Fels-, Wüsten-, Pflanzen-, Insel-, Eis- und Gaslandschaften. Neue Karten bieten **28 × 22 Waben** statt 18 × 14. Der Boden ist wieder sichtbar texturiert; Ebenen, Dünen, Höhenzüge und Küsten ersetzen die einheitliche Talform. **Rechte Maustaste halten und ziehen** verschiebt jetzt auch die Oberfläche. Seit 1.0.16 öffnet ein kurzer Rechtsklick die passenden Objekt- und Zielbefehle.
 
 Gasriesen besitzen schwebende Plattformen und vier Frachtdrohnen mit je acht Waren Kapazität. Es gibt dort keine Straßen, Räder oder Bodenminen; Rohstoffe kommen über Raumfracht. Planetenabstände, Größen und Klimarichtwerte folgen einem dokumentierten Modell für einen sonnenähnlichen Stern, Eigenrotation ist deutlicher sichtbar. Unter **Spielmenü → Testszenarien → Planetentypen / Luftfracht** lassen sich alle Umgebungen sofort in einer ausdrücklich gekennzeichneten Prüfkarte ansehen. Alte Spielstände behalten Karten und Bestände. [Recherche, Regeln und Nachweis](docs/PLANETENTYPEN_NACHWEIS.md).
 
 ## Freie Systemkamera und Keplerbahnen in 1.0.12
 
-**Rechte Maustaste halten und ziehen** verschiebt die Systemansicht frei; ein kurzer Rechtsklick bleibt ein Flottenbefehl. **WASD/Pfeiltasten** verschieben ebenfalls, **Q/E** und die mittlere Maustaste drehen, **Pos1** zentriert wieder auf den Stern. Räumlich verteilte Sterne zeigen entfernungsabhängige Parallaxe, der Nebel dreht mit der Blickrichtung. Planeten drehen sich sehr langsam und umlaufen den Stern auf wesentlich langsameren Keplerbahnen. Mauszeiger-Popups sind entfernt, Namensschilder passen sich knapp an ihren Text an. [Bedienung, Umlaufzeiten und Nachweise](docs/KAMERA_ORBIT_NACHWEIS.md).
+**Rechte Maustaste halten und ziehen** verschiebt die Systemansicht frei; ein kurzer Rechtsklick öffnet seit 1.0.16 das Objekt-/Zielmenü. **WASD/Pfeiltasten** verschieben ebenfalls, **Q/E** und die mittlere Maustaste drehen, **Pos1** zentriert wieder auf den Stern. Räumlich verteilte Sterne zeigen entfernungsabhängige Parallaxe, der Nebel dreht mit der Blickrichtung. Planeten drehen sich sehr langsam und umlaufen den Stern auf wesentlich langsameren Keplerbahnen. Mauszeiger-Popups sind entfernt, Namensschilder passen sich knapp an ihren Text an. [Bedienung, Umlaufzeiten und Nachweise](docs/KAMERA_ORBIT_NACHWEIS.md).
 
 ## GUI und Weltraumansicht in 1.0.11
 
@@ -180,7 +184,9 @@ In **Auswahl** lassen sich unvollständige Bauaufträge abbrechen und fertige Ge
 | Eingabe | Funktion |
 |---|---|
 | Linksklick | Planet öffnen, Bauauftrag erteilen oder Gebäude auswählen |
-| Rechtsklick oder Esc | Platzierungsmodus beenden |
+| Kurzer Rechtsklick | Objekt-/Zielmenü öffnen; aktiven Platzierungs-/Zielmodus abbrechen |
+| Rechts ziehen | Kamera verschieben, ohne einen Befehl auszulösen |
+| Escape | Menü schließen oder aktiven Werkzeugmodus abbrechen |
 | Leertaste | Gemeinsame Simulation pausieren oder fortsetzen |
 | Tab | Von der Oberfläche zur Systemansicht wechseln |
 | WASD oder Pfeiltasten | Oberflächenkamera verschieben |

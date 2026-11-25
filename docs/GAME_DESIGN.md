@@ -2,6 +2,8 @@
 
 ## Ergänzung: auswählbare Darstellung
 
+- **GUI-012:** Häufige Objektbefehle bleiben in allen Layouts sichtbar, Spezialaufgaben öffnen sich gezielt. Kurzer Rechtsklick zeigt ein benanntes Objekt-/Zielmenü; Rechtsziehen bleibt Kamerabewegung. Öffnen, Schließen und Navigieren erteilt keine Spielaufträge. Objekt, Welt und Akteure bleiben während eines Menüs fest zugeordnet; verlorene Sicht oder Eigentumsänderung sperrt veraltete Aktionen. Außenklick wird beim Schließen verbraucht. Rückbau zeigt eine ausdrückliche Bestätigung. Bedienung und Abgrenzung: [Befehls-GUI](BEFEHLS_GUI_NACHWEIS.md).
+
 - **GUI-001:** Kommandozentrale, Orbitale Brücke und Freier Weltraum sind Layouts derselben Partie. Wechsel verändert weder Zeit, Güter, Befehle noch Sichtwissen. Alle vorhandenen Spielbereiche bleiben erreichbar.
 - **GUI-002:** Layout, Oberflächengröße und Anzeige der Wabengrenzen sind lokale Einstellungen außerhalb des Spielstands. Ungültige Einstellungen dürfen den Start nicht verhindern.
 - **GUI-003:** Geöffnete Menüs/Einstellungen sperren Weltbefehle und darunterliegende GUI-Eingaben. Kamera und Auswahlprojektion verwenden den tatsächlichen Weltbereich des jeweiligen Layouts. Eine Auswahl über einer GUI-Fläche darf nicht als Weltbefehl interpretiert werden.

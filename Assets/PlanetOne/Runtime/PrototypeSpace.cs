@@ -20,7 +20,7 @@ namespace PlanetOne.Runtime
         private Vector2? shipSelectionStart;
         private GUIStyle spaceTabStyle;
         public int RenderedShipCount { get { int n=0; foreach(var t in shipViews.Values) if(t.gameObject.activeSelf) n++; return n; } }
-        public void ShowSpacePanel(int tab) { contextOpen=true;panelOpen=true;showingDiplomacy=false;showingSpacePanel=true; spacePanelTab=Mathf.Clamp(tab,0,3);presentationSection=spacePanelTab==1?4:spacePanelTab==2?5:3; sidebarScroll=Vector2.zero; }
+        public void ShowSpacePanel(int tab) { CloseCommandMenu();contextOpen=true;panelOpen=true;showingDiplomacy=false;showingSpacePanel=true; spacePanelTab=Mathf.Clamp(tab,0,3);presentationSection=spacePanelTab==1?4:spacePanelTab==2?5:3; sidebarScroll=Vector2.zero; }
         public void StartSpaceFixture()
         {
             if (!simulation.State.MilitaryTestFixture && !simulation.State.SpaceTestFixture) priorSession = simulation;
@@ -30,6 +30,7 @@ namespace PlanetOne.Runtime
         public bool SelectShip(long id, bool additive=false)
         {
             if(!simulation.State.Ships.Exists(s=>s.Id==id && s.OwnerId==PlayerFactionId && !s.Destroyed && !s.Consumed)) return false;
+            CloseCommandMenu();selectedAsteroidId=0;
             if(!additive) selectedShips.Clear(); if(!selectedShips.Contains(id)) selectedShips.Add(id);
             contextOpen=true;panelOpen=false;showingDiplomacy=false;showingSpacePanel=true;presentationSection=3;spacePanelTab=0;return true;
         }
@@ -181,14 +182,29 @@ namespace PlanetOne.Runtime
         }
         private void DrawFleetPanel()
         {
+            fleetTask=GUILayout.Toolbar(fleetTask,new[]{"Schiffe","Aufträge","Schiffbau","Abbau"},spaceTabStyle);
+            GUILayout.Space(12);
+            if(fleetTask==3){miningPanel=true;DrawMiningPanel();return;}
+            if(fleetTask==0)
+            {
             GUILayout.Label("SCHIFFE",headingStyle);
+            bool any=false;
             foreach(var s in simulation.State.Ships)
             {
                 if(s.OwnerId!=PlayerFactionId || s.Destroyed || s.Consumed) continue;
+                any=true;
                 if(GUILayout.Button(Definitions.Ships[(int)s.Kind].Name+" #"+s.Id,selectedShips.Contains(s.Id)?selectedButtonStyle:buttonStyle,GUILayout.Height(28))) {SelectShip(s.Id,Event.current.shift);panelOpen=true;}
                 if(selectedShips.Contains(s.Id)) { GUILayout.Label(s.Status,smallStyle); GUILayout.Label("An Bord: "+GoodsText(s.Cargo),smallStyle); }
             }
-            DrawMiningPanel();if(miningPanel)return;
+            if(!any)GUILayout.Label("Noch keine Schiffe. Unter Schiffbau einen eigenen Raumhafen wählen.",mutedStyle);
+            if(selectedShips.Count>0 && GUILayout.Button("Befehle für die Auswahl …",selectedButtonStyle,GUILayout.Height(36)))OpenSelectionCommandMenu(Input.mousePosition);
+            GUILayout.Space(12);GUILayout.Label("Ein Schiff auswählen. Rechtsklick auf eine Welt öffnet die passenden Flugbefehle.",smallStyle);return;
+            }
+            if(fleetTask==1)
+            {
+            GUILayout.Label("FLOTTENAUFTRAG",headingStyle);
+            if(selectedShips.Count==0){GUILayout.Label("Zuerst unter Schiffe eine eigene Flotte auswählen.",mutedStyle);return;}
+            GUILayout.Label(selectedShips.Count+" ausgewählte Schiffe",smallStyle);
             GUILayout.Label("ZIELWELT",headingStyle);
             foreach(var p in simulation.State.Planets)
                 if(simulation.IsPlanetKnown(PlayerFactionId,p.Id) && GUILayout.Button(p.Name,spaceTarget==p.Id?selectedButtonStyle:buttonStyle)) spaceTarget=p.Id;
@@ -196,9 +212,11 @@ namespace PlanetOne.Runtime
             if(GUILayout.Button("Hinflug",buttonStyle)) foreach(long id in selectedShips) RequestSpaceOrder(CommandKind.FlyShip,id,planet:spaceTarget);
             if(GUILayout.Button("Bewachen",buttonStyle)) foreach(long id in selectedShips) RequestSpaceOrder(CommandKind.GuardPlanet,id,planet:spaceTarget);
             GUILayout.EndHorizontal();
-            if(GUILayout.Button("Hier Kolonie gründen",buttonStyle)) foreach(long id in selectedShips) RequestSpaceOrder(CommandKind.Colonize,id,planet:spaceTarget);
+            if(selectedShips.Exists(id=>simulation.State.Ships.Exists(s=>s.Id==id && s.Kind==ShipKind.ColonyShip)) && GUILayout.Button("Hier Kolonie gründen",buttonStyle)) foreach(long id in selectedShips) if(simulation.State.Ships.Exists(s=>s.Id==id && s.Kind==ShipKind.ColonyShip))RequestSpaceOrder(CommandKind.Colonize,id,planet:spaceTarget);
             if(selectedShips.Count>1 && GUILayout.Button("Erstes ausgewähltes Schiff eskortieren",buttonStyle)) for(int i=1;i<selectedShips.Count;i++) RequestSpaceOrder(CommandKind.EscortShip,selectedShips[i],selectedShips[0]);
             if(GUILayout.Button("Zieloberfläche öffnen",buttonStyle)) SetView(spaceTarget);
+            return;
+            }
             GUILayout.Space(12); var port=ChoosePort(); if(port==null) return;
             if(port.ShipBuildKind>=0) GUILayout.Label("Bauauftrag: "+Definitions.Ships[port.ShipBuildKind].Name,bodyStyle);
             else for(int i=0;i<=(int)ShipKind.OrbitalYard;i++)
