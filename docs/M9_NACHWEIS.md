@@ -42,4 +42,16 @@ Finale Laufverzeichnisse: `TestResults/Presentation/20261125-191816` (vollständ
 
 ## Git und Windows-Paket
 
-Lokale Prüfungen sind bestanden. Versionsbranch `1.0.17` basiert auf dem integrierten `main`-Commit `4a8dd38`. Git-Integration und Remote-Pflichtchecks sind unabhängig von den lokalen Ergebnissen zu bewerten. Es wurde kein GitHub-Release veröffentlicht. Paket- und PR-Ergebnis werden nach ihrer tatsächlichen Ausführung ergänzt.
+Lokale Prüfungen sind bestanden. Versionsbranch `1.0.17` basiert auf dem integrierten `main`-Commit `4a8dd38`. Implementierungs- und Paketmanifest-Commit: `66a665e8d69ffbbbb382bc0dcb708c07651e0638`; der Folgecommit ergänzt ausschließlich diesen Paketnachweis. Git-Integration und Remote-Pflichtchecks sind unabhängig von den lokalen Ergebnissen zu bewerten; ihr aktueller Stand steht im zugehörigen PR. Es wurde kein GitHub-Release veröffentlicht.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/Package-Windows.ps1 -CompilerPath TestResults/Toolchains/InnoSetup-6.4.3/ISCC.exe
+powershell -ExecutionPolicy Bypass -File tools/Test-Installer.ps1 -RunPlayer
+```
+
+Beide Befehle bestanden. Paketvergleich, Installation, tatsächlicher Start des installierten Players mit vollständigen 538 Einzelbedingungen und Deinstallation erfolgreich. Installationsfixture: `TestResults/Installer/470a8b8b658b41139ddf977f7fb15aab`; isolierter Playerlauf: `TestResults/Presentation/20261125-192122`. Keine Shortcuts, Änderung einer vorhandenen Installation oder Anzeige auf dem Arbeitsdesktop. Logs: `TestResults/m9-package.log` und `TestResults/m9-installer.log`.
+
+| Datei unter `Builds/Distribution` | Bytes | SHA-256 |
+|---|---:|---|
+| `PlanetOne-1.0.17-Windows-x64-Setup.exe` | 28033984 | `ed4c829217f3e64bb4c8d16bb4bb040ef401fc331c8d88d244586a3c2a0d2e34` |
+| `PlanetOne-1.0.17-Windows-x64.zip` | 37584024 | `ce98cf5a74b08e70748e557e119316a44d01e74fa50dbd2833255704878365f7` |
