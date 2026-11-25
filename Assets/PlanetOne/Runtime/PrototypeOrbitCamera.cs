@@ -72,7 +72,7 @@ namespace PlanetOne.Runtime
             bool click=!spacePanDragged && !spacePanCancelledTarget;
             if(openPlanetId!=0 && !spacePanDragged && spacePanCancelledTarget){CancelPlacement();militaryTargetMode=null;}
             CancelSpacePan();
-            return click && (openPlanetId==0?RequestShipMoveAtScreen(screenPoint):RequestSurfaceOrderAtScreen(screenPoint));
+            return click && OpenContextMenuAtScreen(screenPoint);
         }
         private void CancelSpacePan(){spacePanCaptured=false;spacePanDragged=false;spacePanCancelledTarget=false;}
         private bool HandleSpacePanInput()

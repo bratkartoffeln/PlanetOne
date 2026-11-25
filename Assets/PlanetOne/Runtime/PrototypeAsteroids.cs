@@ -51,7 +51,7 @@ namespace PlanetOne.Runtime
         public void SelectAsteroid(long id)
         {
             if(!simulation.State.Asteroids.Exists(a=>a.Id==id))return;
-            selectedAsteroidId=id;asteroidPage=simulation.State.Asteroids.FindIndex(a=>a.Id==id)/4;miningPanel=true;ShowSpacePanel(0);
+            CloseCommandMenu();selectedAsteroidId=id;asteroidPage=simulation.State.Asteroids.FindIndex(a=>a.Id==id)/4;miningPanel=true;fleetTask=3;ShowSpacePanel(0);
         }
         public void FocusAsteroid(long id)
         {

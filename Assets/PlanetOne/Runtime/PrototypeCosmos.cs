@@ -18,7 +18,7 @@ namespace PlanetOne.Runtime
         public bool SelectPlanet(int id)
         {
             if(simulation.FindPlanet(id)==null || !simulation.IsPlanetKnown(PlayerFactionId,id))return false;
-            selectedPlanetId=id;selectedShips.Clear();contextOpen=true;panelOpen=false;
+            CloseCommandMenu();selectedAsteroidId=0;selectedPlanetId=id;selectedShips.Clear();contextOpen=true;panelOpen=false;
             showingSpacePanel=false;showingDiplomacy=false;presentationSection=0;return true;
         }
         public bool OpenSelectedPlanet(){bool build=panelOpen && presentationSection==1;if(!SelectPlanet(selectedPlanetId))return false;SetView(selectedPlanetId);if(build)OpenPresentationSection(1);return true;}

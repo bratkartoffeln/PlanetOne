@@ -57,10 +57,10 @@ namespace PlanetOne.Runtime
             Rect area=SidebarRect(width,height);DrawPanel(area);
             bool fixedBar=CurrentLayout==InterfaceLayout.CommandCenter;
             float top=area.y+12;
-            GUI.Label(new Rect(area.x+16,top,area.width-62,26),fixedBar?(openPlanetId==0?"SONNENSYSTEM":simulation.FindPlanet(openPlanetId).Name.ToUpperInvariant()):SectionNames[presentationSection].ToUpperInvariant(),headingStyle);
-            if(!fixedBar && HudButton(new Rect(area.xMax-42,top-4,30,30),"",HudIcon.Close,false,"Arbeitsbereich schließen")){panelOpen=false;contextOpen=true;}
+            GUI.Label(new Rect(area.x+16,top,area.width-62,26),panelOpen?SectionNames[presentationSection].ToUpperInvariant():"AUSWAHL",headingStyle);
+            if(panelOpen && HudButton(new Rect(area.xMax-42,top-4,30,30),"",HudIcon.Close,false,"Zur Auswahl zurück")){panelOpen=false;contextOpen=true;}
             top+=34;
-            if(fixedBar){DrawRadar(new Rect(area.x+14,top,area.width-28,144));top+=156;}
+            if(fixedBar && !panelOpen){DrawRadar(new Rect(area.x+14,top,area.width-28,112));top+=124;}
             float footer=fixedBar?174:0;
             Rect content=new Rect(area.x+14,top,area.width-28,area.yMax-top-footer-12);
             GUILayout.BeginArea(content);
@@ -77,6 +77,19 @@ namespace PlanetOne.Runtime
 
         private void DrawHudContent()
         {
+            if(!panelOpen)
+            {
+                DrawSelectionSummary(new Rect(0,0,252,160),false);GUILayout.Space(168);
+                if(GUILayout.Button("Objektbefehle öffnen",selectedButtonStyle,GUILayout.Height(38)))OpenSelectionCommandMenu(Input.mousePosition);
+                GUILayout.Label("Rechtsklick: passende Befehle\nRechts ziehen: Ansicht verschieben",smallStyle);
+                if(openPlanetId==0 && selectedShips.Count==0 && !StarSelected)
+                {
+                    GUILayout.Space(18);GUILayout.Label("BEKANNTE WELTEN",smallStyle);
+                    foreach(var world in simulation.State.Planets)
+                        if(simulation.IsPlanetKnown(PlayerFactionId,world.Id) && GUILayout.Button(world.Name,world.Id==selectedPlanetId?selectedButtonStyle:buttonStyle,GUILayout.Height(32)))SelectPlanet(world.Id);
+                }
+                return;
+            }
             if(showingDiplomacy){DrawDiplomacyPanel();return;}
             if(showingSpacePanel && panelOpen){DrawSpacePanel();return;}
             if(openPlanetId==0)
@@ -150,9 +163,11 @@ namespace PlanetOne.Runtime
             float y=height-BottomHeight;
             if(CurrentLayout==InterfaceLayout.OpenSpace)
             {
-                var dock=new Rect((width-540)/2,y+5,540,BottomHeight-10);DrawPanel(dock);
+                var dock=new Rect((width-Mathf.Min(980,width-32))/2,y+5,Mathf.Min(980,width-32),BottomHeight-10);DrawPanel(dock);
                 int[] sections={1,3,4,6};HudIcon[] icons={HudIcon.Build,HudIcon.Fleet,HudIcon.Research,HudIcon.Diplomacy};
-                for(int i=0;i<4;i++)if(HudButton(new Rect(dock.x+8+i*132,dock.y+4,128,dock.height-8),SectionNames[sections[i]],icons[i],panelOpen && presentationSection==sections[i],null,true))OpenPresentationSection(sections[i]);
+                float navWidth=(dock.width-24)/4;
+                for(int i=0;i<4;i++)if(HudButton(new Rect(dock.x+8+i*navWidth,dock.y+5,navWidth-4,30),SectionNames[sections[i]],icons[i],panelOpen && presentationSection==sections[i]))OpenPresentationSection(sections[i]);
+                DrawContextCommands(new Rect(dock.x+12,dock.y+44,dock.width-24,46),false);
             }
             else if(CurrentLayout==InterfaceLayout.OrbitalBridge)
             {
@@ -167,7 +182,7 @@ namespace PlanetOne.Runtime
                 Texture portrait=CurrentPortrait();if(portrait!=null)GUI.DrawTexture(new Rect(10,y+7,80,BottomHeight-14),portrait,ScaleMode.ScaleToFit);
                 DrawContextCommands(new Rect(100,y+14,width-SideWidth-116,38),false);
             }
-            string message=Time.unscaledTime<notificationUntil?notification:placement.HasValue?"Bauplatz wählen · Rechtsklick oder Esc: abbrechen":spaceMoveTargetMode?"Flugziel anklicken · Rechtsklick: abbrechen":ScenarioOutcomeText;
+            string message=Time.unscaledTime<notificationUntil?notification:placement.HasValue || placingRoad || removingRoad?"Bauplatz wählen · Rechtsklick / Esc: abbrechen":spaceMoveTargetMode?"Flugziel anklicken · Rechtsklick / Esc: abbrechen":militaryTargetMode.HasValue?"Befehlsziel anklicken · Rechtsklick / Esc: abbrechen":ScenarioOutcomeText;
             if(!string.IsNullOrEmpty(message))
             {
                 float x=CurrentLayout==InterfaceLayout.OrbitalBridge?216:18;
@@ -177,33 +192,34 @@ namespace PlanetOne.Runtime
 
         private void DrawContextCommands(Rect rect,bool grid)
         {
-            string[] labels={"Bauen","Flotte","Forschung","Diplomatie"};HudIcon[] icons={HudIcon.Build,HudIcon.Fleet,HudIcon.Research,HudIcon.Diplomacy};
-            Action[] actions={delegate{OpenPresentationSection(1);},delegate{OpenPresentationSection(3);},delegate{OpenPresentationSection(4);},delegate{OpenPresentationSection(6);}};
-            if(placement.HasValue || placingRoad || removingRoad){labels[0]="Bau beenden";icons[0]=HudIcon.Close;actions[0]=CancelPlacement;}
-            else if(openPlanetId!=0 && selectedUnits.Count>0)
-            {labels[0]="Bewegen";icons[0]=HudIcon.Back;actions[0]=delegate{militaryTargetMode=CommandKind.MoveUnit;};labels[1]="Halten";icons[1]=HudIcon.Stop;actions[1]=delegate{foreach(long id in selectedUnits)RequestUnitOrder(id,CommandKind.HoldPosition);};labels[2]="Truppen";icons[2]=HudIcon.Units;actions[2]=delegate{OpenPresentationSection(2);};}
-            else if(openPlanetId==0 && selectedShips.Count>0)
-            {labels[0]="Bewegen";icons[0]=HudIcon.Back;actions[0]=BeginShipMove;labels[1]="Flotte verwalten";}
-            else if(StarSelected){labels[0]="Sterninfos";icons[0]=HudIcon.Info;actions[0]=OpenStarDetails;}
-            else if(openPlanetId==0 && selectedPlanetId>0)
-            {labels[0]="Oberfläche";icons[0]=HudIcon.Planet;actions[0]=delegate{OpenSelectedPlanet();};}
-            else if(openPlanetId!=0)
-            {labels[1]="Einheiten";icons[1]=HudIcon.Units;actions[1]=delegate{OpenPresentationSection(2);};labels[3]="Versorgung";icons[3]=HudIcon.Supply;actions[3]=delegate{OpenPresentationSection(5);};}
+            if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue || spaceMoveTargetMode)
+            {
+                GUI.Label(new Rect(rect.x,rect.y,rect.width*.62f,rect.height),"Ziel auf der Karte wählen",bodyStyle);
+                if(HudButton(new Rect(rect.x+rect.width*.64f,rect.y,rect.width*.36f,38),"Abbrechen",HudIcon.Close)){CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;}return;
+            }
+            var context=SelectionCommands();var actions=BuildContextActions(context);int count=Mathf.Min(3,actions.Count);
             int cols=grid?2:4;float w=(rect.width-(cols-1)*6)/cols,h=grid?42:rect.height;
-            for(int i=0;i<4;i++)if(HudButton(new Rect(rect.x+(i%cols)*(w+6),rect.y+(i/cols)*(h+6),w,h),labels[i],icons[i]))actions[i]();
+            for(int i=0;i<count;i++)
+            {
+                var a=actions[i];bool enabled=GUI.enabled;GUI.enabled=enabled && a.Disabled==null;
+                if(HudButton(new Rect(rect.x+(i%cols)*(w+6),rect.y+(i/cols)*(h+6),w,h),a.Label,a.Icon,false,a.Disabled??a.Hint))
+                {ShowCommandMenu(context,Input.mousePosition);InvokeContextCommand(a.Id);}
+                GUI.enabled=enabled;
+            }
+            if(HudButton(new Rect(rect.x+3%cols*(w+6),rect.y+3/cols*(h+6),w,h),"Alle Befehle …",HudIcon.Menu))OpenSelectionCommandMenu(Input.mousePosition);
         }
 
         private void DrawSelectionCard(float width,float height)
         {
-            if(!SelectionCardVisible)return;Rect card=SelectionCardRect(width);DrawPanel(card);
+            if(!SelectionCardVisible)return;Rect card=SelectionCardRect(width);Fill(card,new Color(.02f,.04f,.055f,.95f));DrawPanel(card);
             DrawSelectionSummary(new Rect(card.x+14,card.y+14,card.width-28,158),false);
             if(HudButton(new Rect(card.xMax-35,card.y+8,27,27),"",HudIcon.Close,false,"Auswahlkarte schließen"))CloseContextPanel();
-            string action=openPlanetId==0 && selectedShips.Count==0?"Oberfläche öffnen":"Details und Befehle";
+            string action=openPlanetId==0 && selectedShips.Count==0?"Oberfläche öffnen":"Objektbefehle öffnen";
             if(StarSelected)action="Sterndetails";
             var selectedWorld=simulation.FindPlanet(selectedPlanetId);
             if(openPlanetId==0 && selectedShips.Count==0 && selectedWorld!=null && PlanetEnvironment.Airborne(selectedWorld))action="Atmosphäre öffnen";
             if(HudButton(new Rect(card.x+14,card.yMax-54,card.width-28,38),action,StarSelected?HudIcon.Info:openPlanetId==0 && selectedShips.Count==0?HudIcon.Planet:HudIcon.Info))
-            {if(StarSelected)OpenStarDetails();else if(openPlanetId==0 && selectedShips.Count==0)OpenSelectedPlanet();else {panelOpen=true;contextOpen=true;if(openPlanetId==0)showingSpacePanel=true;}}
+            {if(StarSelected)OpenStarDetails();else if(openPlanetId==0 && selectedShips.Count==0)OpenSelectedPlanet();else OpenSelectionCommandMenu(Input.mousePosition);}
         }
 
         private int KnownPlanetOwner(PlanetState p)

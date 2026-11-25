@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$ReferenceSave,[string]$PlayerPath,[ValidateRange(1024,3840)][int]$Width=1440,[ValidateRange(720,2160)][int]$Height=900)
+param([string]$ReferenceSave,[string]$PlayerPath,[switch]$CommandUiOnly,[ValidateRange(1024,3840)][int]$Width=1440,[ValidateRange(720,2160)][int]$Height=900)
 $ErrorActionPreference='Stop'
 $projectRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if(-not $PlayerPath){$PlayerPath=Join-Path $projectRoot 'Builds\Windows\PlanetOne.exe'}
@@ -45,6 +45,7 @@ public static class PlanetOneIsolatedDesktop {
 '@
 $arguments='-planetOneSmoke -screen-width '+$Width+' -screen-height '+$Height+' -screen-fullscreen 0 -force-d3d11 -smokeOutput "'+$outputDirectory+'" -logFile "'+(Join-Path $outputDirectory 'player.log')+'"'
 if($ReferenceSave){$referencePath=(Resolve-Path -LiteralPath $ReferenceSave).Path;$arguments+=' -referenceSave "'+$referencePath+'"'}
+if($CommandUiOnly){$arguments+=' -commandUiOnly'}
 try {
  [PlanetOneIsolatedDesktop]::Start($PlayerPath,$arguments,$projectRoot)
  $finished=$false
@@ -57,8 +58,10 @@ try {
  $report=Join-Path $outputDirectory 'smoke-result.txt'
  if(-not (Test-Path -LiteralPath $report)){throw 'Player lieferte kein Pruefprotokoll.'}
  foreach($layout in @('CommandCenter','OrbitalBridge','OpenSpace')){
-  foreach($view in @('surface','space')){
-   $imagePath=Join-Path $outputDirectory ('layout-'+$layout+'-'+$view+'.png')
+  $views=if($CommandUiOnly){@('building','unit')}else{@('surface','space')}
+  foreach($view in $views){
+   $imageName=if($CommandUiOnly){'commands-'+$view+'-'+$layout+'.png'}else{'layout-'+$layout+'-'+$view+'.png'}
+   $imagePath=Join-Path $outputDirectory $imageName
    if(-not (Test-Path -LiteralPath $imagePath) -or (Get-Item -LiteralPath $imagePath).Length -lt 1024){throw ('GUI-Bild fehlt: '+$imagePath)}
   }
  }

@@ -1,5 +1,11 @@
 # Entscheidungen und Plattformstrategie
 
+## Verständliche Objektbefehle (25. November 2026)
+
+- **D-036, Vorgabe:** Befehls-GUI nach vorheriger Stilrecherche übersichtlicher und intuitiver gestalten; Kontextmenüs direkt an angeklickten oder aktiven Elementen sind erwünscht.
+- **T-055, entschieden:** Version 1.0.16 trennt kompakte Auswahl und Spezialverwaltung. Bis zu drei direkte Objektaktionen plus sichtbarer Einstieg in eine beschriftete Kontextliste. Flottenverwaltung trennt Schiffe, Aufträge, Schiffbau und Abbau. Gleiche Logik in allen drei vorhandenen Layouts; [Recherche und Bedienung](BEFEHLS_GUI_NACHWEIS.md).
+- **T-056, entschieden:** Kurzer Rechtsklick öffnet beim Loslassen das Objekt-/Zielmenü; Ziehen ab sechs Pixeln bleibt Kamerabewegung. Zielmodi bleiben per Linksklick bedienbar, Escape/Rechtsklick bricht sie ab. Menühandlungen sind an Objekt und Akteure gebunden, vor Ausführung auf Sicht/Besitz/Existenz geprüft und nutzen die gemeinsame Core-Schnittstelle. Außenklick wird verbraucht. Rückbau benötigt im Spiel eine Bestätigung mit Rückgewinnung. Keine neue Savegame-Version.
+
 ## Größenverhältnisse, Korona und Asteroidengürtel (25. November 2026)
 
 - **D-034, ergänzende Vorgabe:** Asteroiden etwas größer darstellen, den Gürtel als nebligen Ring deutlicher erkennen lassen und beim Hineinzoomen einzelne Brocken zeigen. Sternklick soll ähnlich der Planetenauswahl Informationen öffnen. Danach M8 umsetzen.

@@ -156,6 +156,7 @@ namespace PlanetOne.Runtime
 
         public bool HandleShortcut(KeyCode key)
         {
+            if(IsCommandMenuOpen){if(key==KeyCode.Escape){CloseCommandMenu();return true;}return false;}
             if (key==KeyCode.Escape) { if(settingsOpen) settingsOpen=false; else if(menuOpen) menuOpen=false; else if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue || spaceMoveTargetMode) {CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;} else if(panelOpen){panelOpen=false;contextOpen=true;} else if(SelectionCardVisible)contextOpen=false; else menuOpen=true; selectionStart=null; shipSelectionStart=null; return true; }
             if(settingsOpen || menuOpen)return false;
             if(key==KeyCode.Space){TogglePause();return true;}
@@ -167,7 +168,7 @@ namespace PlanetOne.Runtime
         private void HandleKeyboard()
         {
             if(Input.GetKeyDown(KeyCode.Escape)){HandleShortcut(KeyCode.Escape);return;}
-            if(settingsOpen || menuOpen)return;
+            if(settingsOpen || menuOpen || IsCommandMenuOpen)return;
             HandleOrbitCamera();
             if(Input.GetKeyDown(KeyCode.Space))HandleShortcut(KeyCode.Space);
             if(Input.GetKeyDown(KeyCode.F5))HandleShortcut(KeyCode.F5);
@@ -196,6 +197,7 @@ namespace PlanetOne.Runtime
 
         private void HandleWorldInput()
         {
+            if(HandleCommandMenuPointer())return;
             if(HandleSpacePanInput())return;
             if (!IsWorldPoint(Input.mousePosition))
             {
@@ -343,7 +345,7 @@ namespace PlanetOne.Runtime
         {
             if (planetId != 0 && simulation.FindPlanet(planetId) == null) return;
             if (planetId != 0 && !simulation.IsPlanetKnown(PlayerFactionId, planetId)) { Notify("Oberfläche ist noch unbekannt."); return; }
-            openPlanetId = planetId;
+            CloseCommandMenu();openPlanetId = planetId;
             CancelSpacePan();spaceMoveTargetMode=false;suppressShipSelectionUntilUp=false;
             if(planetId!=0)selectedPlanetId=planetId;
             panelOpen=false;contextOpen=true;presentationSection=planetId==0?0:1;
@@ -527,7 +529,7 @@ namespace PlanetOne.Runtime
         private void OnGUI()
         {
             if (simulation == null) return;
-            if(!settingsOpen && !menuOpen) { HandleSelectionEvents(); HandleSpaceEvents(); }
+            if(!settingsOpen && !menuOpen && !IsCommandMenuOpen && commandDismissFrame!=Time.frameCount) { HandleSelectionEvents(); HandleSpaceEvents(); }
             EnsureStyles();
             float scale = UiScale;
             Matrix4x4 original = GUI.matrix;
@@ -536,7 +538,7 @@ namespace PlanetOne.Runtime
             float height = Screen.height / scale;
             PreparePresentationSkin();
             bool previousEnabled=GUI.enabled;
-            GUI.enabled=previousEnabled && !settingsOpen && !menuOpen;
+            GUI.enabled=previousEnabled && !settingsOpen && !menuOpen && !IsCommandMenuOpen && commandDismissFrame!=Time.frameCount;
             if (openPlanetId == 0) { DrawPlanetNameplates(scale); DrawShipLabels(scale); DrawAsteroidLabels(scale); }
             else { DrawBuildingLabels(scale); DrawMilitaryLabels(scale); }
             DrawPresentationTop(width);
@@ -546,6 +548,7 @@ namespace PlanetOne.Runtime
             DrawSelectionCard(width,height);
             GUI.enabled=previousEnabled;
             DrawPresentationDialogs(width,height);
+            DrawCommandMenu();
             GUI.matrix = original;
         }
 
@@ -636,7 +639,7 @@ namespace PlanetOne.Runtime
                 GUILayout.Label("Rückgewinnung vor Ort: " + GoodsText(recovery), smallStyle);
                 GUILayout.Label("Lagerware bleibt erhalten. Bereits eingesetztes Baumaterial wird anteilig zurückgewonnen und muss abgeholt werden.", smallStyle);
                 if (GUILayout.Button(building.Built ? "Gebäude zurückbauen" : "Bauauftrag abbrechen", buttonStyle, GUILayout.Height(31)))
-                    RequestBuildingOperation(openPlanetId, building.Id, building.Built ? CommandKind.DemolishBuilding : CommandKind.CancelConstruction);
+                { ShowCommandMenu(NewContext(CommandSubject.Building,building.Id,Definitions.Get(building.Kind).Name+" #"+building.Id),Input.mousePosition);CommandSubpage("confirm"); }
             }
         }
 
@@ -815,6 +818,8 @@ namespace PlanetOne.Runtime
             foreach (BuildingState building in planet.Buildings)
             {
                 if (building.Id != id) continue;
+                if(building.Destroyed || !simulation.CanSeeEntity(planet,PlayerFactionId,id))return false;
+                CloseCommandMenu();selectedUnits.Clear();
                 CancelPlacement();
                 contextOpen=true;panelOpen=false;
                 showingSpacePanel=false;showingDiplomacy=false;showingMilitary=false;presentationSection=1;
