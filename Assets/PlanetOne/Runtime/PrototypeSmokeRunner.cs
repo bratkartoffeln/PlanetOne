@@ -141,7 +141,7 @@ namespace PlanetOne.Runtime
             var spinBefore=controller.CelestialView(1).rotation;yield return null;yield return null;
             Require(Quaternion.Angle(spinBefore,controller.CelestialView(1).rotation)<0.001f,"Paused planets preserve their axial rotation");
             float spin=Quaternion.Angle(PrototypeController.PlanetAxialRotation(1,0),PrototypeController.PlanetAxialRotation(1,30));
-            Require(spin>0.2f && spin<2,"Axial rotation is present and very slow");
+            Require(spin>15 && spin<20,"Axial rotation is clearly visible but remains slower than the camera");
             Require(controller.HasSurfaceAtlas,"Authored material atlas loaded in the Windows player");
             controller.ExportBuildingCatalogue(outputDirectory);
             Require(File.Exists(Path.Combine(outputDirectory,"building-Headquarters.png")),"Building catalogue renders actual textured models");
@@ -184,7 +184,7 @@ namespace PlanetOne.Runtime
             Require(checkedCenters>45 && checkedEdges>240,"Relief camera resolves visible hex centers and edges: "+checkedCenters+" / "+checkedEdges);
             float low=float.MaxValue,high=float.MinValue;
             for(int y=0;y<planet.Height;y++)for(int x=0;x<planet.Width;x++){float h=controller.SurfaceElevation(x,y);low=Mathf.Min(low,h);high=Mathf.Max(high,h);}
-            Require(high-low>1.5f,"Surface has real mountain and valley elevations");
+            Require(high-low>.65f,"Temperate terrain has rolling relief without a forced valley");
             float savedHeight=controller.SurfaceElevation(3,4);
             controller.SetView(0);controller.SetView(1);
             Require(Mathf.Approximately(savedHeight,controller.SurfaceElevation(3,4)),"Reopening a world preserves deterministic relief");
@@ -349,9 +349,15 @@ namespace PlanetOne.Runtime
             Require(controller.SelectUnit(tank.Id) && controller.SelectedUnitCount == 1, "Military selection uses the controller adapter");
             yield return null;
             Require(controller.RenderedUnitCount >= 6, "Own troops are visibly rendered");
+            string beforeGroundPan=SaveCodec.ToJson(controller.Simulation.State);var groundStart=controller.WorldViewport.center;
+            Require(controller.BeginSurfacePan(groundStart),"Selected ground unit permits camera drag");
+            controller.ContinueSpacePan(groundStart+new Vector2(-80,30));controller.EndSpacePan(groundStart+new Vector2(-80,30));
+            Require(SaveCodec.ToJson(controller.Simulation.State)==beforeGroundPan,"Ground dragging does not issue an order to selected troops");controller.ResetCameraView();
             yield return Capture("military-defense.png");
             Require(captureFailure == null, captureFailure ?? "Defense screenshot written");
-            Require(controller.RequestUnitOrder(tank.Id, CommandKind.MoveUnit, 8, 2), "Reserve movement queued through normal input adapter");
+            Vector2 groundTarget=controller.SurfaceScreenPoint(8,2);int pendingGround=controller.Simulation.State.PendingCommands.Count;
+            Require(controller.BeginSurfacePan(groundTarget) && controller.Simulation.State.PendingCommands.Count==pendingGround,"Short right click waits until release on the surface");
+            Require(controller.EndSpacePan(groundTarget) && controller.Simulation.State.PendingCommands.Count==pendingGround+1,"Short right click issues one ground movement order on release");
             Vector3 tankBefore=controller.UnitView(tank.Id).position;
             AdvanceSeconds(1);yield return null;
             var tankView=controller.UnitView(tank.Id);Vector3 tankDelta=tankView.position-tankBefore;tankDelta.y=0;
@@ -539,6 +545,34 @@ namespace PlanetOne.Runtime
             Require(diplomacy.FindPlanet(1).ConsumedTotals[4]>=8,"M7 successful activation consumes actual delivered crystals");
             diplomacy.State.Paused=true;controller.SetView(1);yield return null;yield return Capture("diplomacy-gate.png");
             Require(captureFailure==null,captureFailure??"M7 completed gate world renders in the real player");
+            controller.StartPlanetEnvironmentFixture();var environments=controller.Simulation;
+            Require(environments.State.SpaceTestFixture && environments.State.Paused,"Environment showcase is isolated and paused");
+            controller.SetInterfaceLayout(InterfaceLayout.OpenSpace);controller.SetView(0);yield return null;
+            yield return Capture("planet-types-system.png");Require(captureFailure==null,captureFailure??"Six distinct planetary bodies rendered");
+            foreach(var world in environments.State.Planets) {
+                controller.SelectPlanet(world.Id);controller.SetView(world.Id);controller.ResetCameraView();yield return null;
+                float elevation=controller.SurfaceElevation(8,6);
+                Require(!float.IsNaN(elevation) && !float.IsInfinity(elevation),"Finite environment elevation: "+world.Kind);
+                var relief=GameObject.Find("Durchgehendes Relief").GetComponent<Renderer>();
+                if(world.Kind!=PlanetKind.GasGiant)Require(relief.enabled && (Camera.main.cullingMask & (1<<relief.gameObject.layer))!=0 && relief.sharedMaterial.mainTexture!=null,"Textured terrain reaches the actual camera: "+world.Kind);
+                else Require(!relief.enabled && GameObject.Find("Wolkendecke unter den Stationen")!=null,"Gas view has clouds below platforms instead of solid terrain");
+                yield return Capture("biome-"+world.Kind+".png");Require(captureFailure==null,captureFailure??"Biome captured");
+                string stateBefore=SaveCodec.ToJson(environments.State);var focus=controller.SurfaceFocus;var start=controller.WorldViewport.center;
+                Require(controller.BeginSurfacePan(start),"Right drag starts on the surface: "+world.Kind);
+                controller.ContinueSpacePan(start+new Vector2(-120,-35));controller.EndSpacePan(start+new Vector2(-120,-35));
+                Require(Vector3.Distance(focus,controller.SurfaceFocus)>1,"Right drag moves surface focus: "+world.Kind);
+                Require(SaveCodec.ToJson(environments.State)==stateBefore,"Surface dragging issues no simulation command: "+world.Kind);
+                Require(!controller.BeginSurfacePan(new Vector2(8,Screen.height-8)),"HUD blocks surface drag: "+world.Kind);
+                controller.SetOrbitCamera(55,55);yield return null;yield return Capture("biome-panned-"+world.Kind+".png");Require(captureFailure==null,captureFailure??"Rotated biome captured");
+            }
+            var atmosphere=environments.FindPlanet(7);controller.SetView(7);controller.ResetCameraView();
+            QueueBuild(7,BuildingKind.Warehouse,20,16);AdvanceSeconds(1);yield return null;
+            Require(atmosphere.Shipments.Exists(s=>s.Amount>0 && s.Phase==ShipmentPhase.InTransit),"Gas construction uses actual airborne cargo");
+            bool wheel=false,container=false,platform=false;
+            foreach(var t in controller.GetComponentsInChildren<Transform>()) {if(t.name=="Laufrad")wheel=true;if(t.name=="Frachtcontainer")container=true;if(t.name=="Schwebendes Fundament")platform=true;}
+            Require(!wheel && container && platform,"Gas colony renders flying cargo and floating bases without wheels");
+            yield return Capture("gas-air-freight.png");Require(captureFailure==null,captureFailure??"Air freight captured");
+            Require(controller.SaveGame() && controller.LoadGame(),"Planet environments and airborne cargo load in the real player");
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)

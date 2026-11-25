@@ -157,7 +157,7 @@ namespace PlanetOne.Runtime
             spacePanelTab=GUILayout.Toolbar(spacePanelTab,new[]{"Flotte","Technik","Fracht","Krieg"},spaceTabStyle,GUILayout.Width(208)); GUILayout.Space(10);
             if(simulation.State.SpaceTestFixture)
             {
-                GUILayout.Label("M4 DEMONSTRATION · regulär finanzierter Aufbau",smallStyle);
+                GUILayout.Label("PRÜFKARTE · separate Testsitzung",smallStyle);
                 if(priorSession!=null && GUILayout.Button("Zur laufenden Kolonie zurück",buttonStyle)) { simulation=priorSession; priorSession=null; foodRates.Clear(); BuildSpace(); SetView(0); return; }
             }
             if(spacePanelTab==0) DrawFleetPanel(); else if(spacePanelTab==1) DrawResearchPanel(); else if(spacePanelTab==2) DrawSupplyPanel(); else DrawInvasionPanel();
@@ -173,7 +173,7 @@ namespace PlanetOne.Runtime
                 if(GUILayout.Button(p.Name+" · #"+b.Id,chosenPort==b.Id?selectedButtonStyle:buttonStyle)) chosenPort=b.Id;
                 if(chosenPort==b.Id) selected=b;
             }
-            if(selected==null) GUILayout.Label("Einen Raumhafen an das Straßennetz bauen.",mutedStyle);
+            if(selected==null) GUILayout.Label(AtmosphereSurface?"Eine Raumhafen-Plattform für Importe bauen.":"Einen Raumhafen an das Straßennetz bauen.",mutedStyle);
             else { GUILayout.Label(selected.Status,smallStyle); GUILayout.Label(GoodsText(selected.Inventory),smallStyle); }
             return selected;
         }

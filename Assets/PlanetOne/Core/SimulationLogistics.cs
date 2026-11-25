@@ -188,7 +188,7 @@ namespace PlanetOne.Core
             if (last.X != destination.X || last.Y != destination.Y) routeValid = false;
             int currentIndex = Math.Min((int)shipment.DistanceTravelled, shipment.Path.Count - 1);
             for (int i = currentIndex + 1; i < shipment.Path.Count - 1; i++)
-                if (!planet.Roads[shipment.Path[i].Y * planet.Width + shipment.Path[i].X]) routeValid = false;
+                if (!PlanetEnvironment.Airborne(planet) && !planet.Roads[shipment.Path[i].Y * planet.Width + shipment.Path[i].X]) routeValid = false;
             if (!routeValid)
             {
                 // Preserve the exact point on the currently traversed segment when replacing its remainder.

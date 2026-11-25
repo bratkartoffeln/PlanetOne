@@ -293,6 +293,13 @@ Die vorhergehende Grafiklieferung wird durch **1.0.10, räumliche Modelle und na
 - **Umfang:** Freie Rechtszieh-Kamera, perspektivische Sternentiefen und ortsfester Nebel, langsame Eigenrotation, autoritative elliptische Keplerbahnen mit längeren Perioden, positionsstetige V8-Migration; Mauszeiger-Popup entfernen und Namensschilder an Textbreite anpassen.
 - **Abnahme:** Automatisierte Bahn-/Save-Prüfungen und Trennung von Kamerageste/Befehl; tatsächliche Hintergrundprojektion und Zustandserhaltung bei Kamerawechsel, zwei GUI-Auflösungen auf isoliertem Desktop, fensterloser GPU-Test.
 
+### Planetentypen, Luftfracht und Oberflächen – 1.0.13
+
+- **Status:** Umsetzung und lokale Prüfung auf Basis 1.0.12; Ergebnis und Git-Integrationsgrenze im [PLANETENTYPEN_NACHWEIS](PLANETENTYPEN_NACHWEIS.md). M8 bleibt offen.
+- **Grundlage:** D-032, T-045 bis T-047, SPACE-006/009/010, ECO-014, GUI-009 und TEST-028.
+- **Module:** Core-Weltmerkmale, Kartengenerierung, Bau-/Bewegungsvalidierung, physische Logistik, KI-Beobachtung/-Wege, Savegame-Schema 10; Runtime-Biome, Modelle, Materialien, Kamera und Prüfkarte.
+- **Abnahme:** Plausible Planetenzuordnung, Wasser als echte Bau-/Wegegrenze, Gasgründung und Luftfracht ohne Bodeninfrastruktur, unveränderte Warenintegrität und Altdaten, tatsächliche texturierte Spielbilder sowie Rechte-Maustaste-Gesten auf isoliertem Desktop.
+
 ### P19 Speicherstände und Integrationsgrenzen absichern
 
 - **Status:** Offen. **Abhängigkeit:** P18.

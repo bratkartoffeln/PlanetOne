@@ -1,5 +1,14 @@
 # Abnahmeszenarien für PlanetOne
 
+## TEST-028 Planetentypen, Luftfracht und Oberflächenkamera
+
+- **Grundlage:** D-032, T-045 bis T-047, SPACE-006/009/010, ECO-014, GUI-009, RES-001; zusätzliche Arbeit auf M7, kein Abschluss von M8.
+- **Welten:** Neue Partie enthält alle sechs Typen mit plausibler Sternentfernung und verschiedenen Radien. Neue Karten besitzen 616 Waben; Ozeankarten mehr Wasser als Land. Wasserkacheln verweigern Straßen, Gebäude und Bodenbewegung; eine Inselgründung kann regulär ausbauen.
+- **Gas:** Ein echtes Kolonieschiff gründet einmalig eine Station und überträgt seine Ladung. Keine Straßen/Vorkommen; Bodenminen/Mauern/Tore werden auch über direkte Core-Befehle abgelehnt. Entfernte Plattformbaustellen bekommen bezahlte Ladung durch begrenzte Drohnen. Abbruch führt bewegte Fracht physisch zurück. Ein Speichern mitten im Flug erhält die exakte Fortsetzung und alle Reservierungen.
+- **Darstellung:** Im realen Player sichtbare Texturen auf jeder festen Oberfläche; Gas zeigt Wolken unter schwebenden Plattformen und keine Räder. Screenshots aller Biome, Rotation und Verschiebung. Rechte Ziehgeste verändert keinen vollständigen Simulationssnapshot; ein kurzer Rechtsklick mit ausgewählter Einheit erzeugt genau einen Befehl beim Loslassen. Menü-/HUD-Flächen bleiben gesperrt.
+- **Migration:** Echte V9-Datei laden; außer neuer Typzuordnung/Schema bleiben sämtliche gespeicherten Felder identisch, einschließlich Kartengröße, Ressourcen, Flotten und Bahnen. Neue Prüfkarte separat kennzeichnen; keine gesetzten Vorräte im normalen Spiel.
+- **Prüfung:** Core-Suite, Unity-Windows-Build und tatsächliche GUI auf isoliertem Windows-Desktop in zwei Auflösungen. Ergebnis und Prüfgrenzen: [PLANETENTYPEN_NACHWEIS](PLANETENTYPEN_NACHWEIS.md).
+
 ## TEST-027 Freie Kamera, Tiefenparallaxe und Keplerbahnen
 
 - **Regeln:** GUI-003/008, SPACE-001 bis SPACE-003, CORE-007/008; D-031.

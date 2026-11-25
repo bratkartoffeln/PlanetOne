@@ -49,6 +49,8 @@ namespace PlanetOne.Runtime
                 mesh=new Mesh{name="Gebrochener Fels"};mesh.vertices=vertices;mesh.triangles=indices;mesh.RecalculateNormals();mesh.RecalculateBounds();modelMeshes[key]=mesh;
             }
             var rock=MeshPart("Fels",parent,mesh,position,size,new Color(0.55f,0.48f,0.40f));
+            var planet=simulation.FindPlanet(openPlanetId);
+            if(planet!=null && planet.Kind==PlanetOne.Core.PlanetKind.Ice)rock.GetComponent<Renderer>().sharedMaterial=BiomeMaterial(planet.Kind);
             rock.localRotation=Quaternion.Euler(seed%17,seed*137.5f,seed%23);return rock;
         }
     }

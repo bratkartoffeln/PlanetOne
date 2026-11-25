@@ -112,6 +112,7 @@ internal static class HexGridTests
         // V9 deliberately slows legacy orbits while preserving their position at migration.
         string orbitalFields="\"Orbit(Eccentricity|Periapsis|PeriodSeconds|Phase)\":[^,}]+,";
         migrated=System.Text.RegularExpressions.Regex.Replace(migrated,orbitalFields,"");
+        migrated=System.Text.RegularExpressions.Regex.Replace(migrated,"\"Kind\":[0-9]+,(?=\"LostTotals\")","");
         string original=System.Text.RegularExpressions.Regex.Replace(json,orbitalFields,"");
         Check(migrated==original.Replace("\"Version\":5","\"Version\":"+SaveCodec.CurrentVersion),"Migration changed non-orbital state");
         var a=new GameSimulation(state);var b=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(state)));

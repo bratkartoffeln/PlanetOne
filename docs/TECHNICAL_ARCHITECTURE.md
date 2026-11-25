@@ -2,6 +2,14 @@
 
 Die Umsetzung verwendet Unity und C#. Der Simulationskern bleibt von UnityEngine unabhängig; Darstellung, Eingabe und Plattformzugriffe werden über Unity angebunden. Die konkrete Editorinstallation und ihre Laufzeitnachweise werden in [M0](IMPLEMENTATION_PLAN.md) nach dem [Entscheidungsstand](DECISIONS.md) festgehalten. Die folgenden Regeln beschreiben das Zielverhalten; ihr Vorhandensein im Dokument ist noch kein Implementierungsnachweis.
 
+## Planetenumgebungen ab 1.0.13
+
+`PlanetState.Kind` enthält den gespeicherten `PlanetKind`. `PlanetEnvironment` bündelt Typbezeichnungen, Referenzradien, Albedo, einfache Klimarichtwerte, Rotation und erlaubte Bodeninfrastruktur. Der gemeinsame Core erzeugt neue 28×22-Karten; `OceanHeight` verbindet das kontinuierliche Küstenrelief mit gesperrten Wasserzellen. Neue Wüsten-, Ozean- und Gaswelten ergänzen das reguläre System. Der KI wird der Typ nur zusammen mit einer bekannten Welt übergeben.
+
+Gas-Lieferwege verwenden benachbarte Hexsegmente in freien Luftkorridoren. `ShipmentState`, reservierte Mengen, Hin-/Rückflug und Bergung bleiben dieselbe Implementierung. `SaveCodec` verweigert Straßen, Bodenlagerstätten und unzulässige Gebäude auf Gaswelten. Schema 10 ordnet alten Welten ausschließlich feste Bodentypen zu und vergrößert alte Karten nicht. `PlanetEnvironmentFixture` ist eine getrennte, ausdrücklich bezeichnete Prüfkarte.
+
+`PrototypeBiomes` und die beiden neuen Atlanten zeichnen Oberflächen passend zum Typ. Der tatsächliche Relief-MeshRenderer liegt auf Ebene 0; Ebene 29 bleibt ausschließlich Weltraumhintergrund. Bei Gaswelten dient ein unsichtbares Höhenfeld der Auswahl von Luftbauplätzen; sichtbare Wolken liegen darunter, Basen besitzen Stabilisierungstriebwerke und Transportmodelle keine Räder. Das gemeinsame Kameragestenmodell löst Weltbefehle erst nach einem kurzen Rechtsklick aus. [Recherche und Nachweise](PLANETENTYPEN_NACHWEIS.md).
+
 ## Keplerbahnen und räumlicher Hintergrund ab 1.0.12
 
 `OrbitalMotion` löst die Keplergleichung in Radiant und liefert die autoritative Position relativ zum Bezugskörper. `GetOrbitPosition` addiert bei Monden die aktuelle Elternposition. Die Renderlinie verwendet denselben Bahnrechner; Schiffe, Sensoren, KI und Logistik verwenden weiterhin die gemeinsame Position. `OrbitRadius` bezeichnet die große Halbachse, `OrbitPhase` die mittlere Anomalie zur Epoche null. `OrbitEccentricity` und `OrbitPeriapsis` ergänzen Savegame-Schema 9; `SaveOrbits` korrigiert beim Laden alter Kreise die Phase zur aktuellen Zeit, ohne Schiffe, Waren oder Aufträge umzusetzen. Validierung begrenzt Exzentrizität auf 0–0,6 und prüft die Periodenrelation.

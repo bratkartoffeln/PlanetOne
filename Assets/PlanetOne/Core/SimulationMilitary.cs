@@ -53,7 +53,7 @@ namespace PlanetOne.Core
 
         public bool CanTraverse(PlanetState p, int faction, UnitKind kind, int x, int y, long unitId=0)
         {
-            if (!Inside(p, x, y) || p.Terrain[y * p.Width + x] == 1) return false;
+            if (!Inside(p, x, y) || PlanetEnvironment.BlocksGround(p.Terrain[y * p.Width + x])) return false;
             var building = p.Buildings.Find(b => b.X == x && b.Y == y && !b.Destroyed);
             if (building == null) return true;
             if (building.Kind == BuildingKind.Gate && building.Built && !building.Deconstructing)

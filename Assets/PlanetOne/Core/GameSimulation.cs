@@ -24,7 +24,10 @@ namespace PlanetOne.Core
             state.Planets.Add(CreatePlanet(state, 1, "Aster", -1, 1, 10, 0.2));
             state.Planets.Add(CreatePlanet(state, 2, "Nereid", -1, 1, 18, 2.5));
             state.Planets.Add(CreatePlanet(state, 3, "Khepri", 2, 0, 3, 0));
-            state.Planets[2].Terrain[9 * 18 + 13] = 3;
+            state.Planets[2].Terrain[9 * state.Planets[2].Width + 13] = 3;
+            state.Planets.Add(CreatePlanet(state, 5, "Sahra", -1, 0, 7.2, 3.8));
+            state.Planets.Add(CreatePlanet(state, 6, "Pelagia", -1, 0, 12.5, 5.2));
+            state.Planets.Add(CreatePlanet(state, 7, "Zephyr", -1, 0, 52, 1.6));
             var simulation = new GameSimulation(state);
             simulation.UpdateSpaceKnowledge();
             return simulation;
@@ -36,13 +39,14 @@ namespace PlanetOne.Core
             var p = new PlanetState { Id = id, Name = name, ParentId = parent, OwnerId = owner,
                 OrbitRadius = radius, OrbitPeriodSeconds = OrbitalMotion.Period(radius, parent >= 0), OrbitPhase = phase,
                 OrbitEccentricity = parent >= 0 ? 0.04 : id == 1 ? 0.06 : id == 2 ? 0.09 : 0.12,
-                OrbitPeriapsis = parent >= 0 ? 0.3 : (id - 1) * 0.55 };
+                OrbitPeriapsis = parent >= 0 ? 0.3 : (id - 1) * 0.55,
+                Kind = PlanetEnvironment.InitialKind(id,parent) };
             p.Terrain = new int[p.Width * p.Height];
             p.OreRemaining = new int[p.Terrain.Length];
             p.Roads = new bool[p.Terrain.Length];
             for (int y = 0; y < p.Height; y++)
                 for (int x = 0; x < p.Width; x++)
-                    if ((x < 2 && y < 3) || (x > 15 && y > 10) || (x == 12 && y == 2))
+                    if ((x < 2 && y < 3) || (x > p.Width-3 && y > p.Height-4) || (x == 12 && y == 2))
                         p.Terrain[y * p.Width + x] = 1;
             foreach (var cell in new[] { new GridCell(4, 4), new GridCell(13, 9), new GridCell(3, 10) })
             {
@@ -50,12 +54,21 @@ namespace PlanetOne.Core
                 p.Terrain[index] = 2;
                 p.OreRemaining[index] = 1800 + (int)((uint)(state.Seed + id * 191 + index) % 401);
             }
+            if(p.Kind==PlanetKind.Ocean)
+                for(int y=0;y<p.Height;y++)for(int x=0;x<p.Width;x++)
+                    if(!PlanetEnvironment.OceanLand(x,y)){p.Terrain[y*p.Width+x]=4;p.OreRemaining[y*p.Width+x]=0;}
+            if(p.Kind==PlanetKind.Temperate)
+                for(int y=14;y<p.Height;y++)for(int x=18;x<p.Width;x++)
+                    if(Math.Sin(x*.71+y*.9)>.2)p.Terrain[y*p.Width+x]=1;
+            if(PlanetEnvironment.Airborne(p)) {Array.Clear(p.Terrain,0,p.Terrain.Length);Array.Clear(p.OreRemaining,0,p.OreRemaining.Length);}
             if (owner != 0)
             {
+                if(!PlanetEnvironment.Airborne(p)) {
                 for (int x = 2; x <= 15; x++) p.Roads[6 * p.Width + x] = true;
                 for (int y = 2; y <= 11; y++) p.Roads[y * p.Width + 8] = true;
                 p.Roads[6 * p.Width + 8] = false;
                 p.Roads[5 * p.Width + 4] = true;
+                }
                 var headquarters = new BuildingState { Id = state.NextEntityId++, PlanetId = id,
                     Kind = BuildingKind.Headquarters, X = 8, Y = 6, Built = true, Status = "Bereit" };
                 headquarters.Inventory[(int)ResourceKind.Food] = 60;
@@ -188,6 +201,8 @@ namespace PlanetOne.Core
             if (error != null) return error;
             if (!Enum.IsDefined(typeof(BuildingKind), kind) || kind == BuildingKind.Headquarters)
                 return "Dieser Gebäudetyp kann hier nicht gebaut werden.";
+            if(!PlanetEnvironment.AllowsBuilding(p.Kind,kind))
+                return "Gasstationen besitzen keinen festen Boden für Minen, Mauern oder Straßentore. Metall und Erz per Raumfracht importieren.";
             string technologyError = BuildingTechnologyError(kind, factionId);
             if (technologyError != null) return technologyError;
             int index = y * p.Width + x;
@@ -217,6 +232,7 @@ namespace PlanetOne.Core
             if (p.OwnerId == 0 || p.OwnerId != factionId) return "Keine eigene Kolonie an diesem Ort.";
             if (x < 0 || y < 0 || x >= p.Width || y >= p.Height) return "Außerhalb der Baufläche.";
             if (p.Terrain[y * p.Width + x] == 1) return "Fels ist nicht bebaubar.";
+            if (p.Terrain[y * p.Width + x] == 4) return "Offenes Wasser ist nicht bebaubar. Einen Inselbauplatz wählen.";
             if (p.Buildings.Exists(b => b.X == x && b.Y == y)) return "Die Baufläche ist bereits belegt.";
             return null;
         }
@@ -237,6 +253,8 @@ namespace PlanetOne.Core
             if (p.OwnerId != command.IssuerId || p.OwnerId == 0)
             { Report(command, false, "PermissionDenied", "Keine eigene Kolonie an diesem Ort."); return; }
             string error;
+            if(PlanetEnvironment.Airborne(p) && (command.Kind==CommandKind.PlaceRoad || command.Kind==CommandKind.RemoveRoad))
+            { Report(command,false,"AirFreightOnly","Gasstationen nutzen Frachtdrohnen zwischen Plattformen; Straßen sind hier nicht möglich."); return; }
             if (command.Kind == CommandKind.RemoveRoad)
             {
                 if (command.X < 0 || command.Y < 0 || command.X >= p.Width || command.Y >= p.Height ||
@@ -347,6 +365,7 @@ namespace PlanetOne.Core
 
         private static bool PathStillValid(PlanetState p, List<GridCell> path)
         {
+            if(PlanetEnvironment.Airborne(p))return true;
             for (int i = 1; i < path.Count - 1; i++)
                 if (!p.Roads[path[i].Y * p.Width + path[i].X]) return false;
             return true;
@@ -355,6 +374,7 @@ namespace PlanetOne.Core
         private static List<GridCell> FindPath(PlanetState p, BuildingState source, BuildingState target)
         {
             if (source == null || target == null) return null;
+            if(PlanetEnvironment.Airborne(p))return PlanetEnvironment.AirPath(p.Width,p.Height,new GridCell(source.X,source.Y),new GridCell(target.X,target.Y));
             int start = source.Y * p.Width + source.X;
             int finish = target.Y * p.Width + target.X;
             int[] previous = new int[p.Terrain.Length];

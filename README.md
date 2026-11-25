@@ -4,6 +4,12 @@ PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, ph
 
 Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung verbindet klare Geometrie mit texturierten Oberflächen und dunklem Weltraum. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
 
+## Planetentypen, Landschaften und Luftfracht in 1.0.13
+
+Sechs Welttypen verbinden passende Planetenkugeln mit Fels-, Wüsten-, Pflanzen-, Insel-, Eis- und Gaslandschaften. Neue Karten bieten **28 × 22 Waben** statt 18 × 14. Der Boden ist wieder sichtbar texturiert; Ebenen, Dünen, Höhenzüge und Küsten ersetzen die einheitliche Talform. **Rechte Maustaste halten und ziehen** verschiebt jetzt auch die Oberfläche. Kurze Rechtsklicks bleiben Einheitenbefehle.
+
+Gasriesen besitzen schwebende Plattformen und vier Frachtdrohnen mit je acht Waren Kapazität. Es gibt dort keine Straßen, Räder oder Bodenminen; Rohstoffe kommen über Raumfracht. Planetenabstände, Größen und Klimarichtwerte folgen einem dokumentierten Modell für einen sonnenähnlichen Stern, Eigenrotation ist deutlicher sichtbar. Unter **Spielmenü → Testszenarien → Planetentypen / Luftfracht** lassen sich alle Umgebungen sofort in einer ausdrücklich gekennzeichneten Prüfkarte ansehen. Alte Spielstände behalten Karten und Bestände. [Recherche, Regeln und Nachweis](docs/PLANETENTYPEN_NACHWEIS.md).
+
 ## Freie Systemkamera und Keplerbahnen in 1.0.12
 
 **Rechte Maustaste halten und ziehen** verschiebt die Systemansicht frei; ein kurzer Rechtsklick bleibt ein Flottenbefehl. **WASD/Pfeiltasten** verschieben ebenfalls, **Q/E** und die mittlere Maustaste drehen, **Pos1** zentriert wieder auf den Stern. Räumlich verteilte Sterne zeigen entfernungsabhängige Parallaxe, der Nebel dreht mit der Blickrichtung. Planeten drehen sich sehr langsam und umlaufen den Stern auf wesentlich langsameren Keplerbahnen. Mauszeiger-Popups sind entfernt, Namensschilder passen sich knapp an ihren Text an. [Bedienung, Umlaufzeiten und Nachweise](docs/KAMERA_ORBIT_NACHWEIS.md).

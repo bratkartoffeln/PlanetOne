@@ -77,19 +77,28 @@ namespace PlanetOne.Runtime
                 foreach (long id in selectedUnits) RequestUnitOrder(id, militaryTargetMode.Value, hoverX, hoverY, target);
                 militaryTargetMode = null; return true;
             }
-            if (Input.GetMouseButtonDown(1) && selectedUnits.Count > 0)
-            {
-                foreach (long id in selectedUnits)
-                    RequestUnitOrder(id, nearest != null && nearest.OwnerId != PlayerFactionId ? CommandKind.AttackTarget : CommandKind.MoveUnit,
-                        hoverX, hoverY, nearest == null ? 0 : nearest.Id);
-                return true;
-            }
             if (Input.GetMouseButtonDown(0))
             {
                 if (nearest != null && nearest.OwnerId == PlayerFactionId)
                 { SelectUnit(nearest.Id, Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)); return true; }
             }
             return false;
+        }
+
+        private bool RequestSurfaceOrderAtScreen(Vector2 point)
+        {
+            if(openPlanetId==0 || selectedUnits.Count==0 || !IsWorldPoint(point))return false;
+            var p=simulation.FindPlanet(openPlanetId);var cell=SurfaceCellAtScreen(point);
+            if(cell.X<0 || cell.Y<0 || cell.X>=p.Width || cell.Y>=p.Height)return false;
+            UnitState nearest=null;float best=22;
+            foreach(var unit in p.Units) {
+                if(unit.Destroyed || !simulation.CanSeeEntity(p,PlayerFactionId,unit.Id) || !IsSurfacePointVisible(unit.X,unit.Y,.3f))continue;
+                Vector2 screen=sceneCamera.WorldToScreenPoint(SurfacePosition(unit.X,.3f,unit.Y));
+                float distance=Vector2.Distance(point,screen);if(distance<best){best=distance;nearest=unit;}
+            }
+            bool accepted=false;
+            foreach(long id in selectedUnits)accepted=RequestUnitOrder(id,nearest!=null && nearest.OwnerId!=PlayerFactionId?CommandKind.AttackTarget:CommandKind.MoveUnit,cell.X,cell.Y,nearest==null?0:nearest.Id) || accepted;
+            return accepted;
         }
 
         private void HandleSelectionEvents()

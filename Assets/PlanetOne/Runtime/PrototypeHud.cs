@@ -86,11 +86,12 @@ namespace PlanetOne.Runtime
                 if(p!=null && simulation.IsPlanetKnown(PlayerFactionId,p.Id))
                 {
                     GUILayout.Label(p.Name.ToUpperInvariant(),headingStyle);
-                    Rect portrait=GUILayoutUtility.GetRect(160,108);GUI.DrawTexture(portrait,PlanetPortrait(p),ScaleMode.ScaleToFit);
-                    GUILayout.Label(p.ParentId>0?"Mond":"Planet",mutedStyle);
+                    Rect portrait=GUILayoutUtility.GetRect(160,76);GUI.DrawTexture(portrait,PlanetPortrait(p),ScaleMode.ScaleToFit);
+                    GUILayout.Label(PlanetEnvironment.Name(p.Kind)+(p.ParentId>0?" · Mond":""),mutedStyle);
+                    GUILayout.Label(PlanetEnvironment.StellarAu(simulation.State,p).ToString("0.00")+" AE · "+PlanetEnvironment.RadiusEarths(p.Kind).ToString("0.00")+" Erdradien",smallStyle);
                     int owner=KnownPlanetOwner(p);GUILayout.Label(owner==PlayerFactionId?"Eigene Kolonie":owner==0?"Unbesiedelt":owner<0?"Besitz unbekannt":"Fremde Kolonie",bodyStyle);
                     if(owner==PlayerFactionId)GUILayout.Label(p.Population+" Bewohner · "+p.Buildings.Count+" Gebäude",smallStyle);
-                    GUILayout.Space(12);if(GUILayout.Button("Oberfläche öffnen  →",selectedButtonStyle,GUILayout.Height(38)))OpenSelectedPlanet();
+                    GUILayout.Space(6);if(GUILayout.Button(PlanetEnvironment.Airborne(p)?"Atmosphäre öffnen  →":"Oberfläche öffnen  →",selectedButtonStyle,GUILayout.Height(38)))OpenSelectedPlanet();
                 }
                 GUILayout.Space(18);GUILayout.Label("BEKANNTE WELTEN",smallStyle);
                 foreach(var world in simulation.State.Planets)
@@ -196,6 +197,8 @@ namespace PlanetOne.Runtime
             DrawSelectionSummary(new Rect(card.x+14,card.y+14,card.width-28,158),false);
             if(HudButton(new Rect(card.xMax-35,card.y+8,27,27),"",HudIcon.Close,false,"Auswahlkarte schließen"))CloseContextPanel();
             string action=openPlanetId==0 && selectedShips.Count==0?"Oberfläche öffnen":"Details und Befehle";
+            var selectedWorld=simulation.FindPlanet(selectedPlanetId);
+            if(openPlanetId==0 && selectedShips.Count==0 && selectedWorld!=null && PlanetEnvironment.Airborne(selectedWorld))action="Atmosphäre öffnen";
             if(HudButton(new Rect(card.x+14,card.yMax-54,card.width-28,38),action,openPlanetId==0 && selectedShips.Count==0?HudIcon.Planet:HudIcon.Info))
             {if(openPlanetId==0 && selectedShips.Count==0)OpenSelectedPlanet();else {panelOpen=true;contextOpen=true;if(openPlanetId==0)showingSpacePanel=true;}}
         }
@@ -207,7 +210,7 @@ namespace PlanetOne.Runtime
             if(openPlanetId==0)
             {var ship=simulation.State.Ships.Find(s=>selectedShips.Contains(s.Id) && !s.Destroyed && !s.Consumed);if(ship!=null)return ShipPortrait(ship.Kind);var p=simulation.FindPlanet(selectedPlanetId);return p==null?null:PlanetPortrait(p);}
             var planet=simulation.FindPlanet(openPlanetId);var b=FindSelected(planet);if(b!=null)return BuildingIcon(b.Kind);
-            var u=planet.Units.Find(v=>selectedUnits.Contains(v.Id)&&!v.Destroyed);return u==null?null:ObjectPortrait("unit"+u.Kind,r=>BuildVehicleModel(r,u.Kind,Cyan),0.7f);
+            var u=planet.Units.Find(v=>selectedUnits.Contains(v.Id)&&!v.Destroyed);return u==null?null:ObjectPortrait("unit"+u.Kind+"-"+planet.Kind,r=>BuildVehicleModel(r,u.Kind,Cyan),0.7f);
         }
         private void DrawSelectionSummary(Rect rect,bool wide)
         {
@@ -216,7 +219,7 @@ namespace PlanetOne.Runtime
             {
                 var ship=simulation.State.Ships.Find(s=>selectedShips.Contains(s.Id)&&!s.Destroyed&&!s.Consumed);
                 if(ship!=null){title=Definitions.Ships[(int)ship.Kind].Name;type="Eigene Flotte · #"+ship.Id;status=ship.Status;extra="Besatzung  "+ship.Crew;health=(float)(ship.Health/Definitions.SpaceWeapons[(int)ship.Kind].Health);}
-                else {var p=simulation.FindPlanet(selectedPlanetId);if(p!=null){title=p.Name;type=p.ParentId>0?"Mond":"Planet";int owner=KnownPlanetOwner(p);status=owner==PlayerFactionId?"Kolonie aktiv":owner==0?"Unbesiedelt":owner<0?"Besitz unbekannt":"Fremde Kolonie";extra=owner==PlayerFactionId?"Bevölkerung  "+p.Population:"Oberfläche erkunden";}}
+                else {var p=simulation.FindPlanet(selectedPlanetId);if(p!=null){title=p.Name;type=PlanetEnvironment.Name(p.Kind);int owner=KnownPlanetOwner(p);status=owner==PlayerFactionId?"Kolonie aktiv · "+p.Population+" Bewohner":owner==0?"Unbesiedelt":owner<0?"Besitz unbekannt":"Fremde Kolonie";extra=PlanetEnvironment.StellarAu(simulation.State,p).ToString("0.00")+" AE · "+PlanetEnvironment.RadiusEarths(p.Kind).ToString("0.00")+" Erdradien";}}
             }
             else
             {

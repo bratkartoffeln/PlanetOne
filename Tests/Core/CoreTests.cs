@@ -43,6 +43,7 @@ internal static class CoreTests
         AiTests.Register(Run);
         DiplomacyTests.Register(Run);
         OrbitTests.Register(Run);
+        PlanetEnvironmentTests.Register(Run);
         Console.WriteLine(failures == 0 ? "All " + checks + " core tests passed." : failures + " test(s) failed.");
         return failures == 0 ? 0 : 1;
     }
@@ -324,7 +325,7 @@ internal static class CoreTests
         Build(sim, BuildingKind.SolarPlant, 10, 5, 2);
         Command(sim, CommandKind.RemoveRoad, 2, x: 9, y: 6);
         sim.Step();
-        Assert(sim.FindPlanet(2).Buildings.Count == 1 && sim.FindPlanet(2).Roads[6 * 18 + 9], "Foreign commands changed a colony.");
+        Assert(sim.FindPlanet(2).Buildings.Count == 1 && sim.FindPlanet(2).Roads[6 * sim.FindPlanet(2).Width + 9], "Foreign commands changed a colony.");
         Assert(sim.State.CommandResults.TrueForAll(r => !r.Success && r.Code == "PermissionDenied"), "Missing structured rejection.");
         Assert(sim.State.Events.Exists(e => e.Code == "CommandRejected" && e.PlanetId == 2), "Missing command event.");
         sim.Enqueue(new SimCommand { Id = sim.NextCommandId(), IssuerId = 2, PlanetId = 2,
