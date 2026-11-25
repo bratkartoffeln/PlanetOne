@@ -4,6 +4,10 @@ PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, ph
 
 Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung ist minimalistisch: klare geometrische Formen, dunkler Weltraum und wenige Akzentfarben. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
 
+## Computergegner in 1.0.7
+
+**M6 Gegen Computer spielen** startet eine separate Partie gegen eine selbstständig wirtschaftende KI. Gleiche Anfangsmittel, keine Gratisflotten: Aufbau, Forschung, Erkundung, Kolonisierung, Flotten-/Truppenproduktion und vorbereitete Invasionen nutzen reguläre Befehle. Wissen bleibt auf eigene Zustände und legitime Aufklärung begrenzt. Pläne, Reservierungen und Entscheidungen werden gespeichert. 96 Core-Tests, Windows-Build und 113 fensterlose Player-Prüfungen bestanden; [Nachweise und Grenzen](docs/M6_NACHWEIS.md).
+
 ## Wabenoberflächen in 1.0.6
 
 Bodenfelder, Straßen, Bauvorschau und Auswahl verwenden ein Hexraster mit sechs Nachbarn. Wege, Sicht, Deckung, Reichweiten und Landeflächen folgen derselben Geometrie; alte Spielstände werden übernommen. 82 Core-Tests und 104 fensterlose Player-Prüfungen bestanden. [Regeln, Migration und Prüfschritte](docs/HEXRASTER_NACHWEIS.md). Der Standardaufruf `tools/Test-Prototype.ps1` öffnet kein Fenster und erzeugt Weltbilder ohne IMGUI; manuelle Bedienungsabnahme bleibt separat.
@@ -155,5 +159,5 @@ Die obere Leiste bietet zusätzlich Pause, Spieltempo **1× / 2×**, Speichern u
 - **Grafischer Integrationstest bestanden:** 103 Einzelprüfungen und 14 erzeugte Renderbilder; M5-Bilder als Dateien geprüft. M3/M4 besitzen zusätzliche frühere native Bediennachweise; die vollständige manuelle M5-Abnahme bleibt offen. Aktuelle Tests ohne Eingriffe in den Arbeitsdesktop: [M5-Nachweis](docs/M5_NACHWEIS.md).
 - **Versionswerkzeuge geprüft:** 12 Tests mit 19 isolierten Fixtures, einschließlich Rücknahme eines fehlgeschlagenen Schreibvorgangs. Produktversion, Playeranzeige und Versionsbranch sind synchron.
 - **Vorläufiges Testszenario:** zwei eigene Kolonien und ein neutraler Mond; je Oberfläche 18 × 14 Felder und vier Kuriere pro Kolonie.
-- **Funktionsstand:** M1/M2 technisch abgenommen nach [T-006](docs/DECISIONS.md); M3 und M4 einschließlich gezielter echter Bedienprüfung abgeschlossen. Die vollständige ältere Wirtschaftsbedienungsabnahme bleibt separat offen. M5 ist lokal umgesetzt und automatisiert geprüft; seine manuelle Abnahme und Git-Integration bleiben offen. M6-KI und M7-Diplomatie folgen danach.
+- **Funktionsstand:** M1/M2 technisch abgenommen nach [T-006](docs/DECISIONS.md); M3 und M4 einschließlich gezielter echter Bedienprüfung abgeschlossen. Die vollständige ältere Wirtschaftsbedienungsabnahme bleibt separat offen. M5 ist implementiert und über PR #5 integriert. M6 ist in 1.0.7 lokal umgesetzt und automatisiert geprüft; erneute manuelle Abnahme und Git-Integration bleiben offen. M7-Diplomatie folgt danach.
 - **Plattformstatus:** Windows-Player und programmatische Eingabeadapter sind geprüft. Weitere Desktop-, Web-, Mobil- und Konsolenexporte sowie eine vollständige manuelle Bedienungsabnahme sind ungeprüft. Der kleine Prototyp liefert noch keine Performancegarantie für das vollständige Spiel.

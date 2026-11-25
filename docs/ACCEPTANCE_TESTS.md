@@ -123,6 +123,8 @@ Die Karten sind zunächst Spezifikationen. Ihre ausführbaren Szenariodaten werd
 - **Dann:** Die zusätzliche geheime Tatsache verändert weder ihr Wissensmodell noch eine darauf gestützte Entscheidung. Nach zulässiger Aufklärung darf der Plan abweichen.
 - **Zusatz:** Spieler und KI erhalten für denselben unberechtigten Befehl denselben Ablehnungsgrund. Ein Angriff auf eine letzte bekannte Position verfolgt kein verborgenes bewegtes Ziel.
 
+**M6-Nachweis zu TEST-011:** Gleiche Beobachtung und nächste Entscheidung trotz ungesehenem Turm; abgetrennte Daten verändern keine Originalinventare. Letzte Sichtungen aktualisieren sich erst nach erneuter Aufklärung. Siehe [M6_NACHWEIS](M6_NACHWEIS.md).
+
 ## TEST-012 KI erkennt den tatsächlichen Engpass
 
 - **Pakete:** P14. **Regeln:** AI-001, AI-004, AI-005.
@@ -131,6 +133,8 @@ Die Karten sind zunächst Spezifikationen. Ihre ausführbaren Szenariodaten werd
 - **Dann:** Die gewählte Maßnahme passt zur jeweiligen Ursache, etwa Transportkapazität erhöhen oder Verbrauch senken im ersten Fall, Produktion erschließen im zweiten. Aufträge kosten reale Ressourcen.
 - **Nachweis:** Entscheidungsprotokoll nennt Wissen, Engpass, Alternative und tatsächlich ausgeführten Befehl.
 
+**M6-Nachweis zu TEST-012:** Unterbrochene Straße wird innerhalb zehn Simulationssekunden wieder verbunden; bei ausgelasteten Kurieren und zwölf offenen Lieferungen stoppt optionale Elektronikverarbeitung. Grundaufbau/Reserven und Forschung werden mit drei Seeds in jeweils 20 Minuten geprüft; friedliche echte Besiedlung mit Seed 23 innerhalb 40 Minuten.
+
 ## TEST-013 KI passt eine Invasion an
 
 - **Pakete:** P15. **Regeln:** AI-007, AI-008, AI-009.
@@ -138,6 +142,8 @@ Die Karten sind zunächst Spezifikationen. Ihre ausführbaren Szenariodaten werd
 - **Wenn:** Die KI den nächsten Versuch plant.
 - **Dann:** Sie ändert den begründeten Plan, beschafft passende Kräfte, wartet auf echte Verstärkung oder bricht ab. Kein identischer endloser Angriff und keine kostenlose zweite Armee.
 - **Zusatz:** Fehlende Transportplätze verhindern einen verfrühten Start. Beim Rückzug werden Operationen und Reservierungen bereinigt; die Einheiten müssen tatsächlich zurückfahren oder abgeholt werden.
+
+**M6-Nachweis zu TEST-013:** Sichtbare Turmstellung verändert Landeplanung; ohne Träger kein Start. Rückzug mit beschädigtem realem Träger und Freigabe der Zuweisungen geprüft. Eine separat vorbereitete endliche Operationsfixture erreicht innerhalb 120 Sekunden die tatsächliche Eroberung. Das ist kein garantierter Sieg aus normalen Anfangsmitteln; [M6_NACHWEIS](M6_NACHWEIS.md).
 
 ## TEST-014 Verträge trennen Handel und Militärrechte
 

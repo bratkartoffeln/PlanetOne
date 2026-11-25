@@ -326,6 +326,26 @@ namespace PlanetOne.Runtime
             controller.SelectUnit(infantry.Id);controller.ShowSpacePanel(3);yield return null;yield return Capture("invasion-capture.png");
             Require(controller.SaveGame(),"M5 occupation saves");string occupied=SaveCodec.ToJson(invasion.State);
             Require(controller.LoadGame() && SaveCodec.ToJson(controller.Simulation.State)==occupied,"M5 occupation stocks owners and troops restore exactly");
+            controller.StartAiScenario();var computerGame=controller.Simulation;
+            Require(computerGame.State.AiScenario && computerGame.FindPlanet(2).OwnerId==2 && computerGame.State.Ships.Count==0,"M6 normal AI scenario starts with its own colony and no free fleet");
+            string playerMessage=computerGame.State.LastMessage;
+            computerGame.Step(400);
+            Require(computerGame.State.LastMessage==playerMessage,"M6 private AI orders and construction do not leak through player notifications");
+            // Run the actual AI while the player views another world; no scripted build commands.
+            controller.SetView(1);
+            for(int i=0;i<59;i++){computerGame.Step(400);yield return null;}
+            Require(computerGame.FindPlanet(2).ProducedTotals[2]>30 && computerGame.FindPlanet(2).ProducedTotals[3]>10,"M6 AI funds its economy through real production in the background");
+            Require(computerGame.State.Factions.Find(f=>f.Id==2).Research.Completed.Contains(Technology.Transport),"M6 AI researches through its paid laboratory");
+            controller.SetView(0);yield return null;yield return Capture("ai-system.png");
+            Require(captureFailure==null,captureFailure??"M6 system render written without revealing hidden enemy colonies");
+            computerGame.State.Paused=true;
+            Require(controller.SaveGame(),"M6 plans knowledge reservations and logs save");string aiSaved=SaveCodec.ToJson(computerGame.State);
+            Require(controller.LoadGame()&&SaveCodec.ToJson(controller.Simulation.State)==aiSaved,"M6 restored AI state matches exactly");
+            var aiCopy=new GameSimulation(SaveCodec.FromJson(aiSaved));aiCopy.State.Paused=false;controller.Simulation.State.Paused=false;
+            aiCopy.Step(80);controller.Simulation.Step(80);
+            Require(SaveCodec.ToJson(aiCopy.State)==SaveCodec.ToJson(controller.Simulation.State),"M6 restored AI continues with identical decisions and commands");
+            controller.Simulation.State.Paused=true;controller.SetView(1);yield return null;yield return Capture("ai-player-colony.png");
+            Require(captureFailure==null,captureFailure??"M6 player world remains renderable during AI operation");
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)

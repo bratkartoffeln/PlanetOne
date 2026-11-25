@@ -105,8 +105,9 @@ internal static class HexGridTests
     {
         string json=File.ReadAllText("Tests/Core/Fixtures/invasion-v5.json");
         Check(json.Contains("\"Version\":5"),"Not a real old schema fixture");
-        var state=SaveCodec.FromJson(json); Check(state.Version==6,"Migration not applied");
-        Check(SaveCodec.ToJson(state)==json.Replace("\"Version\":5","\"Version\":6"),"Migration changed actual state");
+        var state=SaveCodec.FromJson(json); Check(state.Version==SaveCodec.CurrentVersion,"Migration not applied");
+        string migrated=SaveCodec.ToJson(state).Replace("\"AiScenario\":false,", "").Replace("\"ComputerFactions\":[],", "");
+        Check(migrated==json.Replace("\"Version\":5","\"Version\":"+SaveCodec.CurrentVersion),"Migration changed actual state");
         var a=new GameSimulation(state);var b=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(state)));
         a.State.Paused=b.State.Paused=false;a.Step(200);b.Step(200);
         Check(SaveCodec.ToJson(a.State)==SaveCodec.ToJson(b.State),"Migrated continuation differs");

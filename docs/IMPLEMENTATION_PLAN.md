@@ -217,7 +217,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P14 Wirtschaft, Forschung und begrenztes Wissen
 
-- **Status:** Offen. **Abhängigkeit:** P13.
+- **Status:** In 1.0.7 lokal umgesetzt und automatisiert geprüft: eigene Wirtschaft/Forschung/Kolonisierung, Engpassmaßnahmen, gefilterte Wahrnehmung und gespeicherte Entscheidungsprotokolle. [M6_NACHWEIS](M6_NACHWEIS.md) beschreibt Zeitfenster und Grenzen; Git-Integration und erneute manuelle Abnahme offen. **Abhängigkeit:** P13.
 - **Module:** KI-Wahrnehmung, Wirtschaftsplanung, Forschung, gemeinsame Befehlsverarbeitung.
 - **Umfang:** Eine KI baut ihre Grundversorgung auf, erkennt Engpässe, reserviert Ressourcen, erschließt Standorte und erforscht passende Technik. Entscheidungen erfolgen aus eigenem Wissen und öffentlichen Informationen.
 - **Nicht enthalten:** Rohstoffboni, allwissende Gegnerdaten oder Diplomatie.
@@ -226,7 +226,7 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 ### P15 Militärische Planung und Anpassung
 
-- **Status:** Offen. **Abhängigkeit:** P14.
+- **Status:** In 1.0.7 lokal umgesetzt und automatisiert geprüft: reale Beschaffung, Eskorte, exklusive Operationszuweisungen, veränderte Landeplanung, vollständige vorbereitete Invasion und physischer Rückzug. [M6_NACHWEIS](M6_NACHWEIS.md); keine behauptete feste Siegzeit aus Normalstart. Git-Integration und erneute manuelle Abnahme offen. **Abhängigkeit:** P14.
 - **Module:** KI-Strategie, Operationsplanung, taktische Steuerung, Verteidigung.
 - **Umfang:** Aufklären, Ressourcen und Kräfte sammeln, Konvois eskortieren, Invasionen vorbereiten, Reserven einsetzen und abbrechen. Auf starke bekannte Turmstellungen mit passender Ausrüstung, anderer Landefläche oder Zielwechsel reagieren.
 - **Nicht enthalten:** Maschinelles Lernen oder perfekte vorausschauende Entscheidungen.
