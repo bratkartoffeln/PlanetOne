@@ -1,5 +1,14 @@
 # PlanetOne Spielregeln
 
+## Ergänzung: auswählbare Darstellung
+
+- **GUI-001:** Kommandozentrale, Orbitale Brücke und Freier Weltraum sind Layouts derselben Partie. Wechsel verändert weder Zeit, Güter, Befehle noch Sichtwissen. Alle vorhandenen Spielbereiche bleiben erreichbar.
+- **GUI-002:** Layout, Oberflächengröße und Anzeige der Wabengrenzen sind lokale Einstellungen außerhalb des Spielstands. Ungültige Einstellungen dürfen den Start nicht verhindern.
+- **GUI-003:** Geöffnete Menüs/Einstellungen sperren Weltbefehle und darunterliegende GUI-Eingaben. Kamera und Auswahlprojektion verwenden den tatsächlichen Weltbereich des jeweiligen Layouts. Eine Auswahl über einer GUI-Fläche darf nicht als Weltbefehl interpretiert werden.
+- **GUI-004:** Texturen und Modellverfeinerungen erhalten die Wabengeometrie, Sichtgrenzen und eindeutigen Zustandsanzeigen. Gebäudevorschauen stellen dieselben Modelle wie die Welt dar. Referenzspiele dienen der Gestaltung, nicht als Quelle übernommener Grafikdateien.
+
+Umsetzung und Prüfumfang: [GUI_GRAFIK_NACHWEIS](GUI_GRAFIK_NACHWEIS.md).
+
 Diese Spezifikation beschreibt das verbindliche Zielverhalten des Spiels. Sie dient als fachliche Vorlage für die Umsetzung durch Codex. Anforderungs-IDs bleiben bei Umformulierungen stabil; fachliche Änderungen werden ausdrücklich dokumentiert.
 
 Status: Zielkonzept, abgenommene M1–M4-Grundlagen und lokal automatisiert geprüftes M5 in 1.0.5; dessen Grenzen stehen in [M5_NACHWEIS](M5_NACHWEIS.md). Historisch: Produktversion 1.0.3 ergänzt Schiffsbau, Gründung, Raumfracht, Kristalle, Elektronik und Forschung; Nachweise und vorläufige Balance in [M4_NACHWEIS](M4_NACHWEIS.md). Historischer M3-Nachweis: Stand 23. November 2026, Produktversion 1.0.2. Der Unity-Windows-Player verbindet Sonnensystem, Koloniewirtschaft und Bodengefechte mit gemeinsamer Zeit und Save/Load. 43 Core-Tests, Windows-Build und 71 grafische Einzelprüfungen sind bestanden; sieben Renderbilder und gezielte echte M3-Maus-/Tastaturbedienung wurden geprüft. Details stehen in [M3_NACHWEIS](M3_NACHWEIS.md). Die umfassenden Anforderungen dieses Dokuments sind damit nicht vollständig umgesetzt. Den aktuellen Paketstand führt [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Zahlen zu Kosten, Reichweiten und Zeiten bleiben vorläufige Balanceparameter.

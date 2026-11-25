@@ -18,6 +18,8 @@ Grundlage: CORE-001 bis CORE-006, D-001 bis D-015.
 
 ## 2 Gemeinsame Spielwelt und Bedienung
 
+Seit 1.0.9 lässt sich die Darstellung in den Einstellungen zwischen Kommandozentrale, Orbitaler Brücke und Freiem Weltraum wechseln. Dies sind drei Bedienlayouts derselben Simulation mit einer gemeinsamen texturierten Grafikbasis. Der Auftrag ergänzt den früheren minimalistischen Stil um eigene Materialien und detailliertere geometrische Modelle. Referenzen sind Command & Conquer, Haegemonia und Solar 2. [Umfang und tatsächlicher Prüfstand](GUI_GRAFIK_NACHWEIS.md).
+
 Sonnensystem und Planetenoberfläche sind Ansichten derselben Simulation. Auch außerhalb der Kamera laufen Produktion, Transporte, Gefechte und KI weiter. Ein Ansichtswechsel vervielfacht keine Bestände und pausiert die Welt nicht.
 
 Taktische Pause erlaubt Auswahl, Kamera, Bauplanung und Befehle. Die Spielzeit mit Bewegung, Produktion, Forschung, Schaden und Vertragsfristen steht dabei still. Vorgemerkte Aufträge werden beim Fortsetzen regulär geprüft. Auswahlrahmen, Mehrfachauswahl, Kontrollgruppen und sichtbare Befehlsziele unterstützen die militärische Steuerung.

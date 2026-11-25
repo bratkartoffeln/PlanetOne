@@ -18,7 +18,7 @@ namespace PlanetOne.Runtime
         private Vector2? shipSelectionStart;
         private GUIStyle spaceTabStyle;
         public int RenderedShipCount { get { int n=0; foreach(var t in shipViews.Values) if(t.gameObject.activeSelf) n++; return n; } }
-        public void ShowSpacePanel(int tab) { showingSpacePanel=true; spacePanelTab=Mathf.Clamp(tab,0,3); sidebarScroll=Vector2.zero; }
+        public void ShowSpacePanel(int tab) { contextOpen=true;showingDiplomacy=false;showingSpacePanel=true; spacePanelTab=Mathf.Clamp(tab,0,3); sidebarScroll=Vector2.zero; }
         public void StartSpaceFixture()
         {
             if (!simulation.State.MilitaryTestFixture && !simulation.State.SpaceTestFixture) priorSession = simulation;
@@ -29,7 +29,7 @@ namespace PlanetOne.Runtime
         {
             if(!simulation.State.Ships.Exists(s=>s.Id==id && s.OwnerId==PlayerFactionId && !s.Destroyed && !s.Consumed)) return false;
             if(!additive) selectedShips.Clear(); if(!selectedShips.Contains(id)) selectedShips.Add(id);
-            showingSpacePanel=true; spacePanelTab=0; return true;
+            contextOpen=true;showingDiplomacy=false;showingSpacePanel=true; spacePanelTab=0; return true;
         }
         public bool RequestSpaceOrder(CommandKind kind, long actor=0, long target=0, int planet=1, int value=0, int amount=0, int minimum=0, int reserve=0, int priority=1, bool flag=false)
         { return SubmitIntent(new SimCommand {Kind=kind, ActorId=actor, TargetId=target, PlanetId=planet, IntValue=value, Amount=amount, Minimum=minimum, Reserve=reserve, X=priority, BoolValue=flag}); }
@@ -43,7 +43,7 @@ namespace PlanetOne.Runtime
                 if(!shipViews.TryGetValue(ship.Id,out view))
                 {
                     view=MakePrimitive(ship.Kind==ShipKind.ColonyShip?PrimitiveType.Capsule:PrimitiveType.Cube,"Schiff "+ship.Id,spaceRoot,Vector3.zero,new Vector3(0.32f,0.2f,0.65f),DiplomaticColor(ship.OwnerId));
-                    shipViews[ship.Id]=view;
+                    DecorateShip(view); shipViews[ship.Id]=view;
                 }
                 view.gameObject.SetActive(true); view.position=new Vector3((float)ship.X,0.6f,(float)ship.Y);
                 view.localScale=selectedShips.Contains(ship.Id)?new Vector3(0.5f,0.3f,0.9f):new Vector3(0.32f,0.2f,0.65f);
@@ -59,9 +59,10 @@ namespace PlanetOne.Runtime
                 for(int i=1;i<=3;i++) if(e.keyCode==KeyCode.Alpha1+i-1)
                 { if(e.control) shipGroups[i]=new List<long>(selectedShips); else if(shipGroups.ContainsKey(i)) { selectedShips.Clear(); foreach(long id in shipGroups[i]) SelectShip(id,true); } }
             }
-            if(e.type==EventType.MouseDown && e.button==0 && sceneCamera.pixelRect.Contains(point)) shipSelectionStart=point;
+            if(e.type==EventType.MouseDown && e.button==0 && IsWorldPoint(point)) shipSelectionStart=point;
             if(e.type!=EventType.MouseUp || e.button!=0 || !shipSelectionStart.HasValue) return;
             var start=shipSelectionStart.Value; shipSelectionStart=null;
+            if(!IsWorldPoint(point))return;
             bool drag=Vector2.Distance(start,point)>8; if(!e.shift) selectedShips.Clear();
             var box=Rect.MinMaxRect(Mathf.Min(start.x,point.x)-8,Mathf.Min(start.y,point.y)-8,Mathf.Max(start.x,point.x)+8,Mathf.Max(start.y,point.y)+8);
             foreach(var ship in simulation.State.Ships)

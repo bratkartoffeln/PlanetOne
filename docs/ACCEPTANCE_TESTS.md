@@ -24,6 +24,10 @@ Die Karten sind zunächst Spezifikationen. Ihre ausführbaren Szenariodaten werd
 
 ## TEST-001 Gemeinsame Zeit und Pause
 
+### Ergänzende Darstellungsprüfung GUI-001 bis GUI-004
+
+In einer pausierten Partie alle drei Layouts wechseln, Einstellungen erneut laden und nach jedem Wechsel den vollständigen serialisierten Simulationszustand vergleichen. Die Auswahl einer Wabe muss weiterhin dieselbe Zelle ergeben. Kopfzeile und geöffnete Einstellungen dürfen keine Welteingabe zulassen. Ungültige Layoutwerte müssen auf einen verwendbaren Standard zurückfallen. Für Oberfläche und System je Layout sowie Einstellungen echte Playerbilder prüfen; Bauvorschaubilder aus den tatsächlichen Modellen erzeugen. Die bestehenden Core- und Playerprüfungen bleiben erforderlich. Werkzeuge und konkrete Ergebnisse stehen in [GUI_GRAFIK_NACHWEIS](GUI_GRAFIK_NACHWEIS.md).
+
 - **Pakete:** P02, später P08 und P19. **Regeln:** CORE-007, CORE-008, ARCH-001, ARCH-010.
 - **Gegeben:** Zwei Orte mit identischem zeitabhängigem Vorgang; einer ist sichtbar.
 - **Wenn:** Eine feste Zahl Simulationsschritte einmal mit und einmal ohne Ansichtswechsel durchlaufen wird.

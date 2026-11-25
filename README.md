@@ -2,7 +2,13 @@
 
 PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, physischer Warenlogistik, Raumgefechten, steuerbaren Bodeninvasionen, vorbereiteten Verteidigungsstellungen und diplomatisch handelnden Computerfraktionen.
 
-Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung ist minimalistisch: klare geometrische Formen, dunkler Weltraum und wenige Akzentfarben. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
+Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung verbindet klare Geometrie mit texturierten Oberflächen und dunklem Weltraum. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
+
+## Drei Layouts und Texturen in 1.0.9
+
+Unter **Einstellungen → Darstellung** lassen sich **Kommandozentrale**, **Orbitale Brücke** und **Freier Weltraum** direkt wechseln. Layout, Wabengrenzen und Oberflächengröße werden unabhängig vom Spielstand gespeichert. Ein bebilderter Baukatalog, einheitliche Verwaltungsfenster, überarbeitete Gebäude/Schiffe und eigene Boden-, Metall-, Beton- und Solartexturen ergänzen die Darstellung. [Bedienung, Quellen und Prüfgrenzen](docs/GUI_GRAFIK_NACHWEIS.md).
+
+`tools/Test-Presentation.ps1` prüft die vollständige Player-GUI auf einem separaten, nicht eingeblendeten Windows-Desktop. Kein Screenreader, Computer-Use oder Wechsel des Arbeitsdesktops ist erforderlich.
 
 ## Diplomatie und gemeinsamer Sieg in 1.0.8
 
