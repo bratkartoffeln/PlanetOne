@@ -11,7 +11,7 @@ namespace PlanetOne.Runtime
         private GUIStyle centerStyle,treeStyle;
         private readonly Dictionary<string,Texture2D> objectPortraits=new Dictionary<string,Texture2D>();
         private static readonly string[] SectionNames={"Übersicht","Bauen","Bodentruppen","Flotte","Forschung","Versorgung","Diplomatie"};
-        private bool HasSelection {get{return openPlanetId==0?selectedShips.Count>0 || simulation.FindPlanet(selectedPlanetId)!=null:selectedBuildingId!=0 || selectedUnits.Count>0;}}
+        private bool HasSelection {get{return openPlanetId==0?StarSelected || selectedShips.Count>0 || simulation.FindPlanet(selectedPlanetId)!=null:selectedBuildingId!=0 || selectedUnits.Count>0;}}
         private bool SelectionCardVisible {get{return CurrentLayout!=InterfaceLayout.CommandCenter && contextOpen && !panelOpen && HasSelection;}}
         private Rect SelectionCardRect(float width){return new Rect(width-302,TopHeight+22,286,244);}
         public bool IsContextCardOpen {get{return SelectionCardVisible;}}
@@ -81,6 +81,7 @@ namespace PlanetOne.Runtime
             if(showingSpacePanel && panelOpen){DrawSpacePanel();return;}
             if(openPlanetId==0)
             {
+                if(StarSelected){DrawStarDetails();return;}
                 if(selectedShips.Count>0 && !panelOpen){DrawSelectionSummary(new Rect(0,0,252,190),false);GUILayout.Space(195);if(GUILayout.Button("Flotte verwalten",buttonStyle,GUILayout.Height(34)))OpenPresentationSection(3);return;}
                 var p=simulation.FindPlanet(selectedPlanetId);
                 if(p!=null && simulation.IsPlanetKnown(PlayerFactionId,p.Id))
@@ -183,6 +184,7 @@ namespace PlanetOne.Runtime
             {labels[0]="Bewegen";icons[0]=HudIcon.Back;actions[0]=delegate{militaryTargetMode=CommandKind.MoveUnit;};labels[1]="Halten";icons[1]=HudIcon.Stop;actions[1]=delegate{foreach(long id in selectedUnits)RequestUnitOrder(id,CommandKind.HoldPosition);};labels[2]="Truppen";icons[2]=HudIcon.Units;actions[2]=delegate{OpenPresentationSection(2);};}
             else if(openPlanetId==0 && selectedShips.Count>0)
             {labels[0]="Bewegen";icons[0]=HudIcon.Back;actions[0]=BeginShipMove;labels[1]="Flotte verwalten";}
+            else if(StarSelected){labels[0]="Sterninfos";icons[0]=HudIcon.Info;actions[0]=OpenStarDetails;}
             else if(openPlanetId==0 && selectedPlanetId>0)
             {labels[0]="Oberfläche";icons[0]=HudIcon.Planet;actions[0]=delegate{OpenSelectedPlanet();};}
             else if(openPlanetId!=0)
@@ -197,10 +199,11 @@ namespace PlanetOne.Runtime
             DrawSelectionSummary(new Rect(card.x+14,card.y+14,card.width-28,158),false);
             if(HudButton(new Rect(card.xMax-35,card.y+8,27,27),"",HudIcon.Close,false,"Auswahlkarte schließen"))CloseContextPanel();
             string action=openPlanetId==0 && selectedShips.Count==0?"Oberfläche öffnen":"Details und Befehle";
+            if(StarSelected)action="Sterndetails";
             var selectedWorld=simulation.FindPlanet(selectedPlanetId);
             if(openPlanetId==0 && selectedShips.Count==0 && selectedWorld!=null && PlanetEnvironment.Airborne(selectedWorld))action="Atmosphäre öffnen";
-            if(HudButton(new Rect(card.x+14,card.yMax-54,card.width-28,38),action,openPlanetId==0 && selectedShips.Count==0?HudIcon.Planet:HudIcon.Info))
-            {if(openPlanetId==0 && selectedShips.Count==0)OpenSelectedPlanet();else {panelOpen=true;contextOpen=true;if(openPlanetId==0)showingSpacePanel=true;}}
+            if(HudButton(new Rect(card.x+14,card.yMax-54,card.width-28,38),action,StarSelected?HudIcon.Info:openPlanetId==0 && selectedShips.Count==0?HudIcon.Planet:HudIcon.Info))
+            {if(StarSelected)OpenStarDetails();else if(openPlanetId==0 && selectedShips.Count==0)OpenSelectedPlanet();else {panelOpen=true;contextOpen=true;if(openPlanetId==0)showingSpacePanel=true;}}
         }
 
         private int KnownPlanetOwner(PlanetState p)
@@ -208,7 +211,7 @@ namespace PlanetOne.Runtime
         private Texture CurrentPortrait()
         {
             if(openPlanetId==0)
-            {var ship=simulation.State.Ships.Find(s=>selectedShips.Contains(s.Id) && !s.Destroyed && !s.Consumed);if(ship!=null)return ShipPortrait(ship.Kind);var p=simulation.FindPlanet(selectedPlanetId);return p==null?null:PlanetPortrait(p);}
+            {if(StarSelected)return StarPortrait();var ship=simulation.State.Ships.Find(s=>selectedShips.Contains(s.Id) && !s.Destroyed && !s.Consumed);if(ship!=null)return ShipPortrait(ship.Kind);var p=simulation.FindPlanet(selectedPlanetId);return p==null?null:PlanetPortrait(p);}
             var planet=simulation.FindPlanet(openPlanetId);var b=FindSelected(planet);if(b!=null)return BuildingIcon(b.Kind);
             var u=planet.Units.Find(v=>selectedUnits.Contains(v.Id)&&!v.Destroyed);return u==null?null:ObjectPortrait("unit"+u.Kind+"-"+planet.Kind,r=>BuildVehicleModel(r,u.Kind,Cyan),0.7f);
         }
@@ -219,6 +222,7 @@ namespace PlanetOne.Runtime
             {
                 var ship=simulation.State.Ships.Find(s=>selectedShips.Contains(s.Id)&&!s.Destroyed&&!s.Consumed);
                 if(ship!=null){title=Definitions.Ships[(int)ship.Kind].Name;type="Eigene Flotte · #"+ship.Id;status=ship.Status;extra="Besatzung  "+ship.Crew;health=(float)(ship.Health/Definitions.SpaceWeapons[(int)ship.Kind].Health);}
+                else if(StarSelected){title="Zentralstern";type=StellarReference.SpectralType+" · Hauptreihenstern";status="Ca. "+StellarReference.EffectiveTemperatureKelvin.ToString("N0")+" K · 1 Sonnenmasse";extra="1 Sonnenradius · 1 Sonnenleuchtkraft";}
                 else {var p=simulation.FindPlanet(selectedPlanetId);if(p!=null){title=p.Name;type=PlanetEnvironment.Name(p.Kind);int owner=KnownPlanetOwner(p);status=owner==PlayerFactionId?"Kolonie aktiv · "+p.Population+" Bewohner":owner==0?"Unbesiedelt":owner<0?"Besitz unbekannt":"Fremde Kolonie";extra=PlanetEnvironment.StellarAu(simulation.State,p).ToString("0.00")+" AE · "+PlanetEnvironment.RadiusEarths(p.Kind).ToString("0.00")+" Erdradien";}}
             }
             else

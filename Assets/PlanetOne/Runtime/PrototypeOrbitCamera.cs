@@ -32,7 +32,7 @@ namespace PlanetOne.Runtime
         }
         public void SetSpaceFocus(Vector3 focus)
         {
-            spaceFocus=new Vector3(Mathf.Clamp(focus.x,-250,250),0,Mathf.Clamp(focus.z,-250,250));
+            spaceFocus=new Vector3(Mathf.Clamp(focus.x,-250,250),Mathf.Clamp(focus.y,-8,8),Mathf.Clamp(focus.z,-250,250));
             UpdateCamera();
         }
         public bool BeginSpacePan(Vector2 screenPoint)

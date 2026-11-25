@@ -66,24 +66,21 @@ namespace PlanetOne.Runtime
         }
         private void BuildAsteroidViews()
         {
+            foreach(var mesh in beltDustMeshes)Destroy(mesh);beltDustMeshes.Clear();
             asteroidViews.Clear();selectedAsteroidId=0;asteroidPage=0;miningPanel=false;
             foreach(var a in simulation.State.Asteroids)
             {
-                // At most one tenth of the moon's diameter, even at the mesh's widest point.
-                float size=.004f+(float)a.DiameterKm*.0016f;
+                // Three times larger on request; still smaller than a quarter of the moon.
+                float size=.012f+(float)a.DiameterKm*.0048f;
                 var view=Rock(spaceRoot,Vector3.zero,new Vector3(size,size*.7f,size*.9f),(int)a.Id);
                 view.name="Asteroid "+a.Id;view.GetComponent<Renderer>().sharedMaterial=ArtMaterial("Fels",new Color(.43f,.39f,.34f),false);
                 asteroidViews[a.Id]=view;
             }
-            // A chart boundary, not a luminous band or a solid ring of rocks.
-            foreach(var b in simulation.State.AsteroidBelts)foreach(double radius in new[]{b.InnerRadius,b.OuterRadius})
-            {
-                var ring=MakeLine("Gürtelgrenze",spaceRoot,new Color(.16f,.14f,.10f),.012f,true);ring.positionCount=128;
-                for(int i=0;i<128;i++){double angle=i*OrbitalMotion.Tau/128;ring.SetPosition(i,SpacePosition(System.Math.Cos(angle)*radius,System.Math.Sin(angle)*radius));}
-            }
+            foreach(var belt in simulation.State.AsteroidBelts)BuildBeltDust(belt);
         }
         private void UpdateAsteroidViews()
         {
+            UpdateBeltDust();
             foreach(var a in simulation.State.Asteroids)
             {
                 var p=simulation.GetAsteroidPosition(a);var view=asteroidViews[a.Id];
@@ -93,10 +90,15 @@ namespace PlanetOne.Runtime
         }
         private bool PickAsteroid(Vector2 point)
         {
-            long closest=0;float best=12;
+            long closest=0;float best=float.MaxValue;
             foreach(var a in simulation.State.Asteroids)
-            {var screen=sceneCamera.WorldToScreenPoint(asteroidViews[a.Id].position);float d=Vector2.Distance(screen,point);if(screen.z>0 && d<best){closest=a.Id;best=d;}}
+            {var screen=sceneCamera.WorldToScreenPoint(asteroidViews[a.Id].position);float d=Vector2.Distance(screen,point);if(screen.z>0 && d<Mathf.Max(12,AsteroidScreenRadius(a.Id)+5) && d<best){closest=a.Id;best=d;}}
             if(closest==0)return false;SelectAsteroid(closest);return true;
+        }
+        private float AsteroidScreenRadius(long id)
+        {
+            var size=asteroidViews[id].GetComponent<Renderer>().bounds.size;
+            return Mathf.Max(size.x,Mathf.Max(size.y,size.z))*sceneCamera.pixelHeight/(4*sceneCamera.orthographicSize);
         }
         private void DrawAsteroidLabels(float scale)
         {
@@ -104,8 +106,9 @@ namespace PlanetOne.Runtime
             {
                 var point=sceneCamera.WorldToScreenPoint(asteroidViews[a.Id].position);if(point.z<0 || !sceneCamera.pixelRect.Contains(point))continue;
                 var pos=new Vector2(point.x/scale,(Screen.height-point.y)/scale);bool selected=a.Id==selectedAsteroidId;
-                if(selected || spaceZoom<50)DrawTargetBrackets(new Rect(pos.x-4,pos.y-4,8,8),selected?Amber:new Color(.42f,.36f,.24f,.6f));
-                if(selected)GUI.Label(new Rect(pos.x+10,pos.y-8,190,20),"Asteroid #"+a.Id+(simulation.IsAsteroidVisible(PlayerFactionId,a)?" · "+a.RemainingOre+" Erz":" · unerkundet"),smallStyle);
+                float radius=Mathf.Max(4,AsteroidScreenRadius(a.Id)/scale+2);
+                if(selected || spaceZoom<50)DrawTargetBrackets(new Rect(pos.x-radius,pos.y-radius,radius*2,radius*2),selected?Amber:new Color(.42f,.36f,.24f,.6f));
+                if(selected)GUI.Label(new Rect(pos.x+radius+6,pos.y-8,190,20),"Asteroid #"+a.Id+(simulation.IsAsteroidVisible(PlayerFactionId,a)?" · "+a.RemainingOre+" Erz":" · unerkundet"),smallStyle);
             }
         }
         private void DrawMiningPanel()
@@ -124,6 +127,7 @@ namespace PlanetOne.Runtime
             var selected=simulation.State.Asteroids.Find(a=>a.Id==selectedAsteroidId);if(selected==null)return;
             GUILayout.Label("Asteroid #"+selected.Id+" · "+selected.DiameterKm.ToString("0.0")+" km",smallStyle);
             if(GUILayout.Button("Vorkommen ansehen",buttonStyle))FocusAsteroid(selected.Id);
+            if(GUILayout.Button("Brocken aus der Nähe",buttonStyle))InspectAsteroid(selected.Id);
             if(GUILayout.Button("Ausgewählte Schiffe hinschicken",buttonStyle))foreach(long id in selectedShips)RequestAsteroidApproach(id,selected.Id);
             bool visible=simulation.IsAsteroidVisible(PlayerFactionId,selected);
             GUILayout.Label(visible?"Verfügbar: "+(selected.RemainingOre-selected.ReservedOre)+" Erz":"Für Bestandsdaten zunächst erkunden.",smallStyle);

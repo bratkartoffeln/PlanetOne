@@ -138,6 +138,7 @@ namespace PlanetOne.Runtime
         private void OnDestroy()
         {
             if (hexMesh != null) Destroy(hexMesh);
+            foreach(var mesh in beltDustMeshes)Destroy(mesh);if(beltDustMaterial!=null)Destroy(beltDustMaterial);
             foreach(var mesh in modelMeshes.Values)Destroy(mesh);
             foreach(var material in celestialMaterials.Values)Destroy(material);
             foreach(var icon in hudIcons.Values)Destroy(icon);
@@ -214,6 +215,7 @@ namespace PlanetOne.Runtime
                 }
                 if (chosen != 0)
                 {SelectPlanet(chosen);if(lastClickedPlanet==chosen && Time.unscaledTime-lastPlanetClick<0.35f)OpenSelectedPlanet();lastClickedPlanet=chosen;lastPlanetClick=Time.unscaledTime;}
+                else SelectStarAtScreen(Input.mousePosition);
                 return;
             }
 

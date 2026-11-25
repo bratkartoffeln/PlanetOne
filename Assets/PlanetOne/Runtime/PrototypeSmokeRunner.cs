@@ -588,7 +588,7 @@ namespace PlanetOne.Runtime
             Require(mining.IsAsteroidVisible(1,deposit),"Scouting reveals the real deposit");
             foreach(var asteroid in mining.State.Asteroids) {
                 var size=controller.AsteroidView(asteroid.Id).GetComponent<Renderer>().bounds.size;
-                Require(Mathf.Max(size.x,Mathf.Max(size.y,size.z))<controller.CelestialView(3).lossyScale.x*.1f,"Asteroid geometry remains below a tenth of the moon diameter: "+asteroid.Id);
+                Require(Mathf.Max(size.x,Mathf.Max(size.y,size.z))<controller.CelestialView(3).lossyScale.x*.25f,"Enlarged asteroid geometry remains below a quarter of the moon diameter: "+asteroid.Id);
             }
             Require(controller.RequestSpaceOrder(CommandKind.MineAsteroid,miner.Id,deposit.Id,1,amount:12),"Mining submitted through the common command adapter");
             AdvanceSeconds(8);yield return null;
@@ -601,6 +601,26 @@ namespace PlanetOne.Runtime
             Require(miner.Mining==null && miner.Freight==null && miner.Cargo[1]==0 && mining.State.SpaceMinedOre==12 && deposit.InitialOre-deposit.RemainingOre==12,"Mined ore returns and unloads once at a working port");
             controller.SetInterfaceLayout(InterfaceLayout.CommandCenter);controller.SelectShip(miner.Id);controller.SelectAsteroid(deposit.Id);
             yield return Capture("asteroid-delivered.png");Require(captureFailure==null,captureFailure??"Mining delivery captured");
+            string beforeMapInspection=SaveCodec.ToJson(mining.State);
+            controller.ShowBeltOverview();yield return null;
+            Require(controller.BeltDustVisibility>.95f,"Belt dust provides an overview cue");
+            yield return Capture("asteroid-dust-overview.png");Require(captureFailure==null,captureFailure??"Dust overview captured");
+            controller.InspectAsteroid(deposit.Id);yield return null;
+            Require(controller.BeltDustVisibility<.01f,"Dust recedes on approach to reveal individual rocks");
+            yield return Capture("asteroid-closeup.png");Require(captureFailure==null,captureFailure??"Individual asteroid captured");
+            foreach(InterfaceLayout layout in Enum.GetValues(typeof(InterfaceLayout)))
+            {
+                controller.SetInterfaceLayout(layout);controller.ShowBeltOverview();yield return null;
+                Vector2 starPoint=Camera.main.WorldToScreenPoint(Vector3.zero);
+                Require(controller.SelectStarAtScreen(starPoint) && controller.StarSelected,"Star click selects its own information card: "+layout);
+                Require(!controller.OpenSelectedPlanet() && controller.OpenPlanetId==0,"Star selection offers no planetary surface: "+layout);
+                controller.SetSettingsVisible(true);Require(!controller.SelectStarAtScreen(starPoint),"Modal settings block star clicks: "+layout);controller.SetSettingsVisible(false);
+                Require(!controller.SelectStarAtScreen(new Vector2(8,Screen.height-8)),"HUD clicks cannot select the star: "+layout);
+                yield return Capture("star-selection-"+layout+".png");Require(captureFailure==null,captureFailure??"Star card captured");
+                controller.OpenStarDetails();yield return null;yield return Capture("star-details-"+layout+".png");Require(captureFailure==null,captureFailure??"Star information captured");
+                Require(controller.SelectPlanet(1) && !controller.StarSelected,"Planet selection replaces star selection: "+layout);
+            }
+            Require(SaveCodec.ToJson(mining.State)==beforeMapInspection,"Belt zoom and star information never mutate resources orders or time");
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)
