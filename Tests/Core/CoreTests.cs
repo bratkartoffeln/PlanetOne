@@ -42,6 +42,7 @@ internal static class CoreTests
         HexGridTests.Register(Run);
         AiTests.Register(Run);
         DiplomacyTests.Register(Run);
+        OrbitTests.Register(Run);
         Console.WriteLine(failures == 0 ? "All " + checks + " core tests passed." : failures + " test(s) failed.");
         return failures == 0 ? 0 : 1;
     }
@@ -296,8 +297,11 @@ internal static class CoreTests
     {
         var sim = GameSimulation.CreateDefault(); sim.Step(731);
         var p = sim.GetOrbitPosition(2); var m = sim.GetOrbitPosition(3);
-        Assert(Math.Abs(Math.Sqrt((m.X - p.X) * (m.X - p.X) + (m.Y - p.Y) * (m.Y - p.Y)) - 3) < 1e-9,
-            "Moon does not follow parent orbit.");
+        var moon=sim.FindPlanet(3);double c=Math.Cos(moon.OrbitPeriapsis),s=Math.Sin(moon.OrbitPeriapsis);
+        double x=(m.X-p.X)*c+(m.Y-p.Y)*s+moon.OrbitRadius*moon.OrbitEccentricity;
+        double y=-(m.X-p.X)*s+(m.Y-p.Y)*c;
+        Assert(Math.Abs(x*x/(moon.OrbitRadius*moon.OrbitRadius)+y*y/(moon.OrbitRadius*moon.OrbitRadius*(1-moon.OrbitEccentricity*moon.OrbitEccentricity))-1)<1e-9,
+            "Moon does not follow its parent-relative ellipse.");
     }
 
     private static void Command(GameSimulation sim, CommandKind kind, int planet = 1, long target = 0,

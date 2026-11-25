@@ -39,10 +39,15 @@ namespace PlanetOne.Runtime
             var target = RenderTexture.GetTemporary(1440, 900, 24);
             var previous = RenderTexture.active; var oldTarget = sceneCamera.targetTexture;
             var oldRect = sceneCamera.rect; var oldAspect = sceneCamera.aspect;
+            var backdropTarget=spaceBackdropCamera==null?null:spaceBackdropCamera.targetTexture;
+            var backdropRect=spaceBackdropCamera==null?new Rect():spaceBackdropCamera.rect;
+            float backdropAspect=spaceBackdropCamera==null?1:spaceBackdropCamera.aspect;
             var pixels = new Texture2D(1440, 900, TextureFormat.RGB24, false);
             try
             {
                 sceneCamera.targetTexture = target; sceneCamera.rect = new Rect(0, 0, 1, 1); sceneCamera.aspect = 1440f / 900;
+                if(openPlanetId==0 && spaceBackdropCamera!=null)
+                {spaceBackdropCamera.targetTexture=target;spaceBackdropCamera.rect=new Rect(0,0,1,1);spaceBackdropCamera.aspect=1440f/900;spaceBackdropCamera.Render();}
                 sceneCamera.Render(); RenderTexture.active = target;
                 pixels.ReadPixels(new Rect(0, 0, 1440, 900), 0, 0); pixels.Apply();
                 System.IO.File.WriteAllBytes(path, pixels.EncodeToPNG());
@@ -50,6 +55,7 @@ namespace PlanetOne.Runtime
             finally
             {
                 sceneCamera.targetTexture = oldTarget; sceneCamera.rect = oldRect; sceneCamera.aspect = oldAspect;
+                if(spaceBackdropCamera!=null){spaceBackdropCamera.targetTexture=backdropTarget;spaceBackdropCamera.rect=backdropRect;spaceBackdropCamera.aspect=backdropAspect;}
                 RenderTexture.active = previous; RenderTexture.ReleaseTemporary(target); Destroy(pixels);
             }
         }

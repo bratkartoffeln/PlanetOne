@@ -90,7 +90,7 @@ namespace PlanetOne.Core
     [DataContract, Serializable]
     public sealed class GameState
     {
-        [DataMember] public int Version = 8;
+        [DataMember] public int Version = 9;
         [DataMember] public bool DiplomacyScenario;
         [DataMember] public List<TreatyState> Treaties=new List<TreatyState>();
         [DataMember] public List<EvacuationState> Evacuations=new List<EvacuationState>();
@@ -136,6 +136,8 @@ namespace PlanetOne.Core
         [DataMember] public double OrbitRadius;
         [DataMember] public double OrbitPeriodSeconds;
         [DataMember] public double OrbitPhase;
+        [DataMember] public double OrbitEccentricity;
+        [DataMember] public double OrbitPeriapsis;
         [DataMember] public int Width = 18;
         [DataMember] public int Height = 14;
         // Terrain: 0 = level ground, 1 = rock, 2 = ore deposit.

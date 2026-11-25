@@ -286,6 +286,13 @@ Die vorhergehende Grafiklieferung wird durch **1.0.10, räumliche Modelle und na
 - **Umfang:** Drei konkrete HUD-Aufteilungen, kompakte Auswahlkarten, eindeutiger Wechsel zwischen System und Oberfläche, vollständige Verwaltungszugänge, Symbole und Tooltips; neue Planeten-/Nebeltexturen, Atmosphären, Korona und lesbare Objektmarkierungen.
 - **Abnahme:** Keine Simulationsänderung durch Navigation, kein Durchklicken von Karten/Menüs, echte Flugbefehle über die gemeinsame Befehlsschnittstelle; Bildkontrolle des tatsächlichen Players auf isoliertem Desktop. Keine vorgezogene M8-, Plattform- oder pixelgleiche Grafikabnahme.
 
+### Freie Systemkamera und Keplerbahnen – 1.0.12
+
+- **Status:** Umsetzung auf 1.0.11; lokale Ergebnisse und Git-Integrationsgrenze in [KAMERA_ORBIT_NACHWEIS](KAMERA_ORBIT_NACHWEIS.md). Kein Abschluss von M8.
+- **Grundlage:** D-031, GUI-008, SPACE-002/003 und TEST-027.
+- **Umfang:** Freie Rechtszieh-Kamera, perspektivische Sternentiefen und ortsfester Nebel, langsame Eigenrotation, autoritative elliptische Keplerbahnen mit längeren Perioden, positionsstetige V8-Migration; Mauszeiger-Popup entfernen und Namensschilder an Textbreite anpassen.
+- **Abnahme:** Automatisierte Bahn-/Save-Prüfungen und Trennung von Kamerageste/Befehl; tatsächliche Hintergrundprojektion und Zustandserhaltung bei Kamerawechsel, zwei GUI-Auflösungen auf isoliertem Desktop, fensterloser GPU-Test.
+
 ### P19 Speicherstände und Integrationsgrenzen absichern
 
 - **Status:** Offen. **Abhängigkeit:** P18.

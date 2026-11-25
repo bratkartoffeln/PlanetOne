@@ -9,7 +9,7 @@ namespace PlanetOne.Core
     /// <summary>Portable JSON snapshot codec. File locations and atomic writes belong to the platform adapter.</summary>
     public static partial class SaveCodec
     {
-        public const int CurrentVersion = 8;
+        public const int CurrentVersion = 9;
         private const int MaximumJsonLength = 4 * 1024 * 1024;
 
         public static string ToJson(GameState state)
@@ -40,6 +40,7 @@ namespace PlanetOne.Core
                     if (state != null && state.Version == 6)
                     { state.ComputerFactions = new List<AiState>(); state.AiScenario = false; state.Version = 7; }
                     if(state!=null && state.Version==7) MigrateDiplomacy(state);
+                    if(state!=null && state.Version==8) MigrateOrbits(state);
                     Validate(state);
                     return state;
                 }
@@ -105,6 +106,10 @@ namespace PlanetOne.Core
                 Require(p.Width > 0 && p.Height > 0 && p.Width <= 128 && p.Height <= 128, "Ungültige Oberflächengröße.");
                 Require(Finite(p.OrbitRadius) && p.OrbitRadius > 0 && Finite(p.OrbitPeriodSeconds) &&
                     p.OrbitPeriodSeconds > 0 && Finite(p.OrbitPhase), "Ungültige Umlaufbahn.");
+                Require(Finite(p.OrbitEccentricity) && p.OrbitEccentricity >= 0 && p.OrbitEccentricity <= 0.6 &&
+                    Finite(p.OrbitPeriapsis) &&
+                    System.Math.Abs(p.OrbitPeriodSeconds / OrbitalMotion.Period(p.OrbitRadius, p.ParentId >= 0) - 1) < 1e-9,
+                    "Ungültige Kepler-Bahnparameter.");
                 Require(p.Terrain != null && p.OreRemaining != null && p.Roads != null &&
                     p.Terrain.Length == p.Width * p.Height && p.OreRemaining.Length == p.Terrain.Length &&
                     p.Roads.Length == p.Terrain.Length, "Unvollständiges Gelände.");

@@ -21,9 +21,9 @@ namespace PlanetOne.Core
             state.Factions.Add(new FactionState { Id = 1, Name = "Koloniekonsortium", IsPlayer = true });
             state.Factions.Add(new FactionState { Id = 2, Name = "Freie Stationen", IsPlayer = false });
             state.Relations.Add(new FactionRelation { FirstId = 1, SecondId = 2, Relation = RelationKind.Peace });
-            state.Planets.Add(CreatePlanet(state, 1, "Aster", -1, 1, 10, 240, 0.2));
-            state.Planets.Add(CreatePlanet(state, 2, "Nereid", -1, 1, 18, 420, 2.5));
-            state.Planets.Add(CreatePlanet(state, 3, "Khepri", 2, 0, 3, 60, 0));
+            state.Planets.Add(CreatePlanet(state, 1, "Aster", -1, 1, 10, 0.2));
+            state.Planets.Add(CreatePlanet(state, 2, "Nereid", -1, 1, 18, 2.5));
+            state.Planets.Add(CreatePlanet(state, 3, "Khepri", 2, 0, 3, 0));
             state.Planets[2].Terrain[9 * 18 + 13] = 3;
             var simulation = new GameSimulation(state);
             simulation.UpdateSpaceKnowledge();
@@ -31,10 +31,12 @@ namespace PlanetOne.Core
         }
 
         private static PlanetState CreatePlanet(GameState state, int id, string name, int parent,
-            int owner, double radius, double period, double phase)
+            int owner, double radius, double phase)
         {
             var p = new PlanetState { Id = id, Name = name, ParentId = parent, OwnerId = owner,
-                OrbitRadius = radius, OrbitPeriodSeconds = period, OrbitPhase = phase };
+                OrbitRadius = radius, OrbitPeriodSeconds = OrbitalMotion.Period(radius, parent >= 0), OrbitPhase = phase,
+                OrbitEccentricity = parent >= 0 ? 0.04 : id == 1 ? 0.06 : id == 2 ? 0.09 : 0.12,
+                OrbitPeriapsis = parent >= 0 ? 0.3 : (id - 1) * 0.55 };
             p.Terrain = new int[p.Width * p.Height];
             p.OreRemaining = new int[p.Terrain.Length];
             p.Roads = new bool[p.Terrain.Length];
@@ -158,8 +160,7 @@ namespace PlanetOne.Core
         {
             PlanetState planet = FindPlanet(planetId);
             if (planet == null) throw new ArgumentException("Unbekannter Himmelskörper.");
-            double angle = planet.OrbitPhase + State.Tick * Definitions.TickSeconds * Math.PI * 2 / planet.OrbitPeriodSeconds;
-            var point = new SimPoint(Math.Cos(angle) * planet.OrbitRadius, Math.Sin(angle) * planet.OrbitRadius);
+            var point = OrbitalMotion.Position(planet, State.Tick * Definitions.TickSeconds);
             if (planet.ParentId >= 0)
             {
                 var parent = GetOrbitPosition(planet.ParentId);

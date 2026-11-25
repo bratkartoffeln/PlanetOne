@@ -113,7 +113,7 @@ namespace PlanetOne.Runtime
         }
         private bool HandleSpacePointer()
         {
-            if((Input.GetMouseButtonDown(1) || spaceMoveTargetMode && Input.GetMouseButtonDown(0)) && selectedShips.Count>0)
+            if(spaceMoveTargetMode && Input.GetMouseButtonDown(0) && selectedShips.Count>0)
                 return RequestShipMoveAtScreen(Input.mousePosition);
             if(Input.GetMouseButtonDown(0)) foreach(var ship in simulation.State.Ships)
             {

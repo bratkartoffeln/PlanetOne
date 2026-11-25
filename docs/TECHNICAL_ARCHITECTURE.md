@@ -2,6 +2,12 @@
 
 Die Umsetzung verwendet Unity und C#. Der Simulationskern bleibt von UnityEngine unabhängig; Darstellung, Eingabe und Plattformzugriffe werden über Unity angebunden. Die konkrete Editorinstallation und ihre Laufzeitnachweise werden in [M0](IMPLEMENTATION_PLAN.md) nach dem [Entscheidungsstand](DECISIONS.md) festgehalten. Die folgenden Regeln beschreiben das Zielverhalten; ihr Vorhandensein im Dokument ist noch kein Implementierungsnachweis.
 
+## Keplerbahnen und räumlicher Hintergrund ab 1.0.12
+
+`OrbitalMotion` löst die Keplergleichung in Radiant und liefert die autoritative Position relativ zum Bezugskörper. `GetOrbitPosition` addiert bei Monden die aktuelle Elternposition. Die Renderlinie verwendet denselben Bahnrechner; Schiffe, Sensoren, KI und Logistik verwenden weiterhin die gemeinsame Position. `OrbitRadius` bezeichnet die große Halbachse, `OrbitPhase` die mittlere Anomalie zur Epoche null. `OrbitEccentricity` und `OrbitPeriapsis` ergänzen Savegame-Schema 9; `SaveOrbits` korrigiert beim Laden alter Kreise die Phase zur aktuellen Zeit, ohne Schiffe, Waren oder Aufträge umzusetzen. Validierung begrenzt Exzentrizität auf 0–0,6 und prüft die Periodenrelation.
+
+`PrototypeOrbitCamera` trennt Rechtsklick und Kameraziehen. Kamerafokus und Hintergrund sind ausschließlich Darstellung. `PrototypeStarfield` rendert 12.000 feste Sternpositionen in einem gemeinsamen Mesh über eine perspektivische Kamera auf Layer 29 vor der orthografischen Spielkamera. Eine große Innenkugel trägt den sternfreien Nebel. Beide Kameras teilen Blickrichtung, Position und Viewport, aber nur die Hintergrundkamera verwendet die tatsächliche perspektivische Tiefenparallaxe. RenderTexture-Prüfungen rendern beide Kameras in derselben Reihenfolge. Porträts bleiben auf Layer 30 getrennt. [KAMERA_ORBIT_NACHWEIS](KAMERA_ORBIT_NACHWEIS.md).
+
 ## M7: Vertrags- und Zielzustand
 
 Produktversion 1.0.8 erweitert den gemeinsamen Kern um DiplomacyState, SimulationDiplomacy, SimulationTreatyLogistics und SimulationVictory. AiDiplomacy erhält ausschließlich abgetrennte eigene Beobachtungen, öffentliche Beziehungen und berechtigte Vertragskopien. Alle diplomatischen Absichten laufen über Enqueue/SimCommand; Vertragsbedingungen werden beim Einreihen kopiert und bei Annahme erneut validiert. Händler verwenden bestehende Frachtreservierungen, Transportwege und Hafenleistung; Lager bleiben getrennt.

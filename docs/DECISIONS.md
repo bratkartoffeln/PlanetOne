@@ -1,5 +1,12 @@
 # Entscheidungen und Plattformstrategie
 
+## Freie Systemkamera und Keplerbahnen (24. November 2026)
+
+- **D-031, Vorgabe:** Hintergrund dreht mit der Ansicht, bewegt sich beim Verschieben nur leicht und zeigt unterschiedliche Sternentfernungen. Systemansicht mit gedrückter rechter Maustaste verschieben; Zentralstern muss nicht in der Mitte bleiben. Sehr langsame planetare Eigenrotation, langsamere Umläufe nach Keplers Gesetzen, kein dauerhaftes Mauszeiger-Popup und knapp textbreite Planetenbeschriftungen.
+- **T-042, entschieden:** Version 1.0.12 ergänzt einen freien Kamerafokus mit ±250 Spieleinheiten je Achse, Rechtsziehen ab sechs Pixeln, WASD/Pfeiltasten und Pos1-Rücksetzung. Rechtsklickbefehle werden erst beim Loslassen ohne Ziehen ausgelöst. GUI-Flächen können keine Kamerageste starten. Der geometrische Hintergrund bleibt ortsfest; eine perspektivische zweite Kamera erzeugt die Parallaxe von 12.000 Sternen in 900 bis 18.000 Einheiten Entfernung. Sternfreier Nebel auf einer umgebenden Kugel; keine eingebrannten Sterne mit einheitlicher Entfernung.
+- **T-043, entschieden:** Skalierte elliptische Zweikörperbahnen im gemeinsamen Core, mit `M = E − e sin(E)` und `T ∝ a^(3/2)`. Referenz für den Stern: 7.200 Sekunden bei Halbachse 10; für Monde: 21.600 Sekunden bei Halbachse 3. Neue Welten erhalten geringe Exzentrizität; Spielentfernungen/Zeiten und sichtbare Körpergrößen sind stilisiert, gegenseitige gravitative Störungen sind nicht Bestandteil dieses Modells. Axiale Darstellung dreht einmal in `9000 + Welt-ID × 1200` Simulationssekunden. Pause hält beide Bewegungen an.
+- **T-044, entschieden/Nachweis:** Savegame-Schema 9 speichert Exzentrizität und Periapsisrichtung. Alte Kreisbahnen bleiben als Kepler-Sonderfall `e=0` erhalten; eine Phasenkorrektur bewahrt beim Umstellen die aktuelle Position trotz längerer Periode. Nichtorbitale Zustände bleiben identisch. Core-Tests prüfen die drei Gesetze und eine echte V8-Datei; Player-Tests prüfen Parallaxe, freie Kameragesten und die Trennung von Ziehen/Befehl. [Nachweis und Quellen](KAMERA_ORBIT_NACHWEIS.md).
+
 ## GUI nach Konzepttafel und Weltraumansicht (24. November 2026)
 
 - **D-030, Vorgabe:** GUI an die vorhandenen Vorlagen anpassen, intuitiver und schöner gestalten; die Weltraumansicht soll ebenfalls der Vorlage entsprechen. Die drei wählbaren Layouts und die räumliche Darstellung bleiben erhalten.
