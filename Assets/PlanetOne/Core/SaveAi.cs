@@ -19,7 +19,7 @@ namespace PlanetOne.Core
                 {
                     Require(c!=null&&c.Id>0&&c.Id<state.NextEntityId&&contacts.Add(c.Id)&&c.Tick>=0&&c.Tick<=state.Tick&&Enum.IsDefined(typeof(BuildingKind),c.Kind),"Ungültige KI-Sichtung.");
                     var p=state.Planets==null?null:state.Planets.Find(w=>w.Id==c.PlanetId);
-                    Require(p!=null&&c.X>=0&&c.Y>=0&&c.X<p.Width&&c.Y<p.Height&&state.Factions.Exists(f=>f.Id==c.OwnerId),"Ungültiger KI-Sichtungsort.");
+                    Require(p!=null&&c.X>=0&&c.Y>=0&&c.X<p.Width&&c.Y<p.Height&&(c.OwnerId==0||state.Factions.Exists(f=>f.Id==c.OwnerId)),"Ungültiger KI-Sichtungsort.");
                 }
                 foreach(var d in ai.Decisions)Require(d!=null&&d.Tick>=0&&d.Tick<=state.Tick&&d.CommandId>=0&&d.CommandId<state.NextCommand&&d.Goal!=null&&d.Reason!=null&&d.Alternative!=null&&d.Action!=null,"Ungültiger KI-Entscheidungsnachweis.");
                 var op=ai.Operation;

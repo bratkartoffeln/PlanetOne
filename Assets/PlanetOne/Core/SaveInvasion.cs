@@ -16,7 +16,7 @@ namespace PlanetOne.Core
             Require(state.Beachheads!=null,"Landeköpfe fehlen.");
             foreach(var p in state.Planets) foreach(var b in p.Buildings)
             {
-                Require((b.OwnerId==0 || factions.Contains(b.OwnerId)) && (b.CapturingFaction==0 || factions.Contains(b.CapturingFaction)) && Finite(b.CaptureProgress) && b.CaptureProgress>=0 && b.CaptureProgress<=Definitions.CaptureSeconds,"Ungültige Besetzung.");
+                Require((b.OwnerId==-1 || b.OwnerId==0 || factions.Contains(b.OwnerId)) && (b.CapturingFaction==0 || factions.Contains(b.CapturingFaction)) && Finite(b.CaptureProgress) && b.CaptureProgress>=0 && b.CaptureProgress<=Definitions.CaptureSeconds,"Ungültige Besetzung.");
                 Require(b.RestoreWorkerId>=0 && Finite(b.RestoreProgress) && b.RestoreProgress>=0 && b.RestoreProgress<Definitions.BeachheadSeconds && (b.RestoreWorkerId==0?b.RestoreProgress==0:b.Destroyed && b.Kind==BuildingKind.Headquarters && p.Units.Exists(u=>u.Id==b.RestoreWorkerId && u.Kind==UnitKind.Engineer)),"Ungültige Verwaltungsreparatur.");
             }
             foreach(var s in state.Ships)

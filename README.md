@@ -4,6 +4,10 @@ PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, ph
 
 Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung ist minimalistisch: klare geometrische Formen, dunkler Weltraum und wenige Akzentfarben. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
 
+## Diplomatie und gemeinsamer Sieg in 1.0.8
+
+**M7 Diplomatische Partie** startet friedlich mit drei getrennten Fraktionen und zwei selbstständig handelnden KI. **Diplomatie und Sprungtor** bietet Verträge, echte Handelslieferungen, getrennte Zugangsrechte, Koalitionen, konkrete Schiffsbeiträge und das gemeinsame Torziel. Krieg und Vertragsbruch sind ausdrückliche Entscheidungen; Räumungsfristen schützen den geordneten Abzug. Kapitulation und Eliminierung wickeln vorhandene Bestände einmalig ab. 126 Core-Tests, Windows-Build und 131 fensterlose Player-Prüfungen bestanden; [Bedienung, Regeln und Grenzen](docs/M7_NACHWEIS.md).
+
 ## Computergegner in 1.0.7
 
 **M6 Gegen Computer spielen** startet eine separate Partie gegen eine selbstständig wirtschaftende KI. Gleiche Anfangsmittel, keine Gratisflotten: Aufbau, Forschung, Erkundung, Kolonisierung, Flotten-/Truppenproduktion und vorbereitete Invasionen nutzen reguläre Befehle. Wissen bleibt auf eigene Zustände und legitime Aufklärung begrenzt. Pläne, Reservierungen und Entscheidungen werden gespeichert. 96 Core-Tests, Windows-Build und 113 fensterlose Player-Prüfungen bestanden; [Nachweise und Grenzen](docs/M6_NACHWEIS.md).
@@ -104,14 +108,14 @@ Der Windows-Build entsteht unter `Builds/Windows/PlanetOne.exe`. Die Buildausgab
 
 Kernregeln und grafischen Integrationsablauf prüfen:
 
-**Aktuelle Testvorgabe:** Den laufenden Arbeitsdesktop nicht stören; keine Screenreader- oder Computer-Use-Prüfung. Core-Tests und Unity-Batch-Builds laufen ohne sichtbare Fenster. Den folgenden grafischen Aufruf ausschließlich in einer isolierten Testsitzung ausführen, gegebenenfalls in einer dedizierten VirtualBox-VM; nicht auf dem benutzten Arbeitsdesktop.
+**Aktuelle Testvorgabe:** Den laufenden Arbeitsdesktop nicht stören; keine Screenreader- oder Computer-Use-Prüfung. Core-Tests und Unity-Batch-Builds laufen ohne sichtbare Fenster. Der Standard-Player-Test läuft im echten Batchmodus ohne sichtbares Fenster und schreibt Weltbilder über RenderTexture. Eine optionale manuelle Prüfung mit `-Visible` darf ausschließlich in einer isolierten Testsitzung erfolgen.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\Test-Core.ps1
-powershell -ExecutionPolicy Bypass -File .\tools\Test-Prototype.ps1 -Visible
+powershell -ExecutionPolicy Bypass -File .\tools\Test-Prototype.ps1
 ```
 
-Der Core-Test nutzt Roslyn aus Visual Studio Build Tools; dafür ist kein dotnet-SDK erforderlich. Der grafische Test startet den gebauten Player in einem sichtbaren Fenster und schreibt Prüfprotokoll sowie elf Renderbilder nach `TestResults/Smoke/<Zeitstempel>`. `-Visible` ist erforderlich, da der Grafikkontext des versteckten Fensters den Bildnachweis auf dieser Umgebung nicht zuverlässig liefert.
+Der Core-Test nutzt Roslyn aus Visual Studio Build Tools; dafür ist kein dotnet-SDK erforderlich. Der grafische Test startet den gebauten Player fensterlos und schreibt Prüfprotokoll sowie 18 Weltbilder nach `TestResults/Smoke/<Zeitstempel>`. Er prüft Controller und Simulation, rendert jedoch kein IMGUI und ersetzt keine manuelle Bedienungsabnahme.
 
 ## Versionierung und Git-Abschluss
 
@@ -155,9 +159,9 @@ Die obere Leiste bietet zusätzlich Pause, Spieltempo **1× / 2×**, Speichern u
 ## Aktueller Stand
 
 - **M0 abgeschlossen:** Unity importiert das Projekt; Vorbereitung und Windows-Mono-Build enden erfolgreich.
-- **74 Core-Tests bestanden:** Wirtschaft, M3/M4 und M5 einschließlich Raumkampf, Landung, Transportintegrität, Eroberung und Speicherformat 5 mit Migration aus V1–V4.
-- **Grafischer Integrationstest bestanden:** 103 Einzelprüfungen und 14 erzeugte Renderbilder; M5-Bilder als Dateien geprüft. M3/M4 besitzen zusätzliche frühere native Bediennachweise; die vollständige manuelle M5-Abnahme bleibt offen. Aktuelle Tests ohne Eingriffe in den Arbeitsdesktop: [M5-Nachweis](docs/M5_NACHWEIS.md).
+- **126 Core-Tests bestanden:** Wirtschaft, Hexraster, M3–M7 einschließlich Rechte, Vertragsfracht, gemeinsame Operationen, Sieg und Speicherformat 8 mit Migration aus V1–V7.
+- **Grafischer Integrationstest bestanden:** 131 Einzelprüfungen und 18 erzeugte Renderbilder; neue M7-Weltansichten kontrolliert. Frühere native Bediennachweise für M3/M4 bleiben historisch; manuelle M7-IMGUI-Abnahme offen. Aktuelle Tests ohne Eingriffe in den Arbeitsdesktop: [M7-Nachweis](docs/M7_NACHWEIS.md).
 - **Versionswerkzeuge geprüft:** 12 Tests mit 19 isolierten Fixtures, einschließlich Rücknahme eines fehlgeschlagenen Schreibvorgangs. Produktversion, Playeranzeige und Versionsbranch sind synchron.
 - **Vorläufiges Testszenario:** zwei eigene Kolonien und ein neutraler Mond; je Oberfläche 18 × 14 Felder und vier Kuriere pro Kolonie.
-- **Funktionsstand:** M1/M2 technisch abgenommen nach [T-006](docs/DECISIONS.md); M3 und M4 einschließlich gezielter echter Bedienprüfung abgeschlossen. Die vollständige ältere Wirtschaftsbedienungsabnahme bleibt separat offen. M5 ist implementiert und über PR #5 integriert. M6 ist in 1.0.7 lokal umgesetzt und automatisiert geprüft; erneute manuelle Abnahme und Git-Integration bleiben offen. M7-Diplomatie folgt danach.
+- **Funktionsstand:** M1/M2 technisch abgenommen nach [T-006](docs/DECISIONS.md); M3 und M4 einschließlich gezielter echter Bedienprüfung abgeschlossen. Die vollständige ältere Wirtschaftsbedienungsabnahme bleibt separat offen. M5 ist implementiert und über PR #5 integriert. M6 (1.0.7) und M7 (1.0.8) sind lokal umgesetzt und automatisiert geprüft. Erneute manuelle Abnahme und Git-Integration bleiben offen; M8 folgt danach.
 - **Plattformstatus:** Windows-Player und programmatische Eingabeadapter sind geprüft. Weitere Desktop-, Web-, Mobil- und Konsolenexporte sowie eine vollständige manuelle Bedienungsabnahme sind ungeprüft. Der kleine Prototyp liefert noch keine Performancegarantie für das vollständige Spiel.

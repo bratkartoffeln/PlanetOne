@@ -7,6 +7,7 @@ namespace PlanetOne.Core
     {
         private void TickEconomy(PlanetState p)
         {
+            if(p.OwnerId==0){foreach(var neutral in p.Buildings)neutral.Operational=false;p.WorkersUsed=0;p.EnergyProduced=p.EnergyUsed=0;return;}
             var headquarters = p.Buildings.Find(b => b.Kind == BuildingKind.Headquarters && b.Built && !b.Deconstructing);
             foreach (var b in p.Buildings)
                 if (b.LegacyCapacityAllowance > 0)

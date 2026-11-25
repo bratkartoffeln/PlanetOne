@@ -61,7 +61,7 @@ namespace PlanetOne.Core
         {
             foreach(var ai in State.ComputerFactions)
             {
-                if(State.Tick<ai.NextPlanTick) continue;
+                if(!FactionActive(ai.FactionId)||State.Tick<ai.NextPlanTick) continue;
                 ai.NextPlanTick=State.Tick+Definitions.AiPlanTicks;
                 var previous=ai.Decisions.Count==0?null:ai.Decisions[ai.Decisions.Count-1];
                 if(previous!=null&&previous.Action==CommandKind.LandTransport.ToString())
@@ -70,7 +70,11 @@ namespace PlanetOne.Core
                     if(result!=null&&!result.Success&&!ai.Operation.RejectedLandings.Exists(c=>c.X==ai.Operation.LandingX&&c.Y==ai.Operation.LandingY))
                         ai.Operation.RejectedLandings.Add(new GridCell(ai.Operation.LandingX,ai.Operation.LandingY));
                 }
-                var view=ObserveForAi(ai.FactionId);var intent=AiPlanner.Plan(view,ai);
+                var view=ObserveForAi(ai.FactionId);
+                view.Ships.RemoveAll(s=>s.OwnerId==ai.FactionId&&ShipPledged(s.Id));
+                foreach(var world in view.Worlds)world.Units.RemoveAll(u=>u.OwnerId==ai.FactionId&&State.Treaties.Exists(t=>TreatyLive(t)&&t.Terms.Kind==TreatyKind.JointOperation&&t.OperationPhase==OperationPhase.Executing&&t.Terms.PlanetId==world.Id&&t.Terms.Members.Contains(ai.FactionId)));
+                var intent=State.DiplomacyScenario&&State.Tick%Definitions.DiplomacyPlanTicks==0?AiPlanner.PlanDiplomacy(ObserveDiplomacy(ai.FactionId,view),ai):null;
+                if(intent==null)intent=AiPlanner.Plan(view,ai);
                 long command=0;
                 if(intent.Command!=null)
                 {intent.Command.Id=command=NextCommandId();intent.Command.IssuerId=ai.FactionId;Enqueue(intent.Command);}

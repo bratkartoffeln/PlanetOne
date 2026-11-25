@@ -107,6 +107,8 @@ internal static class HexGridTests
         Check(json.Contains("\"Version\":5"),"Not a real old schema fixture");
         var state=SaveCodec.FromJson(json); Check(state.Version==SaveCodec.CurrentVersion,"Migration not applied");
         string migrated=SaveCodec.ToJson(state).Replace("\"AiScenario\":false,", "").Replace("\"ComputerFactions\":[],", "");
+        foreach(string added in new[]{"\"DiplomacyScenario\":false,","\"DiplomacyEvents\":[],","\"Evacuations\":[],","\"GateProjects\":[],","\"Treaties\":[],","\"Winners\":[],",",\"Status\":0",",\"Terms\":null",",\"TreatyId\":0","\"PaymentLeg\":false,"})migrated=migrated.Replace(added,"");
+        migrated=migrated.Replace(",\"Winners\":[]", "");
         Check(migrated==json.Replace("\"Version\":5","\"Version\":"+SaveCodec.CurrentVersion),"Migration changed actual state");
         var a=new GameSimulation(state);var b=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(state)));
         a.State.Paused=b.State.Paused=false;a.Step(200);b.Step(200);

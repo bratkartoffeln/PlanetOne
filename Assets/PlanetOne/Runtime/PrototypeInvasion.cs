@@ -38,7 +38,7 @@ namespace PlanetOne.Runtime
             if(GUILayout.Button("Anflug / Sammlung am Ziel",buttonStyle)) RequestSpaceOrder(CommandKind.FlyShip,chosen.Id,planet:spaceTarget);
             if(GUILayout.Button("Rückzug zur Heimatwelt",buttonStyle)) RequestInvasionOrder(CommandKind.RetreatShip,chosen.Id,planet:1);
             foreach(var enemy in simulation.State.Ships) if(simulation.IsShipVisible(PlayerFactionId,enemy) && simulation.AtWar(PlayerFactionId,enemy.OwnerId) && GUILayout.Button("Angriff: "+Definitions.Ships[(int)enemy.Kind].Name+" #"+enemy.Id,buttonStyle)) RequestInvasionOrder(CommandKind.AttackShip,chosen.Id,enemy.Id);
-            foreach(var yard in simulation.State.Ships) if(!yard.Destroyed && yard.OwnerId==PlayerFactionId && yard.Kind==ShipKind.OrbitalYard && yard.Id!=chosen.Id && GUILayout.Button("Reparatur an Werft #"+yard.Id,buttonStyle)) RequestInvasionOrder(CommandKind.RepairShip,chosen.Id,yard.Id);
+            foreach(var yard in simulation.State.Ships) if(!yard.Destroyed && simulation.HasAccess(PlayerFactionId,yard.OwnerId,yard.TargetPlanetId,AccessRight.Repair) && simulation.IsShipVisible(PlayerFactionId,yard) && yard.Kind==ShipKind.OrbitalYard && yard.Id!=chosen.Id && GUILayout.Button("Reparatur an Werft #"+yard.Id,buttonStyle)) RequestInvasionOrder(CommandKind.RepairShip,chosen.Id,yard.Id);
             if(chosen.Kind==ShipKind.OrbitalYard)
             {
                 GUILayout.Label("Werftbestand: "+GoodsText(chosen.Cargo),smallStyle);
@@ -106,12 +106,12 @@ namespace PlanetOne.Runtime
             foreach(var s in simulation.State.Ships) if(!s.Destroyed && s.TargetPlanetId==openPlanetId && s.TransportPhase!=TransportPhase.Space && (s.OwnerId==PlayerFactionId || simulation.IsCellVisible(planet,PlayerFactionId,s.LandingX,s.LandingY)))
             {
                 float height=s.TransportPhase==TransportPhase.Landed?0.5f:s.TransportPhase==TransportPhase.Descending?3*(1-(float)(s.ActionProgress/Definitions.TransitionSeconds)):3*(float)(s.ActionProgress/Definitions.TransitionSeconds);
-                InvasionMarker(s.Id,SurfacePosition(s.LandingX,height,s.LandingY),new Vector3(1.1f,0.3f,1.1f),s.OwnerId==PlayerFactionId?Cyan:Danger);
+                InvasionMarker(s.Id,SurfacePosition(s.LandingX,height,s.LandingY),new Vector3(1.1f,0.3f,1.1f),DiplomaticColor(s.OwnerId));
                 Transform footprint;
                 if(!landingFootprints.TryGetValue(s.Id,out footprint)||footprint==null)
                 {
                     footprint=new GameObject("Reservierte Landewaben").transform;footprint.SetParent(surfaceRoot,false);landingFootprints[s.Id]=footprint;
-                    for(int i=0;i<7;i++) MakeHexOutline("Landewabe",footprint,s.OwnerId==PlayerFactionId?Cyan:Danger,0.03f);
+                    for(int i=0;i<7;i++) MakeHexOutline("Landewabe",footprint,DiplomaticColor(s.OwnerId),0.03f);
                 }
                 int index=0;
                 foreach(var cell in HexGrid.LandingCells(s.LandingX,s.LandingY)) footprint.GetChild(index++).localPosition=SurfacePosition(cell.X,0.12f,cell.Y);

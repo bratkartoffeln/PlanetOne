@@ -11,6 +11,7 @@ namespace PlanetOne.Core
         { var f = State.Factions.Find(v => v.Id == faction); return f != null && f.Research.Completed.Contains(technology); }
         public string BuildingTechnologyError(BuildingKind kind, int faction)
         {
+            if(kind==BuildingKind.JumpGate && !HasTechnology(faction,Technology.Sensors)) return "Sprungtor benötigt fortgeschrittene Sensoren.";
             if (kind == BuildingKind.CrystalMine && !HasTechnology(faction, Technology.CrystalMining)) return "Forschung Kristallabbau fehlt.";
             if (kind == BuildingKind.ElectronicsFactory && !HasTechnology(faction, Technology.Electronics)) return "Forschung Elektronik fehlt.";
             return null;
@@ -85,7 +86,7 @@ namespace PlanetOne.Core
             }
             else if (c.Kind == CommandKind.EscortShip)
             {
-                var target = State.Ships.Find(s => s.Id == c.TargetId && s.OwnerId == c.IssuerId && !s.Destroyed && !s.Consumed);
+                var target = State.Ships.Find(s => s.Id == c.TargetId && (s.OwnerId == c.IssuerId || SharesSensors(c.IssuerId,s.OwnerId) || State.Treaties.Exists(t=>TreatyLive(t)&&t.Terms.Kind==TreatyKind.JointOperation&&t.Terms.EscortTarget==s.Id&&t.Terms.Members.Contains(c.IssuerId))) && !s.Destroyed && !s.Consumed);
                 if (target == null || target.Id == ship.Id || EscortCycle(ship.Id, target)) error = "Ungültiges Eskortziel.";
                 else { ship.Order = ShipOrder.Escort; ship.EscortId = target.Id; ship.AutoSupply = false; }
             }
@@ -101,6 +102,8 @@ namespace PlanetOne.Core
         private string Colonize(ShipState ship, PlanetState p)
         {
             if (ship.Kind != ShipKind.ColonyShip || p.OwnerId != 0 || p.Buildings.Count != 0) return "Unbesiedelte Welt und Kolonieschiff benötigt.";
+            if(ship.Crew!=Definitions.Ships[(int)ShipKind.ColonyShip].Crew)return "Vollständige Gründungsbesatzung benötigt.";
+            for(int resource=0;resource<6;resource++)if(ship.Cargo[resource]<Definitions.Ships[(int)ShipKind.ColonyShip].ColonyCargo[resource])return "Vollständige reale Gründungsausrüstung benötigt.";
             if (!IsPlanetVisible(ship.OwnerId, p.Id) || Distance(ship.X, ship.Y, GetOrbitPosition(p.Id)) > Definitions.DockDistance) return "Kolonieschiff muss die aufgeklärte Zielwelt erreichen.";
             int x = 8, y = 6;
             if (p.Terrain[y * p.Width + x] != 0) return "Gründungsfläche ist blockiert.";
@@ -186,13 +189,13 @@ namespace PlanetOne.Core
                 }
                 else if (ship.Order == ShipOrder.Fly || ship.Order == ShipOrder.Guard)
                 {
-                    MoveShip(ship, GetOrbitPosition(ship.TargetPlanetId));
                     ship.Status = ship.Order == ShipOrder.Fly ? "Flug zu " + FindPlanet(ship.TargetPlanetId).Name : "Bewacht " + FindPlanet(ship.TargetPlanetId).Name;
+                    MoveShip(ship, GetOrbitPosition(ship.TargetPlanetId));
                     if (ship.Order == ShipOrder.Fly && Distance(ship.X, ship.Y, GetOrbitPosition(ship.TargetPlanetId)) <= Definitions.DockDistance) { ship.Order = ShipOrder.Guard; ship.Status = "Ziel erreicht"; }
                 }
                 else if (ship.Order == ShipOrder.Escort)
                 {
-                    var target = State.Ships.Find(s => s.Id == ship.EscortId && !s.Destroyed && !s.Consumed && s.OwnerId == ship.OwnerId);
+                    var target = State.Ships.Find(s => s.Id == ship.EscortId && !s.Destroyed && !s.Consumed && (s.OwnerId == ship.OwnerId || SharesSensors(ship.OwnerId,s.OwnerId) || State.Treaties.Exists(t=>TreatyLive(t)&&t.Terms.Kind==TreatyKind.JointOperation&&t.Terms.EscortTarget==s.Id&&t.Terms.Members.Contains(ship.OwnerId))));
                     if (target == null) { ship.Order = ShipOrder.Hold; ship.Status = "Eskortziel nicht verfügbar"; }
                     else { MoveShip(ship, new SimPoint(target.X, target.Y)); ship.Status = "Eskortiert Schiff " + target.Id; }
                 }
@@ -203,6 +206,16 @@ namespace PlanetOne.Core
         private bool MoveShip(ShipState ship, SimPoint target)
         {
             double distance = Distance(ship.X, ship.Y, target), step = Definitions.Ships[(int)ship.Kind].Speed * Definitions.TickSeconds;
+            var next=distance<=step?target:new SimPoint(ship.X+(target.X-ship.X)/distance*step,ship.Y+(target.Y-ship.Y)/distance*step);
+            foreach(var p in State.Planets)if(p.OwnerId>0&&p.OwnerId!=ship.OwnerId&&!AtWar(ship.OwnerId,p.OwnerId)&&IsPlanetVisible(ship.OwnerId,p.Id))
+            {
+                var orbit=GetOrbitPosition(p.Id);double before=Distance(ship.X,ship.Y,orbit),after=Distance(next.X,next.Y,orbit);
+                bool trade=ship.Freight!=null&&ship.Freight.TreatyId>0&&TradePortValid(ship.Freight,FindBuilding(ship.Freight.TargetId),false)&&FindBuilding(ship.Freight.TargetId).PlanetId==p.Id;
+                bool operation=State.Treaties.Exists(t=>TreatyLive(t)&&t.Terms.Kind==TreatyKind.JointOperation&&t.Terms.PlanetId==p.Id&&t.Pledges.Exists(a=>a.ShipId==ship.Id));
+                var right=ship.Kind<=ShipKind.SurveyShip?AccessRight.CivilTransit:AccessRight.MilitaryTransit;
+                if(after<Definitions.OrbitalRadius&&after<before-0.000001&&!trade&&!operation&&!HasAccess(ship.OwnerId,p.OwnerId,p.Id,right)&&!(ship.Order==ShipOrder.Repair&&HasAccess(ship.OwnerId,p.OwnerId,p.Id,AccessRight.Repair)))
+                {ship.Status="Geschützter Orbit (3 Einheiten): Transitrecht fehlt; kein automatischer Krieg";return false;}
+            }
             if (distance <= step) { ship.X = target.X; ship.Y = target.Y; return true; }
             ship.X += (target.X - ship.X) / distance * step; ship.Y += (target.Y - ship.Y) / distance * step; return false;
         }
@@ -237,7 +250,7 @@ namespace PlanetOne.Core
         {
             var job = ship.Freight; var source = FindBuilding(job.SourceId); var target = FindBuilding(job.TargetId);
             bool collecting = job.Phase <= FreightPhase.Loading;
-            if (!PortOwned(target, ship.OwnerId) || collecting && !PortOwned(source, ship.OwnerId)) { CancelFreight(ship); ship.Status = "Hafen verloren; Fracht bleibt an Bord"; return; }
+            if (!(job.TreatyId>0?TradePortValid(job,target,false):PortOwned(target, ship.OwnerId)) || collecting && !(job.TreatyId>0?TradePortValid(job,source,true):PortOwned(source, ship.OwnerId))) { CancelFreight(ship); ship.Status = "Hafen verloren; Fracht bleibt an Bord"; return; }
             var port = collecting ? source : target;
             bool arrived = MoveShip(ship, GetOrbitPosition(port.PlanetId));
             ship.Status = (collecting ? "Abholung: " : "Lieferung: ") + FindPlanet(port.PlanetId).Name + " / " + job.Amount + " " + Definitions.ResourceName(job.Resource);
@@ -257,6 +270,7 @@ namespace PlanetOne.Core
             else
             {
                 target.Inventory[r] += job.Amount; target.ReservedIncoming[r] -= job.Amount; ship.Cargo[r] -= job.Amount;
+                if(job.TreatyId>0) CreditTrade(job);
                 ship.Freight = null; ship.Order = ShipOrder.Guard; ship.TargetPlanetId = target.PlanetId; ship.Status = "Lieferung abgeschlossen";
             }
         }
@@ -265,6 +279,7 @@ namespace PlanetOne.Core
             var job = ship.Freight;
             if (job != null)
             {
+                if(job.TreatyId>0){var treaty=State.Treaties.Find(t=>t.Id==job.TreatyId);if(treaty!=null)treaty.Reason="Lieferung unterbrochen; geladene Ware bleibt beim Lieferanten und kehrt physisch zurück";}
                 var source = FindBuilding(job.SourceId); var target = FindBuilding(job.TargetId); int r = (int)job.Resource;
                 if (source != null && job.Phase <= FreightPhase.Loading) source.ReservedOutgoing[r] -= job.Amount;
                 if (target != null) target.ReservedIncoming[r] -= job.Amount;
@@ -306,15 +321,15 @@ namespace PlanetOne.Core
             b.ShipBuildKind = -1; b.ShipBuildPaid = false; b.ShipBuildProgress = 0;
         }
         public bool IsPlanetVisible(int faction, int planetId)
-        { var p = FindPlanet(planetId); if (p.OwnerId == faction) return true; var point = GetOrbitPosition(planetId); return SpacePointVisible(faction, point); }
+        { var p = FindPlanet(planetId); if (SharesSensors(faction,p.OwnerId)) return true; var point = GetOrbitPosition(planetId); return SpacePointVisible(faction, point); }
         public bool IsPlanetKnown(int faction, int planetId)
-        { return IsPlanetVisible(faction, planetId) || State.SpaceSightings.Exists(s => s.FactionId == faction && s.PlanetId == planetId); }
+        { return State.Treaties.Exists(t=>TreatyLive(t)&&t.Terms.Members.Contains(faction)&&t.Terms.PlanetId==planetId) || IsPlanetVisible(faction, planetId) || State.SpaceSightings.Exists(s => s.FactionId == faction && s.PlanetId == planetId); }
         public bool IsShipVisible(int faction, ShipState ship)
         { return !ship.Destroyed && !ship.Consumed && ship.TransportPhase == TransportPhase.Space && (ship.OwnerId == faction || SpacePointVisible(faction, new SimPoint(ship.X, ship.Y))); }
         private bool SpacePointVisible(int faction, SimPoint point)
         {
-            foreach (var p in State.Planets) if (p.OwnerId == faction && Distance(point.X, point.Y, GetOrbitPosition(p.Id)) <= 6) return true;
-            foreach (var s in State.Ships) if (s.OwnerId == faction && !s.Destroyed && !s.Consumed && Distance(s.X, s.Y, point) <= Definitions.Ships[(int)s.Kind].Sight) return true;
+            foreach (var p in State.Planets) if (SharesSensors(faction,p.OwnerId) && Distance(point.X, point.Y, GetOrbitPosition(p.Id)) <= 6) return true;
+            foreach (var s in State.Ships) if (SharesSensors(faction,s.OwnerId) && !s.Destroyed && !s.Consumed && Distance(s.X, s.Y, point) <= Definitions.Ships[(int)s.Kind].Sight) return true;
             return false;
         }
         private void UpdateSpaceKnowledge()

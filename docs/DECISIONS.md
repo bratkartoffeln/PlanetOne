@@ -1,6 +1,15 @@
 # Entscheidungen und Plattformstrategie
 
-Stand: 24. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.7 ergänzt lokal geprüftes M6 auf dem Hexraster. M5 und CI sind über PR #4/#5 in main integriert; die vollständige manuelle M5-Abnahme bleibt offen. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
+Stand: 24. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.8 ergänzt lokal geprüftes M7 auf M6 und dem Hexraster. M5 und CI sind über PR #4/#5 in main integriert; die vollständige manuelle M5-Abnahme bleibt offen. Diese Datei unterscheidet bindende Produktvorgaben, technische Festlegungen und den tatsächlich nachgewiesenen Umfang.
+
+## Diplomatie und Sieg: M7 (24. November 2026)
+
+- **D-027, Vorgabe:** Nächsten Meilenstein M7/P16–P18 umsetzen; Tests weiterhin ohne Screenreader/Computer-Use und ohne Störung des Arbeitsdesktops. Der versionsbasierte Git-Ablauf bleibt beauftragt.
+- **T-028, entschieden:** Version 1.0.8 baut auf 1.0.7 auf; PR #6/#7 waren zu Beginn weiterhin offen und main noch auf M5. Kein Umgehen der fehlenden Unity-CI-Aktivierung. Drei friedlich startende unabhängige Fraktionen, zwei KI und ein neutraler Mond als M7-Partie; zweiter Mond und vollständige Gesamtprüfung bleiben M8.
+- **T-029, Arbeitsannahme/entschieden:** Verträge mit expliziter Zustimmung und getrennten Rechten. Standarddauer 12.000 Ticks, Kündigungsfrist 1.200 Ticks; geschützte Orbitbereiche Radius 3. Handel wird durch eigene Frachter beider Partner physisch erfüllt; Waren bleiben bis tatsächlicher Ankunft beim Lieferanten und kehren bei Abbruch real zurück. Verteidigungspakt verspricht den paarweisen Kriegseintritt bei äußerer Kriegserklärung, ohne andere Schutzverträge still zu brechen. Exakte Kräfte zusätzlich über Operationszusagen.
+- **T-030, entschieden:** Einstimmige Koalitionen teilen Sensoren, nicht Bestände oder Steuerung. Gemeinsame Operationen reservieren vorhandene Schiffe und legen Ziel/Eigentümer fest. Gemeinsame Infanterie erhält Besetzungsfortschritt. 2.400 Ticks lokale Räumung schützen ausschließlich die bisherigen Kontingente und erlauben Abzug/Verladung statt Innenangriff; keine Löschung bei Fristablauf.
+- **T-031, Arbeitsannahme:** Sprungtor benötigt Sensoren/Elektronik, 40 Metall/16 Bauteile für den Bau, acht Energie/vier Arbeit und 12 Nahrung/40 Metall/24 Bauteile/8 Kristalle/8 Elektronik für das Projekt. Öffentliche Sicherung dauert 1.200 Ticks. Komponentenverbrauch erst beim Erfolg; Unterbrechung setzt nur Fortschritt zurück. Kontrolle, Versorgung und Mitglieder werden vor Abschluss geprüft. Alle Zahlen liegen in Definitions-/Vertragsdaten.
+- **T-032, entschieden:** Einmaliges Ausscheiden beendet Befehle, Produktion und Verpflichtungen. Neutraler Gebäude-Restbesitz behält reale Vorräte; ausdrückliche beidseitige Kapitulationsvereinbarung kann bestehende IDs übergeben. Kolonieschiffe zählen nur ausgerüstet und bei tatsächlich erreichbarer legaler Gründungswelt. Spielstandformat 8 migriert V1–V7 ohne nachträgliche Diplomatieaktivierung. [M7_NACHWEIS](M7_NACHWEIS.md) trennt 126 Core-Tests, Windows-Build, 131 Player-Prüfungen und die offene manuelle/CI-Abnahme.
 
 ## Eigenständige KI: M6 (24. November 2026)
 

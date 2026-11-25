@@ -30,6 +30,8 @@ namespace PlanetOne.Core
     public sealed class FreightJob
     {
         [DataMember] public long SourceId, TargetId;
+        [DataMember] public long TreatyId;
+        [DataMember] public bool PaymentLeg;
         [DataMember] public ResourceKind Resource;
         [DataMember] public int Amount;
         [DataMember] public FreightPhase Phase;

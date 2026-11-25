@@ -6,11 +6,11 @@ namespace PlanetOne.Core
 {
     public enum ResourceKind { Food, Ore, Metal, Parts, Crystals, Electronics }
     public enum BuildingKind { Headquarters, Mine, Smelter, SolarPlant, Warehouse, Workshop, Farm, Housing,
-        Barracks, VehicleFactory, MilitaryDepot, GunTower, AntiTankTower, FlakTower, ArtilleryTower, Wall, Gate, Spaceport, Laboratory, CrystalMine, ElectronicsFactory, ShieldGenerator, OrbitalBattery }
+        Barracks, VehicleFactory, MilitaryDepot, GunTower, AntiTankTower, FlakTower, ArtilleryTower, Wall, Gate, Spaceport, Laboratory, CrystalMine, ElectronicsFactory, ShieldGenerator, OrbitalBattery, JumpGate }
     public enum CommandKind { PlaceBuilding, PlaceRoad, RemoveRoad, CancelConstruction, DemolishBuilding,
         SetBuildingEnabled, SetBuildingPriority, SetPaused, SetTimeScale,
         RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget, BuildShip, FlyShip, GuardPlanet, EscortShip, Colonize, StartResearch, SetSupplyPolicy, AssignFreight, CancelFreight, SetAutoSupply, SetTradeRoute, MoveShipPosition,
-        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters }
+        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters, ProposeTreaty, AcceptTreaty, RejectTreaty, WithdrawTreaty, TerminateTreaty, BreachTreaty, DeclareWar, DispatchTrade, PledgeShip, StartJointOperation, CancelJointOperation, ActivateGate, Surrender }
     public enum ShipmentPhase { Loading, InTransit, Unloading, Returning, Recovering }
     public enum RelationKind { Peace, War }
 
@@ -20,6 +20,7 @@ namespace PlanetOne.Core
         [DataMember] public int Id;
         [DataMember] public string Name;
         [DataMember] public bool IsPlayer;
+        [DataMember] public FactionStatus Status;
         [DataMember] public ResearchState Research = new ResearchState();
     }
 
@@ -83,12 +84,19 @@ namespace PlanetOne.Core
         [DataMember] public bool BoolValue;
         [DataMember] public long ActorId;
         [DataMember] public int Amount, Minimum, Reserve;
+        [DataMember] public TreatyTerms Terms;
     }
 
     [DataContract, Serializable]
     public sealed class GameState
     {
-        [DataMember] public int Version = 7;
+        [DataMember] public int Version = 8;
+        [DataMember] public bool DiplomacyScenario;
+        [DataMember] public List<TreatyState> Treaties=new List<TreatyState>();
+        [DataMember] public List<EvacuationState> Evacuations=new List<EvacuationState>();
+        [DataMember] public List<DiplomacyEvent> DiplomacyEvents=new List<DiplomacyEvent>();
+        [DataMember] public List<GateProject> GateProjects=new List<GateProject>();
+        [DataMember] public List<int> Winners=new List<int>();
         [DataMember] public bool AiScenario;
         [DataMember] public List<AiState> ComputerFactions = new List<AiState>();
         [DataMember] public bool InvasionTestFixture;
