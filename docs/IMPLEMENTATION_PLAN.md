@@ -318,7 +318,7 @@ Die vorhergehende Grafiklieferung wird durch **1.0.10, räumliche Modelle und na
 
 ### P20 Plattformen, Bedienung und Leistung prüfen
 
-- **Status:** Windows-Umsetzung und reproduzierbare Mess-/Installerwerkzeuge in 1.0.15; abschließende Laufdaten in [M8_NACHWEIS](M8_NACHWEIS.md). Physische manuelle Eingabe und andere Plattformen ungeprüft; kein uneingeschränkter Plattformabschluss. **Abhängigkeit:** P19.
+- **Status:** Windows-Build, 1440×900/1280×720-GUI, getrennte Leistungsbudgets sowie ZIP-/Installervergleich, Start aus Testinstallation und Deinstallation bestanden in 1.0.15; Laufdaten in [M8_NACHWEIS](M8_NACHWEIS.md). Physische manuelle Eingabe und andere Plattformen ungeprüft; kein uneingeschränkter Plattformabschluss. **Abhängigkeit:** P19.
 - **Module:** Plattformadapter, Eingabe, Darstellung, Benutzeroberfläche, Export.
 - **Umfang:** Vereinbarte Exportziele aus P01 bauen und auf tatsächlich verfügbaren Zielumgebungen prüfen. Warnungen, Ansichtswechsel, skalierbare Oberflächen und Eingabeprofile prüfen. Simulation und Darstellung getrennt auf dem vereinbarten Lastprofil messen.
 - **Nicht enthalten:** Unvereinbarte Storeveröffentlichung oder behauptete Unterstützung ungeprüfter Hardware.
