@@ -7,6 +7,8 @@ namespace PlanetOne.Runtime
 {
     public sealed partial class PrototypeController
     {
+        // Presentation plane clears the large planet models; simulation coordinates remain unchanged.
+        private const float ShipDisplayHeight = 2.3f;
         private readonly Dictionary<long, Transform> shipViews = new Dictionary<long, Transform>();
         private readonly List<long> selectedShips = new List<long>();
         private readonly Dictionary<int, List<long>> shipGroups = new Dictionary<int, List<long>>();
@@ -18,7 +20,7 @@ namespace PlanetOne.Runtime
         private Vector2? shipSelectionStart;
         private GUIStyle spaceTabStyle;
         public int RenderedShipCount { get { int n=0; foreach(var t in shipViews.Values) if(t.gameObject.activeSelf) n++; return n; } }
-        public void ShowSpacePanel(int tab) { contextOpen=true;showingDiplomacy=false;showingSpacePanel=true; spacePanelTab=Mathf.Clamp(tab,0,3); sidebarScroll=Vector2.zero; }
+        public void ShowSpacePanel(int tab) { contextOpen=true;panelOpen=true;showingDiplomacy=false;showingSpacePanel=true; spacePanelTab=Mathf.Clamp(tab,0,3);presentationSection=spacePanelTab==1?4:spacePanelTab==2?5:3; sidebarScroll=Vector2.zero; }
         public void StartSpaceFixture()
         {
             if (!simulation.State.MilitaryTestFixture && !simulation.State.SpaceTestFixture) priorSession = simulation;
@@ -29,7 +31,7 @@ namespace PlanetOne.Runtime
         {
             if(!simulation.State.Ships.Exists(s=>s.Id==id && s.OwnerId==PlayerFactionId && !s.Destroyed && !s.Consumed)) return false;
             if(!additive) selectedShips.Clear(); if(!selectedShips.Contains(id)) selectedShips.Add(id);
-            contextOpen=true;showingDiplomacy=false;showingSpacePanel=true; spacePanelTab=0; return true;
+            contextOpen=true;panelOpen=false;showingDiplomacy=false;showingSpacePanel=true;presentationSection=3;spacePanelTab=0;return true;
         }
         public bool RequestSpaceOrder(CommandKind kind, long actor=0, long target=0, int planet=1, int value=0, int amount=0, int minimum=0, int reserve=0, int priority=1, bool flag=false)
         { return SubmitIntent(new SimCommand {Kind=kind, ActorId=actor, TargetId=target, PlanetId=planet, IntValue=value, Amount=amount, Minimum=minimum, Reserve=reserve, X=priority, BoolValue=flag}); }
@@ -46,8 +48,8 @@ namespace PlanetOne.Runtime
                     Part(view,"Fraktionsmarkierung",new Vector3(0,0.11f,0.35f),new Vector3(0.25f,0.02f,0.08f),DiplomaticColor(ship.OwnerId));
                     shipViews[ship.Id]=view;
                 }
-                view.gameObject.SetActive(true); UpdateMotionPose(view,new Vector3((float)ship.X,0.6f,(float)ship.Y),0);
-                view.localScale=Vector3.one*(selectedShips.Contains(ship.Id)?1.4f:1.1f);
+                view.gameObject.SetActive(true); UpdateMotionPose(view,new Vector3((float)ship.X,ShipDisplayHeight,(float)ship.Y),0);
+                view.localScale=Vector3.one*1.6f;
             }
             selectedShips.RemoveAll(id=>!simulation.State.Ships.Exists(s=>s.Id==id && !s.Destroyed && !s.Consumed));
         }
@@ -55,6 +57,8 @@ namespace PlanetOne.Runtime
         {
             if(openPlanetId!=0) return;
             var e=Event.current; var point=new Vector2(e.mousePosition.x,Screen.height-e.mousePosition.y);
+            if(suppressShipSelectionUntilUp){if(e.type==EventType.MouseUp)suppressShipSelectionUntilUp=false;return;}
+            if(spaceMoveTargetMode)return;
             if(e.type==EventType.KeyDown)
             {
                 for(int i=1;i<=3;i++) if(e.keyCode==KeyCode.Alpha1+i-1)
@@ -69,33 +73,52 @@ namespace PlanetOne.Runtime
             foreach(var ship in simulation.State.Ships)
             {
                 if(ship.OwnerId!=PlayerFactionId || ship.Destroyed || ship.Consumed) continue;
-                Vector3 screen=sceneCamera.WorldToScreenPoint(new Vector3((float)ship.X,0.6f,(float)ship.Y));
+                Vector3 screen=sceneCamera.WorldToScreenPoint(new Vector3((float)ship.X,ShipDisplayHeight,(float)ship.Y));
                 if(drag?box.Contains(screen):Vector2.Distance(screen,point)<20) { SelectShip(ship.Id,true); if(!drag) break; }
             }
         }
-        private bool HandleSpacePointer()
+        public bool IsShipMovePending {get{return spaceMoveTargetMode;}}
+        public void BeginShipMove()
         {
-            if(Input.GetMouseButtonDown(1) && selectedShips.Count>0)
+            if(openPlanetId!=0 || selectedShips.Count==0)return;
+            spaceMoveTargetMode=true;shipSelectionStart=null;
+        }
+        public bool RequestShipMoveAtScreen(Vector2 screenPoint)
+        {
+            if(openPlanetId!=0 || selectedShips.Count==0 || !IsWorldPoint(screenPoint))return false;
+            int target=0;float nearest=float.MaxValue;
+            foreach(var p in simulation.State.Planets)
             {
-                foreach(var p in simulation.State.Planets)
-                {
-                    if(!simulation.IsPlanetKnown(PlayerFactionId,p.Id)) continue;
-                    var screen=sceneCamera.WorldToScreenPoint(planetViews[p.Id].position);
-                    if(Vector2.Distance(screen,Input.mousePosition)>35) continue;
-                    spaceTarget=p.Id; foreach(long id in selectedShips) RequestSpaceOrder(CommandKind.FlyShip,id,planet:p.Id); return true;
-                }
-                Ray ray=sceneCamera.ScreenPointToRay(Input.mousePosition); float distance;
-                if(new Plane(Vector3.up,Vector3.zero).Raycast(ray,out distance))
+                if(!simulation.IsPlanetKnown(PlayerFactionId,p.Id))continue;
+                float distance=Vector2.Distance(sceneCamera.WorldToScreenPoint(planetViews[p.Id].position),screenPoint);
+                if(distance<Mathf.Max(24,PlanetScreenRadius(p.Id)+8) && distance<nearest){target=p.Id;nearest=distance;}
+            }
+            bool accepted=false;
+            if(target!=0)
+            {
+                spaceTarget=target;
+                foreach(long id in selectedShips)accepted=RequestSpaceOrder(CommandKind.FlyShip,id,planet:target) || accepted;
+            }
+            else
+            {
+                Ray ray=sceneCamera.ScreenPointToRay(screenPoint);float distance;
+                if(new Plane(Vector3.up,Vector3.up*ShipDisplayHeight).Raycast(ray,out distance))
                 {
                     var point=ray.GetPoint(distance);
-                    foreach(long id in selectedShips) SubmitIntent(new SimCommand {Kind=CommandKind.MoveShipPosition,ActorId=id,PlanetId=1,X=Mathf.RoundToInt(point.x),Y=Mathf.RoundToInt(point.z)});
-                    return true;
+                    foreach(long id in selectedShips)accepted=SubmitIntent(new SimCommand {Kind=CommandKind.MoveShipPosition,ActorId=id,PlanetId=1,X=Mathf.RoundToInt(point.x),Y=Mathf.RoundToInt(point.z)}) || accepted;
                 }
             }
+            if(accepted && spaceMoveTargetMode){spaceMoveTargetMode=false;suppressShipSelectionUntilUp=true;shipSelectionStart=null;}
+            return accepted;
+        }
+        private bool HandleSpacePointer()
+        {
+            if((Input.GetMouseButtonDown(1) || spaceMoveTargetMode && Input.GetMouseButtonDown(0)) && selectedShips.Count>0)
+                return RequestShipMoveAtScreen(Input.mousePosition);
             if(Input.GetMouseButtonDown(0)) foreach(var ship in simulation.State.Ships)
             {
                 if(ship.OwnerId!=PlayerFactionId || ship.Destroyed || ship.Consumed) continue;
-                var screen=sceneCamera.WorldToScreenPoint(new Vector3((float)ship.X,0.6f,(float)ship.Y));
+                var screen=sceneCamera.WorldToScreenPoint(new Vector3((float)ship.X,ShipDisplayHeight,(float)ship.Y));
                 if(Vector2.Distance(screen,Input.mousePosition)<20) return true;
             }
             return false;
@@ -106,12 +129,14 @@ namespace PlanetOne.Runtime
             foreach(var ship in simulation.State.Ships)
             {
                 if(!simulation.IsShipVisible(PlayerFactionId,ship)) continue;
-                var screen=sceneCamera.WorldToScreenPoint(new Vector3((float)ship.X,0.6f,(float)ship.Y));
+                var screen=sceneCamera.WorldToScreenPoint(new Vector3((float)ship.X,ShipDisplayHeight,(float)ship.Y));
                 if(!sceneCamera.pixelRect.Contains(screen)) continue;
                 var labelRect = new Rect(screen.x/scale-50,(Screen.height-screen.y)/scale-28,160,16);
                 while(labelRects.Exists(rect=>rect.Overlaps(labelRect))) labelRect.y-=17;
                 labelRects.Add(labelRect);
+                Fill(labelRect,new Color(0.015f,0.035f,0.05f,0.88f));
                 GUI.Label(labelRect,Definitions.Ships[(int)ship.Kind].Name+" #"+ship.Id,smallStyle);
+                if(selectedShips.Contains(ship.Id))DrawTargetBrackets(new Rect(screen.x/scale-20,(Screen.height-screen.y)/scale-18,40,36),Cyan);
                 if(selectedShips.Contains(ship.Id) && (ship.Order==ShipOrder.Fly || ship.Order==ShipOrder.Guard))
                     GUI.Label(new Rect(screen.x/scale-50,(Screen.height-screen.y)/scale+8,180,24),"→ "+simulation.FindPlanet(ship.TargetPlanetId).Name,smallStyle);
                 if(selectedShips.Contains(ship.Id) && ship.Order==ShipOrder.MovePosition)
@@ -122,7 +147,7 @@ namespace PlanetOne.Runtime
                 if(sight.FactionId!=PlayerFactionId || sight.ShipId==0) continue;
                 var current=simulation.State.Ships.Find(s=>s.Id==sight.ShipId);
                 if(current!=null && simulation.IsShipVisible(PlayerFactionId,current)) continue;
-                var screen=sceneCamera.WorldToScreenPoint(new Vector3((float)sight.X,0.6f,(float)sight.Y));
+                var screen=sceneCamera.WorldToScreenPoint(new Vector3((float)sight.X,ShipDisplayHeight,(float)sight.Y));
                 if(sceneCamera.pixelRect.Contains(screen)) GUI.Label(new Rect(screen.x/scale,(Screen.height-screen.y)/scale,170,40),"Letzte Sichtung #"+sight.ShipId+"\n"+FormatTime(sight.Tick*Definitions.TickSeconds),smallStyle);
             }
         }
@@ -158,7 +183,7 @@ namespace PlanetOne.Runtime
             foreach(var s in simulation.State.Ships)
             {
                 if(s.OwnerId!=PlayerFactionId || s.Destroyed || s.Consumed) continue;
-                if(GUILayout.Button(Definitions.Ships[(int)s.Kind].Name+" #"+s.Id,selectedShips.Contains(s.Id)?selectedButtonStyle:buttonStyle,GUILayout.Height(28))) SelectShip(s.Id,Event.current.shift);
+                if(GUILayout.Button(Definitions.Ships[(int)s.Kind].Name+" #"+s.Id,selectedShips.Contains(s.Id)?selectedButtonStyle:buttonStyle,GUILayout.Height(28))) {SelectShip(s.Id,Event.current.shift);panelOpen=true;}
                 if(selectedShips.Contains(s.Id)) { GUILayout.Label(s.Status,smallStyle); GUILayout.Label("An Bord: "+GoodsText(s.Cargo),smallStyle); }
             }
             GUILayout.Label("ZIELWELT",headingStyle);
@@ -177,9 +202,9 @@ namespace PlanetOne.Runtime
             {
                 var d=Definitions.Ships[i]; bool unlocked=simulation.HasTechnology(PlayerFactionId,d.Required);
                 GUILayout.Label(d.Name+": "+GoodsText(d.Cost)+" · "+d.Crew+" Bewohner · "+d.Seconds+" s",smallStyle);
-                GUI.enabled=unlocked;
+                bool wasEnabled=GUI.enabled;GUI.enabled=wasEnabled && unlocked;
                 if(GUILayout.Button(unlocked?d.Name+" bauen":"Benötigt "+Definitions.Technologies[(int)d.Required].Name,buttonStyle)) RequestSpaceOrder(CommandKind.BuildShip,target:port.Id,planet:port.PlanetId,value:i);
-                GUI.enabled=true;
+                GUI.enabled=wasEnabled;
             }
         }
         private void DrawResearchPanel()
@@ -197,9 +222,9 @@ namespace PlanetOne.Runtime
                 string error=simulation.ResearchError(PlayerFactionId,d.Id);
                 GUILayout.Space(8); GUILayout.Label(d.Name,headingStyle); GUILayout.Label(GoodsText(d.Cost)+" · "+d.Seconds+" s",smallStyle);
                 if(error!=null) GUILayout.Label(error,smallStyle);
-                GUI.enabled=error==null && (r.Active<0 || r.Active==(int)d.Id);
+                bool wasEnabled=GUI.enabled;GUI.enabled=wasEnabled && error==null && (r.Active<0 || r.Active==(int)d.Id);
                 if(GUILayout.Button(r.Active==(int)d.Id?"An diesem Labor fortsetzen":"Forschung beginnen",buttonStyle)) RequestSpaceOrder(CommandKind.StartResearch,target:lab.Id,planet:lab.PlanetId,value:(int)d.Id);
-                GUI.enabled=true;
+                GUI.enabled=wasEnabled;
             }
         }
         private void DrawSupplyPanel()

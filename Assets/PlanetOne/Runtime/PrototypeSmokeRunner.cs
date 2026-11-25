@@ -86,8 +86,20 @@ namespace PlanetOne.Runtime
                 yield return Capture("layout-"+layout+"-surface.png");
                 Require(captureFailure==null,captureFailure??("Surface frame captured: "+layout));
                 controller.SetView(0);yield return null;
+                Require(controller.SelectPlanet(1) && controller.OpenPlanetId==0 && controller.SelectedPlanetId==1,"Planet selection keeps the system open: "+layout);
+                if(layout!=InterfaceLayout.CommandCenter)
+                {
+                    Require(controller.IsContextCardOpen && !controller.IsWorldPoint(controller.ContextCardScreenRect.center),"Compact planet card blocks world input: "+layout);
+                    var covered=controller.ContextCardScreenRect.center;
+                    controller.CloseContextPanel();
+                    Require(controller.IsWorldPoint(covered),"Closing the selection card releases the world: "+layout);
+                    controller.SelectPlanet(1);
+                }
                 yield return Capture("layout-"+layout+"-space.png");
                 Require(captureFailure==null,captureFailure??("System frame captured: "+layout));
+                Require(controller.OpenSelectedPlanet() && controller.OpenPlanetId==1,"Surface action opens the selected world: "+layout);
+                for(int section=0;section<=6;section++){controller.OpenPresentationSection(section);yield return null;}
+                Require(SaveCodec.ToJson(original.State)==unchanged,"Selection and all management sections preserve simulation: "+layout);
             }
             File.WriteAllText(presentationPath,"{\"Layout\":999,\"Scale\":0}");controller.ReloadPresentationSettings();
             Require(controller.CurrentLayout==InterfaceLayout.CommandCenter && controller.WorldViewport.width>0,"Invalid preferences recover to a usable layout");
@@ -100,6 +112,10 @@ namespace PlanetOne.Runtime
             yield return Capture("presentation-settings.png");
             Require(captureFailure==null,captureFailure??"Settings frame captured");
             controller.SetSettingsVisible(false);
+            controller.SetMenuVisible(true);
+            Require(!controller.IsWorldPoint(controller.WorldViewport.center),"Game menu blocks world input");
+            yield return Capture("game-menu.png");Require(captureFailure==null,captureFailure??"Game menu captured");
+            controller.SetMenuVisible(false);
             Require(controller.SetSimulationSpeed(2) && original.State.TimeScale == 2, "Speed control submits a validated 2x command");
             Require(controller.SetSimulationSpeed(1) && original.State.TimeScale == 1 && original.State.Tick == pausedTick, "Returning to 1x preserves the paused simulation tick");
             yield return Capture("space.png");
@@ -199,6 +215,14 @@ namespace PlanetOne.Runtime
             Require(controller.RenderedShipmentCount == planet.Shipments.Count, "Visible couriers match the shared simulation");
             yield return Capture("surface.png");
             Require(captureFailure == null, captureFailure ?? "Surface screenshot written after simulation advance");
+            foreach(InterfaceLayout layout in Enum.GetValues(typeof(InterfaceLayout)))
+            {
+                controller.SetInterfaceLayout(layout);controller.SetView(1);
+                Require(controller.SelectBuilding(farm.Id),"Populated colony selection works: "+layout);
+                if(layout!=InterfaceLayout.CommandCenter)Require(controller.IsContextCardOpen && !controller.IsWorldPoint(controller.ContextCardScreenRect.center),"Building opens a compact protected selection card: "+layout);
+                yield return Capture("colony-"+layout+"-selection.png");Require(captureFailure==null,captureFailure??"Populated colony selection captured");
+            }
+            controller.SetInterfaceLayout(InterfaceLayout.CommandCenter);controller.SetView(1);
             string beforeOrbit=SaveCodec.ToJson(original.State);
             foreach(float yaw in new[]{45f,135f,225f,315f})
             {
@@ -328,6 +352,22 @@ namespace PlanetOne.Runtime
             Require(controller.RenderedShipCount == 2, "Both paid ships are rendered in the system");
             yield return Capture("space-fleet.png");
             Require(captureFailure == null, captureFailure ?? "Fleet screenshot written");
+            string beforeHudOrders=SaveCodec.ToJson(space.State);
+            foreach(InterfaceLayout layout in Enum.GetValues(typeof(InterfaceLayout)))
+            {
+                controller.SetInterfaceLayout(layout);controller.SelectShip(colonyShip.Id);controller.BeginShipMove();
+                Require(!controller.RequestShipMoveAtScreen(new Vector2(20,Screen.height-20)) && controller.IsShipMovePending,"Header click cannot issue or consume a flight command: "+layout);
+                if(layout!=InterfaceLayout.CommandCenter)Require(!controller.RequestShipMoveAtScreen(controller.ContextCardScreenRect.center) && controller.IsShipMovePending,"Selection card cannot issue or consume a flight command: "+layout);
+                controller.SetSettingsVisible(true);
+                Require(!controller.RequestShipMoveAtScreen(controller.WorldViewport.center),"Modal settings block flight orders: "+layout);
+                controller.SetSettingsVisible(false);
+                yield return Capture("fleet-"+layout+"-selection.png");Require(captureFailure==null,captureFailure??"Fleet selection captured");
+            }
+            Require(SaveCodec.ToJson(space.State)==beforeHudOrders,"Blocked HUD orders leave complete space state unchanged");
+            controller.SetInterfaceLayout(InterfaceLayout.CommandCenter);
+            Require(controller.RequestShipMoveAtScreen(controller.WorldViewport.center) && !controller.IsShipMovePending,"Move action accepts a world target and exits target mode");
+            AdvanceSeconds(0.2);
+            Require(colonyShip.Order==ShipOrder.MovePosition,"HUD movement reaches the shared simulation command queue");
             Require(controller.RequestSpaceOrder(CommandKind.FlyShip, colonyShip.Id, planet: 3), "Flight to moving moon queued");
             Vector3 shipBefore=controller.ShipView(colonyShip.Id).position;
             AdvanceSeconds(2);yield return null;

@@ -279,6 +279,13 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 
 Die vorhergehende Grafiklieferung wird durch **1.0.10, räumliche Modelle und natürliches Relief**, ergänzt: D-029, GUI-005/006, T-036 bis T-038. Betroffene Module sind Runtime-Darstellung, Modelle/Materialien, Kamera, Auswahl und Bewegungsdarstellung. Umfang und lokale Nachweise stehen in [3D_GRAFIK_NACHWEIS](3D_GRAFIK_NACHWEIS.md). Der Auftrag schließt P19–P21 nicht vorzeitig ab; Bildtreue zur Konzepttafel und technische Funktionsprüfung bleiben getrennte Abnahmekriterien.
 
+### GUI und Weltraumansicht nach Konzepttafel – 1.0.11
+
+- **Status:** Lokal umgesetzt und geprüft; Git-Integration bleibt von den Pflichtchecks abhängig. [Nachweis](GUI_WELTRAUM_NACHWEIS.md).
+- **Grundlage:** D-030, GUI-001 bis GUI-007, TEST-026, CORE-007/008; aufbauend auf 1.0.10.
+- **Umfang:** Drei konkrete HUD-Aufteilungen, kompakte Auswahlkarten, eindeutiger Wechsel zwischen System und Oberfläche, vollständige Verwaltungszugänge, Symbole und Tooltips; neue Planeten-/Nebeltexturen, Atmosphären, Korona und lesbare Objektmarkierungen.
+- **Abnahme:** Keine Simulationsänderung durch Navigation, kein Durchklicken von Karten/Menüs, echte Flugbefehle über die gemeinsame Befehlsschnittstelle; Bildkontrolle des tatsächlichen Players auf isoliertem Desktop. Keine vorgezogene M8-, Plattform- oder pixelgleiche Grafikabnahme.
+
 ### P19 Speicherstände und Integrationsgrenzen absichern
 
 - **Status:** Offen. **Abhängigkeit:** P18.

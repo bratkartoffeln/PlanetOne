@@ -138,6 +138,10 @@ namespace PlanetOne.Runtime
         {
             if (hexMesh != null) Destroy(hexMesh);
             foreach(var mesh in modelMeshes.Values)Destroy(mesh);
+            foreach(var material in celestialMaterials.Values)Destroy(material);
+            foreach(var icon in hudIcons.Values)Destroy(icon);
+            foreach(var portrait in objectPortraits.Values)Destroy(portrait);
+            if(atmosphereMaterial!=null)Destroy(atmosphereMaterial);if(coronaMaterial!=null)Destroy(coronaMaterial);
             foreach (var material in materials.Values) Destroy(material);
             foreach(var material in artMaterials.Values)Destroy(material);
             foreach(var icon in buildingIcons.Values)Destroy(icon);
@@ -149,7 +153,7 @@ namespace PlanetOne.Runtime
 
         private void HandleKeyboard()
         {
-            if (Input.GetKeyDown(KeyCode.Escape)) { if(settingsOpen) settingsOpen=false; else if(menuOpen) menuOpen=false; else if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue) {CancelPlacement();militaryTargetMode=null;} else menuOpen=true; selectionStart=null; shipSelectionStart=null; return; }
+            if (Input.GetKeyDown(KeyCode.Escape)) { if(settingsOpen) settingsOpen=false; else if(menuOpen) menuOpen=false; else if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue || spaceMoveTargetMode) {CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;} else if(panelOpen){panelOpen=false;contextOpen=true;} else if(SelectionCardVisible)contextOpen=false; else menuOpen=true; selectionStart=null; shipSelectionStart=null; return; }
             if(settingsOpen || menuOpen) return;
             HandleOrbitCamera();
             if (Input.GetKeyDown(KeyCode.Space)) TogglePause();
@@ -190,21 +194,23 @@ namespace PlanetOne.Runtime
                 else surfaceZoom = Mathf.Clamp(surfaceZoom - wheel * 0.5f, 3f, 14f);
                 UpdateCamera();
             }
+            if(Input.GetMouseButtonDown(1) && spaceMoveTargetMode){spaceMoveTargetMode=false;return;}
             if (Input.GetMouseButtonDown(1)) CancelPlacement();
             if (openPlanetId == 0)
             {
                 if (HandleSpacePointer()) return;
                 if (!Input.GetMouseButtonDown(0)) return;
                 int chosen = 0;
-                float nearest = 35f;
+                float nearest = float.MaxValue;
                 foreach (var pair in planetViews)
                 {
                     if (!simulation.IsPlanetKnown(PlayerFactionId, pair.Key)) continue;
                     Vector3 screen = sceneCamera.WorldToScreenPoint(pair.Value.position);
                     float distance = Vector2.Distance(new Vector2(screen.x, screen.y), Input.mousePosition);
-                    if (distance < nearest) { nearest = distance; chosen = pair.Key; }
+                    if (distance < Mathf.Max(24,PlanetScreenRadius(pair.Key)+8) && distance < nearest) { nearest = distance; chosen = pair.Key; }
                 }
-                if (chosen != 0) SetView(chosen);
+                if (chosen != 0)
+                {SelectPlanet(chosen);if(lastClickedPlanet==chosen && Time.unscaledTime-lastPlanetClick<0.35f)OpenSelectedPlanet();lastClickedPlanet=chosen;lastPlanetClick=Time.unscaledTime;}
                 return;
             }
 
@@ -269,25 +275,21 @@ namespace PlanetOne.Runtime
             spaceRoot = new GameObject("Sonnensystem").transform;
             spaceRoot.SetParent(transform, false);
             planetViews.Clear(); shipViews.Clear(); selectedShips.Clear();
-            orbitViews.Clear();
-            MakePrimitive(PrimitiveType.Sphere,"Stern",spaceRoot,Vector3.zero,Vector3.one*2.8f,Amber);
-            MakePrimitive(PrimitiveType.Quad,"Sternennebel",spaceRoot,new Vector3(0,-9,0),new Vector3(180,180,1),Color.white).rotation=Quaternion.Euler(90,0,0);
-            var random = new System.Random(831);
-            for (int i = 0; i < 320; i++)
+            if(!simulation.IsPlanetKnown(PlayerFactionId,selectedPlanetId))
             {
-                float x = (float)(random.NextDouble() * 100 - 50);
-                float z = (float)(random.NextDouble() * 100 - 50);
-                float size = (float)(random.NextDouble() * 0.05 + 0.02);
-                MakePrimitive(PrimitiveType.Quad, "Sternpunkt", spaceRoot, new Vector3(x, -5f, z), Vector3.one * size, Muted).rotation = Quaternion.Euler(90, 0, 0);
+                var known=simulation.State.Planets.Find(p=>p.OwnerId==PlayerFactionId) ?? simulation.State.Planets.Find(p=>simulation.IsPlanetKnown(PlayerFactionId,p.Id));
+                selectedPlanetId=known==null?0:known.Id;
             }
+            orbitViews.Clear();
+            var star=MakePrimitive(PrimitiveType.Sphere,"Stern",spaceRoot,Vector3.zero,Vector3.one*3.8f,new Color(1,0.50f,0.055f));CreateStarCorona(star);
+            nebulaView=MakePrimitive(PrimitiveType.Quad,"Sternennebel",spaceRoot,Vector3.zero,Vector3.one,Color.white);
             float maxOrbit = 12f;
             foreach (PlanetState planet in simulation.State.Planets)
             {
                 bool isMoon = planet.ParentId > 0;
-                Color color = planet.OwnerId == PlayerFactionId ? (planet.Id == 1 ? Cyan : new Color(0.55f, 0.64f, 0.84f)) : new Color(0.60f, 0.61f, 0.57f);
-                Transform body = MakePrimitive(PrimitiveType.Sphere,(isMoon?"Mond ":"Planet ")+planet.Name,spaceRoot,Vector3.zero,Vector3.one*(isMoon?0.9f:2.4f),color);
+                Transform body = CreateCelestial(planet,spaceRoot,Vector3.zero,isMoon?1.1f:planet.Id==1?3.5f:3.9f);
                 planetViews[planet.Id] = body;
-                var orbit = MakeLine("Umlaufbahn " + planet.Name, spaceRoot, Border, 0.025f, true);
+                var orbit = MakeLine("Umlaufbahn " + planet.Name, spaceRoot, new Color(0.13f,0.27f,0.36f), 0.018f, true);
                 orbit.positionCount = 96;
                 for (int i = 0; i < 96; i++)
                 {
@@ -297,7 +299,7 @@ namespace PlanetOne.Runtime
                 orbitViews[planet.Id] = orbit.transform;
                 if (!isMoon) maxOrbit = Mathf.Max(maxOrbit, (float)planet.OrbitRadius);
             }
-            spaceZoom = maxOrbit + 3f;
+            spaceZoom = maxOrbit*0.73f+2;
             UpdateSpace();
         }
 
@@ -311,6 +313,8 @@ namespace PlanetOne.Runtime
                 planetViews[planet.Id].gameObject.SetActive(known); orbitViews[planet.Id].gameObject.SetActive(known);
                 SimPoint point = simulation.GetOrbitPosition(planet.Id);
                 planetViews[planet.Id].position = new Vector3((float)point.X, 0, (float)point.Y);
+                planetViews[planet.Id].rotation=Quaternion.Euler(0,planet.Id*37+(float)(simulation.State.Tick*Definitions.TickSeconds)*0.7f,planet.Id==1?12:-8);
+                celestialMaterials[planet.Id].SetVector("_SunDirection",new Vector4(-(float)point.X,2,-(float)point.Y,0));
                 if (planet.ParentId > 0)
                 {
                     SimPoint parent = simulation.GetOrbitPosition(planet.ParentId);
@@ -324,6 +328,9 @@ namespace PlanetOne.Runtime
             if (planetId != 0 && simulation.FindPlanet(planetId) == null) return;
             if (planetId != 0 && !simulation.IsPlanetKnown(PlayerFactionId, planetId)) { Notify("Oberfläche ist noch unbekannt."); return; }
             openPlanetId = planetId;
+            if(planetId!=0)selectedPlanetId=planetId;
+            panelOpen=false;contextOpen=true;presentationSection=planetId==0?0:1;
+            showingSpacePanel=false;showingDiplomacy=false;showingMilitary=false;
             selectedBuildingId = 0;
             showingDetails = false;
             CancelPlacement();
@@ -482,7 +489,7 @@ namespace PlanetOne.Runtime
             sceneCamera.pixelRect = WorldViewport;
             if (openPlanetId == 0)
             {
-                sceneCamera.transform.position = Quaternion.Euler(cameraPitch,cameraYaw,0)*new Vector3(0,0,-56);
+                sceneCamera.transform.position = Quaternion.Euler(Mathf.Clamp(cameraPitch-15,25,70),cameraYaw,0)*new Vector3(0,0,-56);
                 sceneCamera.transform.LookAt(Vector3.zero);
                 sceneCamera.orthographicSize = spaceZoom;
             }
@@ -492,6 +499,7 @@ namespace PlanetOne.Runtime
                 sceneCamera.transform.LookAt(surfaceFocus);
                 sceneCamera.orthographicSize = surfaceZoom;
             }
+            AlignNebula();
         }
 
         private float UiScale { get { return Mathf.Min(presentation.Scale, Mathf.Min(Screen.width / 1200f, Screen.height / 820f)); } }
@@ -509,12 +517,14 @@ namespace PlanetOne.Runtime
             PreparePresentationSkin();
             bool previousEnabled=GUI.enabled;
             GUI.enabled=previousEnabled && !settingsOpen && !menuOpen;
-            if (openPlanetId == 0) { DrawPlanetLabels(scale); DrawShipLabels(scale); }
+            if (openPlanetId == 0) { DrawPlanetNameplates(scale); DrawShipLabels(scale); }
             else { DrawBuildingLabels(scale); DrawMilitaryLabels(scale); }
             DrawPresentationTop(width);
             DrawPresentationNavigation(width,height);
             DrawSidebar(width, height);
             DrawPresentationBottom(width, height);
+            DrawSelectionCard(width,height);
+            DrawHudTooltip(width,height);
             GUI.enabled=previousEnabled;
             DrawPresentationDialogs(width,height);
             GUI.matrix = original;
@@ -536,87 +546,6 @@ namespace PlanetOne.Runtime
             selectedButtonStyle = new GUIStyle(buttonStyle); selectedButtonStyle.normal.textColor = Cyan;
         }
 
-        private void DrawSidebar(float width, float height)
-        {
-            if(!SidebarVisible)return;
-            Rect area = SidebarRect(width,height);
-            DrawPanel(area);
-            Fill(new Rect(area.x, area.y, 1, area.height), Border);
-            GUILayout.BeginArea(new Rect(area.x + 17, area.y + 18, area.width - 34, area.height - 30));
-            sidebarScroll = GUILayout.BeginScrollView(sidebarScroll, false, true);
-            GUILayout.BeginVertical(GUILayout.Width(area.width - 70));
-            if(CurrentLayout==InterfaceLayout.CommandCenter) { Rect radar=GUILayoutUtility.GetRect(240,135);DrawRadar(radar);GUILayout.Space(12); }
-            DrawSectionNavigation();
-            DrawAiSession();
-            if(showingDiplomacy){DrawDiplomacyPanel();GUILayout.EndVertical();GUILayout.EndScrollView();GUILayout.EndArea();return;}
-            if (showingSpacePanel) { DrawSpacePanel(); GUILayout.EndVertical(); GUILayout.EndScrollView(); GUILayout.EndArea(); return; }
-            if (openPlanetId == 0)
-            {
-                GUILayout.Label("DEINE WELTEN", headingStyle);
-                GUILayout.Space(15);
-                foreach (PlanetState planet in simulation.State.Planets)
-                {
-                    if (!simulation.IsPlanetKnown(PlayerFactionId, planet.Id)) continue;
-                    var lastSighting=simulation.State.SpaceSightings.Find(s=>s.FactionId==PlayerFactionId&&s.PlanetId==planet.Id);
-                    int knownOwner = simulation.IsPlanetVisible(PlayerFactionId, planet.Id) ? planet.OwnerId : lastSighting==null?-1:lastSighting.KnownOwnerId;
-                    string relationship = knownOwner == PlayerFactionId ? "  →" : knownOwner<0?" · vereinbarter Ort":simulation.SharesSensors(PlayerFactionId,knownOwner)?" · Koalition":(knownOwner == 0 ? "  · unbesiedelt" : "  · fremde Kolonie");
-                    if (GUILayout.Button(planet.Name + relationship, buttonStyle, GUILayout.Height(40))) SetView(planet.Id);
-                    GUILayout.Space(5);
-                    GUILayout.Label(planet.OwnerId == PlayerFactionId ? planet.Population + " Bewohner · " + planet.Buildings.Count + " Gebäude" : "Oberfläche ansehen", smallStyle);
-                    GUILayout.Space(15);
-                }
-                GUILayout.Space(12);
-                GUILayout.Label("ERSTER AUFBAU", headingStyle);
-                GUILayout.Space(8);
-                GUILayout.Label("Sichere zuerst Nahrung und Energie. Mine, Schmelze und Werkstatt liefern anschließend eigene Baumaterialien. Wohnmodule schaffen Platz für mehr Bevölkerung.", mutedStyle);
-                GUILayout.Space(14);
-                GUILayout.Label("Beide Kolonien arbeiten weiter, während du die Ansicht wechselst.", mutedStyle);
-                GUILayout.Space(16);
-                if(GUILayout.Button("M7 Diplomatische Partie",buttonStyle,GUILayout.Height(38)))StartDiplomacyScenario();
-                if (GUILayout.Button("M6 Gegen Computer spielen", buttonStyle, GUILayout.Height(38))) StartAiScenario();
-                GUILayout.Label("Eigenständiger Gegner, gleiche Startmittel. Neue separate Partie im Krieg.", smallStyle);
-                GUILayout.Label("DEMONSTRATIONEN", headingStyle);
-                if(GUILayout.Button("M7 Vertrags- und Torprüfkarte",buttonStyle,GUILayout.Height(34)))StartDiplomacyFixture();
-                if (GUILayout.Button("M4 Aufbau und Raumfahrt", buttonStyle, GUILayout.Height(34))) StartSpaceFixture();
-                if (GUILayout.Button("M5 Invasion prüfen", buttonStyle, GUILayout.Height(34))) StartInvasionFixture();
-                if (GUILayout.Button("M3 Prüfkarte öffnen", buttonStyle, GUILayout.Height(34))) StartMilitaryFixture();
-                GUILayout.Label("Separate Testarmeen und Vorräte. Deine laufende Kolonie bleibt im Speicher erhalten.", smallStyle);
-            }
-            else
-            {
-                PlanetState planet = simulation.FindPlanet(openPlanetId);
-                if (GUILayout.Button("← Zum Sonnensystem", buttonStyle, GUILayout.Height(34))) { SetView(0); GUILayout.EndVertical(); GUILayout.EndScrollView(); GUILayout.EndArea(); return; }
-                GUILayout.Space(17);
-                if (planet.OwnerId != PlayerFactionId)
-                {
-                    GUILayout.Label(planet.OwnerId == 0 ? "UNBESIEDELTE WELT" : "FREMDE KOLONIE", headingStyle);
-                    DrawMilitaryPanel(planet);
-                    GUILayout.Space(10);
-                    GUILayout.Label(planet.OwnerId == 0 ? "Diese Welt kann mit einem angekommenen Kolonieschiff gegründet werden. Flotte öffnen, Ziel wählen und gründen." : "Diese Kolonie kann von deiner Fraktion nicht gesteuert werden.", mutedStyle);
-                }
-                else
-                {
-                    if (showingMilitary)
-                    { DrawMilitaryPanel(planet); GUILayout.EndVertical(); GUILayout.EndScrollView(); GUILayout.EndArea(); return; }
-                    if(presentationSection==0) DrawColonySummary(planet);
-                    GUILayout.Space(14);
-                    GUILayout.BeginHorizontal();
-                    if (GUILayout.Button("Bauen", !showingDetails ? selectedButtonStyle : buttonStyle, GUILayout.Height(30))) showingDetails = false;
-                    if (GUILayout.Button("Auswahl", showingDetails ? selectedButtonStyle : buttonStyle, GUILayout.Height(30))) showingDetails = true;
-                    GUILayout.EndHorizontal();
-                    GUILayout.Space(9);
-                    if (showingDetails)
-                    {
-                        BuildingState selected = FindSelected(planet);
-                        if (selected != null) DrawBuildingDetails(selected);
-                        else GUILayout.Label("Wähle ein Gebäude auf der Oberfläche, um Bestand und Betrieb zu verwalten.", mutedStyle);
-                    }
-                    else DrawBuildTools();
-                }
-            }
-            GUILayout.EndVertical(); GUILayout.EndScrollView();
-            GUILayout.EndArea();
-        }
 
         private void DrawBuildButton(BuildingKind kind)
         {
@@ -624,7 +553,7 @@ namespace PlanetOne.Runtime
             string cost = "";
             if (definition.Cost[(int)ResourceKind.Metal] > 0) cost += definition.Cost[(int)ResourceKind.Metal] + " M";
             if (definition.Cost[(int)ResourceKind.Parts] > 0) cost += "  " + definition.Cost[(int)ResourceKind.Parts] + " B";
-            if (GUILayout.Button(new GUIContent(definition.Name + "\n" + cost, BuildingIcon(kind)), placement == kind ? selectedBuildStyle : buildStyle, GUILayout.Height(104)))
+            if (GUILayout.Button(new GUIContent(definition.Name + "\n" + cost, BuildingIcon(kind),definition.Name+" bauen · "+cost+" · Bauplatz anschließend in der Welt wählen"), placement == kind ? selectedBuildStyle : buildStyle, GUILayout.Height(104)))
             {
                 placement = placement == kind ? (BuildingKind?)null : kind;
                 placingRoad = false;
@@ -790,18 +719,6 @@ namespace PlanetOne.Runtime
             }
         }
 
-        private void DrawPlanetLabels(float scale)
-        {
-            foreach (PlanetState planet in simulation.State.Planets)
-            {
-                if (!simulation.IsPlanetKnown(PlayerFactionId, planet.Id)) continue;
-                Vector3 screen = sceneCamera.WorldToScreenPoint(planetViews[planet.Id].position);
-                if (!sceneCamera.pixelRect.Contains(screen)) continue;
-                float x = screen.x / scale;
-                float y = (Screen.height - screen.y) / scale;
-                GUI.Label(new Rect(x - 70, y + 23, 160, 23), planet.Name, bodyStyle);
-            }
-        }
 
         private void DrawBuildingLabels(float scale)
         {
@@ -895,7 +812,7 @@ namespace PlanetOne.Runtime
             {
                 if (building.Id != id) continue;
                 CancelPlacement();
-                contextOpen=true;
+                contextOpen=true;panelOpen=false;
                 showingSpacePanel=false;showingDiplomacy=false;showingMilitary=false;presentationSection=1;
                 selectedBuildingId = id;
                 showingDetails = true;
