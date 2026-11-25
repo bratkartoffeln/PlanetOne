@@ -49,4 +49,20 @@ Die Prüfungen zeigen unter anderem: Menüs ohne implizite Spielbefehle; unverä
 
 Visuell kontrollierte Belege: [Planetenbefehle für eine gewählte Flotte](BEFEHLE_1_0_16/planet-befehle.png), [Einheitenmenü bei 1280×720](BEFEHLE_1_0_16/einheiten-1280.png), [getrennte Flottenaufträge](BEFEHLE_1_0_16/flottenauftraege.png). Zusätzlich wurden Gebäude-/Produktionsbilder der finalen Läufe kontrolliert.
 
-Versionsbranch **1.0.16** baut auf 1.0.15 auf. `origin/main` war bei der abschließenden Prüfung weiterhin 1.0.12 (`ece80b4`). Git-Integration hängt vom erforderlichen Unity-Check ab; dessen Aktivierungssecrets fehlten bei den vorigen PRs. Ein lokaler erfolgreicher Build ersetzt den GitHub-Pflichtcheck nicht. Paket- und PR-Ergebnis werden gesondert ergänzt.
+## Windows-Paket und Git
+
+Implementierungscommit **`01a870ab72cd6c77cbc6e07d0c19883fba7ec205`** ist die im Paketmanifest festgehaltene Quelle. Nachfolgende Dokumentationscommits ändern den Player nicht.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/Package-Windows.ps1 -CompilerPath TestResults/Toolchains/InnoSetup-6.4.3/ISCC.exe
+powershell -ExecutionPolicy Bypass -File tools/Test-Installer.ps1
+```
+
+Beide Aufrufe bestanden. Protokolle: `TestResults/commands-package.log` und `TestResults/commands-installer.log`. ZIP und installierte Dateien sind identisch; Installation und Deinstallation in einem eigenen Projekt-Testverzeichnis erfolgten ohne Registrierung/Verknüpfungen. Der Playerstart wurde in den oben genannten GUI-Läufen geprüft, nicht ein weiteres Mal aus der Testinstallation gestartet.
+
+| Ausgabe unter `Builds/Distribution` | Bytes | SHA256 |
+|---|---:|---|
+| `PlanetOne-1.0.16-Windows-x64-Setup.exe` | 28.027.200 | `2e97004183e6a6197c8027a369e43a5ad79297d8018ae74cd68a08a44e4c7b63` |
+| `PlanetOne-1.0.16-Windows-x64.zip` | 37.573.988 | `84d3a407c60db3bc577956409c4c52da1771224a2045e04bf60ce93c729501dc` |
+
+Versionsbranch **1.0.16** baut auf 1.0.15 auf. `origin/main` war bei der abschließenden Prüfung weiterhin 1.0.12 (`ece80b4`). Git-Integration hängt vom erforderlichen Unity-Check ab; dessen Aktivierungssecrets fehlten bei den vorigen PRs. Ein lokaler erfolgreicher Build ersetzt den GitHub-Pflichtcheck nicht. Der PR hält das tatsächliche CI-/Merge-Ergebnis fest. Kein GitHub-Release wurde veröffentlicht.
