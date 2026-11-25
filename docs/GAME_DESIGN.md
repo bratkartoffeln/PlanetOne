@@ -11,6 +11,7 @@
 
 - **GUI-007:** Auswahl und Szenenwechsel sind getrennt. Ein Planetenklick zeigt bekannte Objektdaten und eine ausdrückliche Oberflächenaktion; ein Doppelklick darf diese direkt ausführen. B/C verwenden kompakte schließbare Auswahlkarten. Kopfzeile, Karten und Verwaltungsfenster dürfen keine Weltbefehle auslösen oder einen wartenden Zielbefehl verbrauchen. Ein gültiges Ziel wird durch dieselbe validierte Befehlsschnittstelle wie andere Eingaben verarbeitet.
 - **GUI-008:** Die Systemkamera kann mit Rechtsziehen vom Zentralstern weg verschoben werden; kurze Rechtsklicks und Ziehen sind getrennte Gesten. Der Hintergrund ist räumlich fest, folgt der Blickrotation und zeigt beim Verschieben eine schwache, entfernungsabhängige Parallaxe. Planeten besitzen langsame Eigenrotation. Es gibt kein dem Mauszeiger folgendes Informationspopup; Namensschilder sind Textbreite plus je ein Leerzeichen links/rechts.
+- **GUI-009:** Auch die Oberfläche lässt sich mit Rechtsziehen verschieben. Ziehen sendet keinen Einheitenbefehl; kurze Rechtsklicks senden erst beim Loslassen oder beenden einen Bau-/Zielmodus. GUI-Flächen können keine Geste starten. Planetentextur, Landschaft und Modelle entsprechen dem gespeicherten Typ; Gaswelten zeigen schwebende Basen und Fluggeräte. Pause hält die Eigenrotation an.
 
 Umsetzung und Prüfumfang: [GUI_WELTRAUM_NACHWEIS](GUI_WELTRAUM_NACHWEIS.md), historischer [GUI_GRAFIK_NACHWEIS](GUI_GRAFIK_NACHWEIS.md).
 
@@ -61,6 +62,10 @@ Die normale Aufbaukarte besitzt zwei eigene Kolonien und einen neutralen Mond. B
 **SPACE-005** Die Karte unterscheidet unbekannte, erkundete und aktuell beobachtete Gebiete. Aktuelle gegnerische Zustände sind nur mit ausreichender Sicht verfügbar. Eine letzte Sichtung zeigt ihren veralteten Kenntnisstand und wird nicht heimlich aktualisiert.
 
 **SPACE-006** Unterschiedliche Welttypen verändern Vorkommen, Baufläche und Produktionsbedingungen. Lebensfreundliche Welten begünstigen Versorgung und Bevölkerung; Gesteinswelten und Monde begünstigen passende Rohstoffgewinnung. Ein Weltname allein erzeugt keine unsichtbaren Produktionsboni.
+
+**SPACE-010** Fels-, Wüsten-, bewachsene, Ozean-, Eis- und Gaswelten sind ausdrücklich gespeicherte Weltmerkmale. Für den festen sonnenähnlichen Stern werden plausible Bahnentfernungen mit Albedo, Wasserverfügbarkeit und Atmosphäre kombiniert; Abstand allein garantiert weder flüssiges Wasser noch Flora. Planetentypen dürfen sichtbare Oberflächen nicht nur umbenennen. Ozeane besitzen gesperrte Wasserfelder; Gaswelten besitzen keinen festen Boden, keine Straßen, Bodenminen, Mauern oder Straßentore.
+
+**ECO-014** Lokale Gasstationslogistik nutzt Frachtdrohnen zwischen Plattformen. Kapazität, Lade-/Entladevorgänge, Rückflüge, Reservierungen, Abbruch, Verlust und Save/Load verwenden dieselbe Warenintegrität wie Bodentransporte. Luftkorridore brauchen keine Straßen und überfliegen Plattformen. Kolonisierung überträgt genau die Besatzung und Ladung des echten Kolonieschiffs. Keine kostenlose atmosphärische Erzquelle; Erz/Metall müssen per Raumfracht eintreffen. Bestehende Energie-/Produktionsrezepte bleiben vorläufig Spielbalancewerte.
 
 **SPACE-007** Der Startstandort jeder regulären Fraktion enthält eine erreichbare lokale Grundversorgung. Seltene Rohstoffe dürfen Expansion oder Handel erfordern; ihre Verteilung darf die ersten Transporter oder einfache Gegenwehr nicht unmöglich machen.
 

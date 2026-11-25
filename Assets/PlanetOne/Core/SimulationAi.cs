@@ -25,7 +25,7 @@ namespace PlanetOne.Core
                 if(!own && last==null && !current) continue;
                 var pos=current?GetOrbitPosition(p.Id):new SimPoint(last.X,last.Y);
                 var w=new AiWorld {Id=p.Id,OwnerId=current?p.OwnerId:last.KnownOwnerId,Current=current,X=pos.X,Y=pos.Y,
-                    Width=p.Width,Height=p.Height,Terrain=new int[p.Terrain.Length],Ore=new int[p.Terrain.Length],
+                    Kind=p.Kind,Width=p.Width,Height=p.Height,Terrain=new int[p.Terrain.Length],Ore=new int[p.Terrain.Length],
                     Roads=new bool[p.Terrain.Length],Visible=new bool[p.Terrain.Length]};
                 // Geography is public once a world is charted. Depletion and infrastructure are not.
                 Array.Copy(p.Terrain,w.Terrain,p.Terrain.Length);

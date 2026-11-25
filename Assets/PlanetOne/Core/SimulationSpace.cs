@@ -110,8 +110,10 @@ namespace PlanetOne.Core
             var headquarters = new BuildingState { Id = State.NextEntityId++, PlanetId = p.Id, Kind = BuildingKind.Headquarters, Built = true, X = x, Y = y, Health = Definitions.BuildingHealth(BuildingKind.Headquarters), Inventory = (int[])ship.Cargo.Clone() };
             p.OwnerId = ship.OwnerId; p.Population = ship.Crew; p.HousingCapacity = 16; p.WorkersTotal = (int)(p.Population * Definitions.WorkforceFraction);
             p.Buildings.Add(headquarters);
+            if(!PlanetEnvironment.Airborne(p)) {
             for (int rx = 2; rx <= 15; rx++) if (p.Terrain[6 * p.Width + rx] == 0 && rx != x) p.Roads[6 * p.Width + rx] = true;
             for (int ry = 2; ry <= 11; ry++) if (p.Terrain[ry * p.Width + x] == 0 && ry != y) p.Roads[ry * p.Width + x] = true;
+            }
             ship.Cargo = new int[6]; ship.Crew = 0; ship.Consumed = true; ship.Order = ShipOrder.Hold; ship.Status = "In Kolonie umgewandelt";
             Emit(ship.OwnerId, p.Id, ship.Id, "ColonyFounded", "Kolonie auf " + p.Name + " gegründet; Schiff und Ausrüstung wurden übertragen.");
             return null;

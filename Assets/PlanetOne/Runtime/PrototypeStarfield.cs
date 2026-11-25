@@ -66,9 +66,9 @@ namespace PlanetOne.Runtime
             spaceBackdropCamera.pixelRect=sceneCamera.pixelRect;
         }
 
-        internal static Quaternion PlanetAxialRotation(int id,double seconds)
+        internal static Quaternion PlanetAxialRotation(int id,double seconds,PlanetOne.Core.PlanetKind kind=PlanetOne.Core.PlanetKind.Temperate)
         {
-            double period=9000+id*1200;
+            double period=PlanetOne.Core.PlanetEnvironment.RotationSeconds(kind);
             float angle=id*37+(float)((seconds%period)*360/period);
             return Quaternion.Euler(0,0,id==1?12:-8)*Quaternion.Euler(0,angle,0);
         }

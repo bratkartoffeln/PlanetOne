@@ -189,6 +189,7 @@ namespace PlanetOne.Runtime
                 if(GUILayout.Button("Invasion",buttonStyle,GUILayout.Height(32))){StartInvasionFixture();menuOpen=false;}
                 if(GUILayout.Button("Verträge / Sprungtor",buttonStyle,GUILayout.Height(32))){StartDiplomacyFixture();menuOpen=false;}
                 GUILayout.EndHorizontal();
+                if(GUILayout.Button("Planetentypen / Luftfracht",buttonStyle,GUILayout.Height(32))){StartPlanetEnvironmentFixture();menuOpen=false;}
                 GUILayout.Space(10);if(GUILayout.Button("Spiel beenden",buttonStyle,GUILayout.Height(32)))Application.Quit();
             }
             GUILayout.EndArea();

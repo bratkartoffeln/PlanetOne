@@ -120,6 +120,7 @@ namespace PlanetOne.Runtime
         private void Update()
         {
             if (simulation == null) return;
+            Shader.SetGlobalFloat("_PlanetOneSeconds",(float)(simulation.State.Tick*Definitions.TickSeconds));
             HandleKeyboard();
             simulation.Advance(Time.unscaledDeltaTime);
             UpdateFoodRates();
@@ -176,10 +177,7 @@ namespace PlanetOne.Runtime
                     if(openPlanetId==0)SetSpaceFocus(spaceFocus+delta);
                     else
                     {
-                        var planet = simulation.FindPlanet(openPlanetId);
-                        surfaceFocus += delta;
-                        surfaceFocus.x = Mathf.Clamp(surfaceFocus.x, 1, planet.Width - 2);
-                        surfaceFocus.z = Mathf.Clamp(surfaceFocus.z, 1, planet.Height - 2);
+                        SetSurfaceFocus(surfaceFocus+delta);
                     }
                     UpdateCamera();
                 }
@@ -197,11 +195,10 @@ namespace PlanetOne.Runtime
             float wheel = Input.mouseScrollDelta.y;
             if (Math.Abs(wheel) > 0.001f)
             {
-                if (openPlanetId == 0) spaceZoom = Mathf.Clamp(spaceZoom - wheel * 1.2f, 6f, 60f);
-                else surfaceZoom = Mathf.Clamp(surfaceZoom - wheel * 0.5f, 3f, 14f);
+                if (openPlanetId == 0) spaceZoom = Mathf.Clamp(spaceZoom - wheel * 1.2f, 6f, 90f);
+                else surfaceZoom = Mathf.Clamp(surfaceZoom - wheel * 0.5f, 3f, 24f);
                 UpdateCamera();
             }
-            if (Input.GetMouseButtonDown(1)) CancelPlacement();
             if (openPlanetId == 0)
             {
                 if (HandleSpacePointer()) return;
@@ -287,13 +284,13 @@ namespace PlanetOne.Runtime
                 selectedPlanetId=known==null?0:known.Id;
             }
             orbitViews.Clear();
-            var star=MakePrimitive(PrimitiveType.Sphere,"Stern",spaceRoot,Vector3.zero,Vector3.one*3.8f,new Color(1,0.50f,0.055f));CreateStarCorona(star);
+            var star=MakePrimitive(PrimitiveType.Sphere,"Stern",spaceRoot,Vector3.zero,Vector3.one*8.6f,new Color(1,0.50f,0.055f));CreateStarCorona(star);
             spaceFocus=Vector3.zero;BuildSpaceBackdrop();
             float maxOrbit = 12f;
             foreach (PlanetState planet in simulation.State.Planets)
             {
                 bool isMoon = planet.ParentId > 0;
-                Transform body = CreateCelestial(planet,spaceRoot,Vector3.zero,isMoon?1.1f:planet.Id==1?3.5f:3.9f);
+                Transform body = CreateCelestial(planet,spaceRoot,Vector3.zero,planet.Kind==PlanetKind.GasGiant?7.8f:isMoon?1.1f:3.5f*(float)PlanetEnvironment.RadiusEarths(planet.Kind));
                 planetViews[planet.Id] = body;
                 var orbit = MakeLine("Umlaufbahn " + planet.Name, spaceRoot, new Color(0.13f,0.27f,0.36f), 0.018f, true);
                 orbit.positionCount = 96;
@@ -303,7 +300,7 @@ namespace PlanetOne.Runtime
                     orbit.SetPosition(i,new Vector3((float)orbitPoint.X,0,(float)orbitPoint.Y));
                 }
                 orbitViews[planet.Id] = orbit.transform;
-                if (!isMoon) maxOrbit = Mathf.Max(maxOrbit, (float)(planet.OrbitRadius*(1+planet.OrbitEccentricity)));
+                if (!isMoon && simulation.IsPlanetKnown(PlayerFactionId,planet.Id)) maxOrbit = Mathf.Max(maxOrbit, (float)(planet.OrbitRadius*(1+planet.OrbitEccentricity)));
             }
             spaceZoom = maxOrbit*0.73f+2;
             UpdateSpace();
@@ -319,7 +316,7 @@ namespace PlanetOne.Runtime
                 planetViews[planet.Id].gameObject.SetActive(known); orbitViews[planet.Id].gameObject.SetActive(known);
                 SimPoint point = simulation.GetOrbitPosition(planet.Id);
                 planetViews[planet.Id].position = new Vector3((float)point.X, 0, (float)point.Y);
-                planetViews[planet.Id].rotation=PlanetAxialRotation(planet.Id,simulation.State.Tick*Definitions.TickSeconds);
+                planetViews[planet.Id].rotation=PlanetAxialRotation(planet.Id,simulation.State.Tick*Definitions.TickSeconds,planet.Kind);
                 celestialMaterials[planet.Id].SetVector("_SunDirection",new Vector4(-(float)point.X,2,-(float)point.Y,0));
                 if (planet.ParentId > 0)
                 {
@@ -356,8 +353,9 @@ namespace PlanetOne.Runtime
             if (planetId != 0)
             {
                 PlanetState planet = simulation.FindPlanet(planetId);
-                surfaceFocus = SurfacePosition((planet.Width - 1) * 0.5, 0, (planet.Height - 1) * 0.5);
-                surfaceZoom = 3.8f;
+                var headquarters=planet.Buildings.Find(b=>b.Kind==BuildingKind.Headquarters);
+                surfaceFocus = SurfacePosition(headquarters==null?8:headquarters.X,0,headquarters==null?6:headquarters.Y);
+                surfaceZoom = 6.2f;
                 BuildSurface(planet);
             }
             UpdateCamera();
@@ -375,7 +373,8 @@ namespace PlanetOne.Runtime
                 int terrain = planet.Terrain[y * planet.Width + x];
                 if (terrain == 1)
                 {
-                    for(int i=0;i<3;i++)Rock(surfaceRoot,SurfacePosition(x+(i-1)*0.21f,0.1f,y+i*0.09f),new Vector3(0.48f,0.45f+i*0.17f,0.6f),x+y*planet.Width+i);
+                    if(planet.Kind==PlanetKind.Temperate || planet.Kind==PlanetKind.Ocean)BuildTree(surfaceRoot,SurfacePosition(x,0,y),.9f,x+y);
+                    else for(int i=0;i<3;i++)Rock(surfaceRoot,SurfacePosition(x+(i-1)*0.21f,0.1f,y+i*0.09f),new Vector3(0.48f,0.45f+i*0.17f,0.6f),x+y*planet.Width+i);
                 }
                 if (terrain == 3)
                 {
@@ -445,7 +444,7 @@ namespace PlanetOne.Runtime
                 if (!shipmentViews.TryGetValue(shipment.Id, out view))
                 {
                     view=new GameObject("Gütertransporter").transform;view.SetParent(surfaceRoot,false);
-                    BuildVehicleModel(view,UnitKind.Engineer,Amber,true);view.localScale=Vector3.one*0.42f;
+                    BuildVehicleModel(view,UnitKind.Engineer,Amber,true);view.localScale=Vector3.one*(AtmosphereSurface?.8f:.42f);
                     shipmentViews[shipment.Id] = view;
                 }
                 obsoleteShipments.Remove(shipment.Id);
@@ -480,6 +479,7 @@ namespace PlanetOne.Runtime
 
             Transform status = MakePrimitive(PrimitiveType.Cube, "Betriebsanzeige", root, new Vector3(0, 0.17f, -0.39f), new Vector3(0.36f, 0.055f, 0.055f), Cyan);
             buildingIndicators[building.Id] = status.GetComponent<Renderer>();
+            if(AtmosphereSurface)BuildFloatingPlatform(root);
             PopulateBuildingModel(root,building.Kind);
             return root;
         }
@@ -600,7 +600,7 @@ namespace PlanetOne.Runtime
             if (building.Deconstructing)
             {
                 GUILayout.Space(10);
-                GUILayout.Label("Rückgewinnung wartet hier auf Abholung. Ein erreichbarer Lagerplatz und eine Straße werden benötigt.", smallStyle);
+                GUILayout.Label(AtmosphereSurface?"Rückgewinnung wartet auf eine Frachtdrohne und freien Lagerplatz.":"Rückgewinnung wartet hier auf Abholung. Ein erreichbarer Lagerplatz und eine Straße werden benötigt.", smallStyle);
                 return;
             }
             if (building.Built && building.Kind != BuildingKind.Headquarters)
@@ -630,6 +630,9 @@ namespace PlanetOne.Runtime
         private void DrawColonySummary(PlanetState planet)
         {
             GUILayout.Label("KOLONIE", headingStyle);
+            GUILayout.Label(PlanetEnvironment.Name(planet.Kind)+" · "+planet.Width+" × "+planet.Height+" Waben",mutedStyle);
+            if(PlanetEnvironment.Airborne(planet))GUILayout.Label("Schwebende Plattformen · lokale Luftfracht · Rohstoffe per Raumhafen",smallStyle);
+            else GUILayout.Label("Klimarichtwert: "+(PlanetEnvironment.EquilibriumKelvin(simulation.State,planet)+PlanetEnvironment.GreenhouseKelvin(planet.Kind)-273.15).ToString("0")+" °C · Atmosphäre im Welttyp berücksichtigt",smallStyle);
             DrawMetric("Bevölkerung / Wohnraum", planet.Population + " / " + planet.HousingCapacity);
             DrawMetric("Arbeit belegt / verfügbar", planet.WorkersUsed + " / " + planet.WorkersTotal);
             DrawMetric("Energie belegt / erzeugt", planet.EnergyUsed + " / " + planet.EnergyProduced);
@@ -656,6 +659,7 @@ namespace PlanetOne.Runtime
 
         private void DrawBuildTools()
         {
+            var planet=simulation.FindPlanet(openPlanetId);if(planet==null)return;
             string[] categories={"Aufbau","Industrie","Militär"};
             buildCategory=GUILayout.Toolbar(buildCategory,categories,buttonStyle);
             GUILayout.Space(8);
@@ -667,12 +671,17 @@ namespace PlanetOne.Runtime
                 bool military=name.Contains("Tower") || kind==BuildingKind.Wall || kind==BuildingKind.Gate || kind==BuildingKind.Barracks || name.Contains("Vehicle") || name.Contains("Depot");
                 bool basic=kind==BuildingKind.Farm || kind==BuildingKind.SolarPlant || kind==BuildingKind.Housing || kind==BuildingKind.Warehouse;
                 if(buildCategory!=(military?2:basic?0:1))continue;
+                if(!PlanetEnvironment.AllowsBuilding(planet.Kind,kind))continue;
                 if(column%2==0)GUILayout.BeginHorizontal();
                 DrawBuildButton(kind);column++;
                 if(column%2==0)GUILayout.EndHorizontal();
             }
             if(column%2!=0)GUILayout.EndHorizontal();
             GUILayout.Space(4);
+            if(AtmosphereSurface) {
+                GUILayout.Label("LUFTFRACHT · 4 Frachtdrohnen, je 8 Waren. Automatische Flugkorridore zwischen Plattformen. Erz und Metall per Raumhafen importieren.",smallStyle);
+                return;
+            }
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Straße bauen", placingRoad ? selectedButtonStyle : buttonStyle, GUILayout.Height(30)))
             {

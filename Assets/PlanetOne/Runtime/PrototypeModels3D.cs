@@ -115,6 +115,7 @@ namespace PlanetOne.Runtime
 
         private void BuildVehicleModel(Transform root,UnitKind kind,Color faction,bool courier=false)
         {
+            if(AtmosphereSurface){BuildAirVehicle(root,kind,faction,courier);return;}
             if(!courier && (kind==UnitKind.Infantry || kind==UnitKind.AntiTank))
             {
                 HullPart(root,new Vector3(0,0.29f,0),new Vector3(0.2f,0.23f,0.14f),faction);

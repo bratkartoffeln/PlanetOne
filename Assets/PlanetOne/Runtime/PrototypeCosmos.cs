@@ -31,10 +31,12 @@ namespace PlanetOne.Runtime
                 material=new Material(Resources.Load<Shader>("CelestialSurface"));material.SetTexture("_MainTex",celestialAtlas);
                 celestialMaterials[p.Id]=material;
             }
-            material.SetFloat("_Row",p.ParentId>0?0:p.Id==1?3:p.Id==2?2:1);
+            bool legacy=p.Kind==PlanetKind.Rocky || p.Kind==PlanetKind.GasGiant;
+            material.SetTexture("_MainTex",legacy?celestialAtlas:Resources.Load<Texture2D>("PlanetBiomeAtlas"));
+            material.SetFloat("_Row",p.Kind==PlanetKind.Rocky?0:p.Kind==PlanetKind.GasGiant?1:p.Kind==PlanetKind.Desert?3:p.Kind==PlanetKind.Temperate?2:p.Kind==PlanetKind.Ocean?1:0);
             var body=MakePrimitive(PrimitiveType.Sphere,"Himmelskörper",parent,position,Vector3.one*diameter,Color.white);
             body.GetComponent<Renderer>().sharedMaterial=material;
-            if(p.ParentId<=0)
+            if(p.Kind!=PlanetKind.Rocky)
             {
                 if(atmosphereMaterial==null){atmosphereMaterial=new Material(Resources.Load<Shader>("AtmosphereGlow"));atmosphereMaterial.color=new Color(0.08f,0.35f,0.7f,0.65f);}
                 var shell=MakePrimitive(PrimitiveType.Sphere,"Atmosphäre",body,Vector3.zero,Vector3.one*1.055f,Color.white);shell.GetComponent<Renderer>().sharedMaterial=atmosphereMaterial;

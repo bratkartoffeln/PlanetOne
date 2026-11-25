@@ -28,6 +28,7 @@ namespace PlanetOne.Core
 
         private static List<GridCell> RoadPath(AiWorld w,GridCell start,GridCell goal,bool existing)
         {
+            if(w.Kind==PlanetKind.GasGiant)return PlanetEnvironment.AirPath(w.Width,w.Height,start,goal);
             int length=w.Width*w.Height;var prev=new int[length];for(int i=0;i<length;i++)prev[i]=-1;
             int s=start.Y*w.Width+start.X,g=goal.Y*w.Width+goal.X;var queue=new Queue<int>();queue.Enqueue(s);prev[s]=s;
             while(queue.Count>0)
@@ -52,6 +53,7 @@ namespace PlanetOne.Core
         }
         private static AiIntent Build(AiObservation v,AiState ai,AiWorld w,BuildingKind kind,string reason,bool essential=false)
         {
+            if(!PlanetEnvironment.AllowsBuilding(w.Kind,kind))return null;
             var cost=Definitions.Get(kind).Cost;
             int reserveMetal=essential?0:Definitions.AiMetalReserve+(ai.Profile==AiProfile.Security?8:0), reserveParts=essential?0:Definitions.AiPartsReserve;
             if(Goods(w,v,2,true)<cost[2]+reserveMetal || Goods(w,v,3,true)<cost[3]+reserveParts)return null;

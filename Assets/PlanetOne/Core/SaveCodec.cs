@@ -9,7 +9,7 @@ namespace PlanetOne.Core
     /// <summary>Portable JSON snapshot codec. File locations and atomic writes belong to the platform adapter.</summary>
     public static partial class SaveCodec
     {
-        public const int CurrentVersion = 9;
+        public const int CurrentVersion = 10;
         private const int MaximumJsonLength = 4 * 1024 * 1024;
 
         public static string ToJson(GameState state)
@@ -41,6 +41,7 @@ namespace PlanetOne.Core
                     { state.ComputerFactions = new List<AiState>(); state.AiScenario = false; state.Version = 7; }
                     if(state!=null && state.Version==7) MigrateDiplomacy(state);
                     if(state!=null && state.Version==8) MigrateOrbits(state);
+                    if(state!=null && state.Version==9) MigrateEnvironments(state);
                     Validate(state);
                     return state;
                 }
@@ -104,6 +105,7 @@ namespace PlanetOne.Core
                     "Ungültiger Energiespeicher.");
                 Goods(p.ProducedTotals); Goods(p.ConsumedTotals); Goods(p.RecoveredTotals);
                 Require(p.Width > 0 && p.Height > 0 && p.Width <= 128 && p.Height <= 128, "Ungültige Oberflächengröße.");
+                Require(Enum.IsDefined(typeof(PlanetKind),p.Kind),"Ungültiger Planetentyp.");
                 Require(Finite(p.OrbitRadius) && p.OrbitRadius > 0 && Finite(p.OrbitPeriodSeconds) &&
                     p.OrbitPeriodSeconds > 0 && Finite(p.OrbitPhase), "Ungültige Umlaufbahn.");
                 Require(Finite(p.OrbitEccentricity) && p.OrbitEccentricity >= 0 && p.OrbitEccentricity <= 0.6 &&
@@ -114,8 +116,9 @@ namespace PlanetOne.Core
                     p.Terrain.Length == p.Width * p.Height && p.OreRemaining.Length == p.Terrain.Length &&
                     p.Roads.Length == p.Terrain.Length, "Unvollständiges Gelände.");
                 for (int i = 0; i < p.Terrain.Length; i++)
-                    Require(p.Terrain[i] >= 0 && p.Terrain[i] <= 3 && p.OreRemaining[i] >= 0 &&
-                        !(p.Roads[i] && p.Terrain[i] == 1), "Ungültiger Geländezustand.");
+                    Require(p.Terrain[i] >= 0 && p.Terrain[i] <= 4 && p.OreRemaining[i] >= 0 &&
+                        !(p.Roads[i] && PlanetEnvironment.BlocksGround(p.Terrain[i])) &&
+                        (!PlanetEnvironment.Airborne(p) || (!p.Roads[i] && p.Terrain[i]==0 && p.OreRemaining[i]==0)), "Ungültiger Geländezustand.");
                 Require(p.Buildings != null && p.Deliveries != null && p.Shipments != null, "Koloniezustand fehlt.");
                 Require(p.Buildings.Count <= p.Width * p.Height && p.Shipments.Count <= Definitions.CouriersPerColony,
                     "Zu viele Gebäude oder Transporte.");
@@ -128,6 +131,7 @@ namespace PlanetOne.Core
                     Require(b.X >= 0 && b.Y >= 0 && b.X < p.Width && b.Y < p.Height &&
                         cells.Add(b.Y * p.Width + b.X), "Überlappende oder ungültige Gebäude.");
                     Require(Enum.IsDefined(typeof(BuildingKind), b.Kind), "Unbekannter Gebäudetyp.");
+                    Require(PlanetEnvironment.AllowsBuilding(p.Kind,b.Kind),"Bodengebäude auf einem Gasriesen.");
                     Require(b.Priority >= 0 && b.Priority <= 2 && b.CapacityOverride >= 0 && b.CapacityOverride <= 4096 &&
                         b.ReservedReturnSpace >= 0 && b.LegacyCapacityAllowance >= 0 && b.LegacyCapacityAllowance <= 4096 &&
                         Finite(b.EnergyStored) && b.EnergyStored >= 0 &&

@@ -1,5 +1,13 @@
 # Entscheidungen und Plattformstrategie
 
+## Planetentypen und Oberflächen (25. November 2026)
+
+- **D-032, Vorgabe:** Realistisch recherchierte Planeten mit Wüsten, Flora, viel Wasser, Eis und Gasatmosphären. Sternabstand, Planetengröße und Textur müssen zum Typ passen. Auf Gasriesen schweben Stationen, ohne Straßen oder Radfahrzeuge. Größere, passend texturierte Landschaften ohne erzwungene Talform; Oberflächen mit Rechtsziehen verschieben und Eigenrotation deutlicher zeigen.
+- **T-045, entschieden:** Sechs gespeicherte Typen (`Rocky`, `Desert`, `Temperate`, `Ocean`, `Ice`, `GasGiant`). Ein sonnenähnlicher Stern, 10 Bahn-Spieleinheiten pro AE für Planeten und ein Albedo-/Atmosphärenmodell bestimmen plausible feste Startkonfigurationen. Wüste bezeichnet ein trockenes Biom und kann auch kalt sein. Bewuchs ist eine Spielannahme, kein Nachweis außerirdischen Lebens. Sichtbare Radien und Mondabstände sind für Lesbarkeit gesondert skaliert. [Weltentabelle und NASA-Quellen](PLANETENTYPEN_NACHWEIS.md).
+- **T-046, entschieden:** Neue Oberflächen haben 28 × 22 Waben. Wasser blockiert Bauen und Bodeneinheiten; Inseln bleiben bebaubar. Gaswelten haben weder Erzvorkommen noch Bodenminen, Mauern, Tore oder Straßen. Geschlossene Gebäude auf aktiv stabilisierten Plattformen; vier reale Frachtdrohnen mit acht Waren, derselben Reservierung, Ladezeit, Geschwindigkeit und Rückführung wie bisherige Transporte. Truppen verwenden in diesem Kolonietheater Flugkapseln/Schwebefahrzeuge mit bestehenden Kampfwerten. Die Stationstechnik ist ausdrücklich Science-Fiction; keine Behauptung nachgewiesener Gasriesenbesiedlung.
+- **T-047, entschieden:** Terrain auf sichtbarer Ebene 0, Hintergrund weiter auf Ebene 29; zwei neue Texturatlanten. Typabhängige Höhenfelder und Flora, durchgängige Küstengeometrie. Kameragesten ab sechs Pixeln trennen Ziehen von einem Befehl beim Loslassen. Eigenrotation dauert je nach Typ 240 bis 1.200 Simulationssekunden; Umlaufzeiten bleiben Keplerbahnen aus T-043. Savegame-Schema 10 ergänzt ausschließlich den Welttyp bei Altdaten, ohne Karten, Güter, Aufträge oder Bahnen umzubauen.
+
+
 ## Freie Systemkamera und Keplerbahnen (24. November 2026)
 
 - **D-031, Vorgabe:** Hintergrund dreht mit der Ansicht, bewegt sich beim Verschieben nur leicht und zeigt unterschiedliche Sternentfernungen. Systemansicht mit gedrückter rechter Maustaste verschieben; Zentralstern muss nicht in der Mitte bleiben. Sehr langsame planetare Eigenrotation, langsamere Umläufe nach Keplers Gesetzen, kein dauerhaftes Mauszeiger-Popup und knapp textbreite Planetenbeschriftungen.

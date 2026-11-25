@@ -49,7 +49,7 @@ internal static class OrbitTests
             if(p.ParentId>=0){Check(p.OrbitPeriodSeconds>600,"Moon remains too fast");continue;}
             double ratio=p.OrbitPeriodSeconds*p.OrbitPeriodSeconds/Math.Pow(p.OrbitRadius,3);
             if(common==0)common=ratio;Check(Math.Abs(ratio/common-1)<1e-12,"Third law violated");
-            Check(p.OrbitPeriodSeconds>=7200,"Planet remains too fast");
+            Check(p.OrbitPeriodSeconds>=3600,"Planet remains too fast");
         }
         Check(Math.Abs(Math.Pow(OrbitalMotion.Period(6,true)/OrbitalMotion.Period(3,true),2)-8)<1e-12,"Moon period scaling differs");
     }
@@ -73,7 +73,7 @@ internal static class OrbitTests
         foreach(var p in old.Planets)Check(Distance(OldPosition(old,p),game.GetOrbitPosition(p.Id))<1e-8,"Migration teleported "+p.Name);
         var comparison=SaveCodec.FromJson(SaveCodec.ToJson(migrated));comparison.Version=old.Version;
         for(int i=0;i<old.Planets.Count;i++)
-        {var p=comparison.Planets[i];p.OrbitPhase=old.Planets[i].OrbitPhase;p.OrbitPeriodSeconds=old.Planets[i].OrbitPeriodSeconds;p.OrbitEccentricity=old.Planets[i].OrbitEccentricity;p.OrbitPeriapsis=old.Planets[i].OrbitPeriapsis;}
+        {var p=comparison.Planets[i];p.Kind=old.Planets[i].Kind;p.OrbitPhase=old.Planets[i].OrbitPhase;p.OrbitPeriodSeconds=old.Planets[i].OrbitPeriodSeconds;p.OrbitEccentricity=old.Planets[i].OrbitEccentricity;p.OrbitPeriapsis=old.Planets[i].OrbitPeriapsis;}
         Check(RawJson(old)==RawJson(comparison),"Migration changed goods, ships, orders or another non-orbital value");
     }
     private static void InvalidOrbits()

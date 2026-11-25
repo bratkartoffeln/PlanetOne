@@ -55,6 +55,7 @@ namespace PlanetOne.Core
     // Detached knowledge passed to the planner. No GameState/GameSimulation reference.
     public sealed class AiWorld
     {
+        public PlanetKind Kind;
         public int Id, OwnerId, Width, Height, Population, Housing, Workers, WorkersUsed, Energy, EnergyDemand;
         public bool Current;
         public double X, Y;
