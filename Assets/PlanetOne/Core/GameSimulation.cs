@@ -7,6 +7,7 @@ namespace PlanetOne.Core
     public sealed partial class GameSimulation
     {
         public GameState State { get; private set; }
+        public SimulationMetrics Metrics {get;set;}
 
         public GameSimulation(GameState state)
         {
@@ -141,6 +142,7 @@ namespace PlanetOne.Core
 
         private void TickOnce()
         {
+            long measuredStart=Metrics==null?0:System.Diagnostics.Stopwatch.GetTimestamp(),mark=measuredStart;
             foreach (var command in new List<SimCommand>(State.PendingCommands))
             {
                 if (State.ProcessedCommandIds.Contains(command.Id)) continue;
@@ -150,22 +152,30 @@ namespace PlanetOne.Core
             State.PendingCommands.Clear();
             TickDiplomacy();
             TickFactionExit();
+            if(Metrics!=null)mark=Metrics.Record(SimulationStage.Commands,mark);
             foreach (var planet in State.Planets)
             {
                 TickEconomy(planet);
+                if(Metrics!=null)mark=Metrics.Record(SimulationStage.Economy,mark);
                 PlanDeliveries(planet);
                 DispatchDeliveries(planet);
                 TickShipments(planet);
                 FinishDeconstruction(planet);
+                if(Metrics!=null)mark=Metrics.Record(SimulationStage.Logistics,mark);
                 TickMilitary(planet);
+                if(Metrics!=null)mark=Metrics.Record(SimulationStage.Units,mark);
             }
             TickSpace();
+            if(Metrics!=null)mark=Metrics.Record(SimulationStage.Space,mark);
             TickInvasion();
             TickJointOperations();
+            if(Metrics!=null)mark=Metrics.Record(SimulationStage.Invasion,mark);
             TickAi();
+            if(Metrics!=null)mark=Metrics.Record(SimulationStage.Ai,mark);
             TickFactionExit();
             TickGateProjects();
             State.Tick++;
+            if(Metrics!=null){Metrics.Record(SimulationStage.Victory,mark);Metrics.End(measuredStart);}
         }
 
         public PlanetState FindPlanet(int planetId) { return State.Planets.Find(p => p.Id == planetId); }
@@ -219,10 +229,11 @@ namespace PlanetOne.Core
             var definition = Definitions.Get(kind);
             for (int r = 0; r < 6; r++)
             {
+                if(definition.Cost[r]==0)continue;
                 int available = 0;
                 foreach (var b in p.Buildings)
-                    if (BuildingOwner(p,b)==factionId && b.Built && !b.Deconstructing && IsStorage(b)) available += b.Inventory[r] - b.ReservedOutgoing[r];
-                if (available < definition.Cost[r]) return "Nicht genug " + Definitions.ResourceName((ResourceKind)r) + " in lokalen Lagern.";
+                    if (BuildingOwner(p,b)==factionId && b.Built && !b.Deconstructing && IsStorage(b) && FindPath(p,b,proposedSite)!=null) available += b.Inventory[r] - b.ReservedOutgoing[r];
+                if (available < definition.Cost[r]) return "Nicht genug " + Definitions.ResourceName((ResourceKind)r) + " in erreichbaren lokalen Lagern. Vorräte und Straßenverbindung prüfen.";
             }
             return null;
         }
@@ -316,7 +327,7 @@ namespace PlanetOne.Core
                 int remaining = definition.Cost[r];
                 foreach (var source in p.Buildings)
                 {
-                    if (BuildingOwner(p,source)!=command.IssuerId || !source.Built || source.Deconstructing || !IsStorage(source) || remaining == 0) continue;
+                    if (BuildingOwner(p,source)!=command.IssuerId || !source.Built || source.Deconstructing || !IsStorage(source) || remaining == 0 || FindPath(p,source,building)==null) continue;
                     int amount = Math.Min(remaining, source.Inventory[r] - source.ReservedOutgoing[r]);
                     if (amount <= 0) continue;
                     ReserveDelivery(p, source, building, r, amount);

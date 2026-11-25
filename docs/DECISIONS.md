@@ -193,6 +193,13 @@ Bei Einrichtung von T-001 die aktuelle offizielle Dokumentation prüfen und die 
 
 ## Vorgehen bei späteren Änderungen
 
+### M8 – Referenzprofil und Datensicherheit (25. November 2026)
+
+- **D-035, Arbeitsentscheidung:** F05 startet mit Aster, Nereid und Helios sowie den unbesiedelten Kristallmonden Khepri und Selene. Ein Spieler und zwei unabhängige KI beginnen friedlich, jeweils mit einem Kommandozentrum, 16 Einwohnern, 60 Nahrung, 100 Metall und 40 Bauteilen. Keine vorbereiteten Flotten, Forschungsfreigaben oder laufenden Ressourcengeschenke. Ein zusätzlicher Szenariomodus benötigt keine neue Speicherformatversion; die vorhandenen Welten, Fraktionen und Diplomatieregeln beschreiben ihn vollständig.
+- **T-052, vor der Messung festgelegtes Arbeitsbudget:** Windows x64, 1440×900 und zusätzlich 1280×720; F05 mit fünf Oberflächen à 28×22 Waben und zwei KI. Gemessen werden Startzustand und tatsächlich aufgebauter Endzustand. Ziel: Simulation einschließlich KI und Logistik p95 unter 20 ms je 50-ms-Spielschritt, Darstellung p95 unter 33,3 ms, Player-Arbeitsspeicher unter 2 GiB. Komponentenzeit und konkrete Objektzahlen werden separat protokolliert. Das ist eine Abnahme dieses Prototyps auf der dokumentierten Hardware, keine Zusage für beliebig große Flotten oder andere Rechner. Keine Optimierung ohne Messbefund.
+- **T-053, Dateiadapter:** Speichern validiert zuerst, schreibt eine neue Datei im gleichen Verzeichnis, synchronisiert sie und ersetzt den Spielstand atomar. Die letzte gültige Datei bleibt als `.bak` erhalten. Ein beschädigter Hauptstand überschreibt diese Sicherung nicht. Wiederherstellung erfolgt ausdrücklich über „Sicherung laden“; kein stiller Wechsel auf einen älteren Stand. Nicht unterstützte atomare Ersetzung scheitert mit einer Meldung, ohne den alten Stand in-place zu überschreiben.
+- **T-054, Bediennachweis:** Entsprechend der Nutzeranweisung ausschließlich automatisierte Controller-/Eingabeprüfungen und visuelle Renderkontrolle auf einem isolierten Windows-Desktop; kein Screenreader, Computer-Use oder Umschalten des Arbeitsdesktops. Subjektive Spielspaßbewertung und physischer Maus-/Tastaturtest bleiben getrennt ausgewiesen.
+
 Eine Entscheidung mit Datum, Anlass, gewählter Variante, verworfenen relevanten Alternativen und Folgen ergänzen. Betroffene Regeln, Daten, Pakete und Prüfungen verlinken. Eine technische Empfehlung wird erst durch einen tatsächlichen Entscheidungsauftrag oder eine Nutzerauswahl zur Festlegung.
 
 Kosten, Reichweiten, Produktionsraten, Schildstärken und Zeitspannen werden durch Spieltests abgestimmt. Sie gehören in veränderbare Definitionsdaten; Änderungen dieser Zahlen allein erfordern keine neue Engineentscheidung.

@@ -44,6 +44,8 @@ namespace PlanetOne.Core
                     foreach(var s in v.World.Ships)if(s.Freight!=null&&s.Freight.TreatyId==t.Id&&s.Freight.PaymentLeg==payment)remaining-=s.Freight.Amount;
                     var ship=v.World.Ships.Find(s=>s.OwnerId==own&&s.Kind==ShipKind.Freighter&&s.Freight==null&&Array.TrueForAll(s.Cargo,n=>n==0));
                     if(remaining>0&&ship!=null)return Order("Handel erfüllen","Realen freien Frachter für vereinbarte Lieferung einsetzen",new SimCommand{Kind=CommandKind.DispatchTrade,TargetId=t.Id,ActorId=ship.Id});
+                    var finishing=v.World.Ships.Find(s=>s.Id==v.World.TradeFreighterId&&s.AutoSupply);
+                    if(remaining>0&&finishing!=null)return Order("Frachter für Vertrag freistellen","Laufende Fracht abschließen; anschließend zugesagte Gegenleistung liefern",new SimCommand {Kind=CommandKind.SetAutoSupply,ActorId=finishing.Id,PlanetId=finishing.TargetPlanetId,BoolValue=false});
                 }
                 if(t.Terms.Kind==TreatyKind.JointOperation&&t.OperationPhase<OperationPhase.Executing)
                 {

@@ -54,6 +54,14 @@ namespace PlanetOne.Core
             foreach(var s in State.Ships)
                 if(!s.Destroyed && !s.Consumed && (s.OwnerId==faction || IsShipVisible(faction,s)))
                     view.Ships.Add(s.OwnerId==faction?CopyAiValue(s):new ShipState {Id=s.Id,OwnerId=s.OwnerId,Kind=s.Kind,X=s.X,Y=s.Y,Health=s.Health});
+            foreach(var treaty in State.Treaties)if(TreatyLive(treaty)&&treaty.Terms.Kind==TreatyKind.Trade&&treaty.Terms.Members.Contains(faction))
+            {
+                bool payment=treaty.Proposer!=faction;int remaining=payment?treaty.Terms.PaymentAmount-treaty.PaymentDelivered:treaty.Terms.Amount-treaty.Delivered;
+                foreach(var ship in view.Ships)if(ship.Freight!=null&&ship.Freight.TreatyId==treaty.Id&&ship.Freight.PaymentLeg==payment)remaining-=ship.Freight.Amount;
+                if(remaining<=0)continue;
+                var available=view.Ships.Find(s=>s.OwnerId==faction&&s.Kind==ShipKind.Freighter&&s.Mining==null&&!ShipPledged(s.Id)&&(s.Freight==null||s.Freight.TreatyId==0));
+                if(available!=null){view.TradeFreighterId=available.Id;break;}
+            }
             return view;
         }
 

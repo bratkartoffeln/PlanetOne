@@ -55,7 +55,7 @@ namespace PlanetOne.Core
             {
                 if(s.Kind==ShipKind.LandingTransport&&!ai.Operation.Ships.Contains(s.Id)&&s.TransportPhase==TransportPhase.Landed)
                     return Order("Träger wieder bereitstellen","Nach abgeschlossener Operation leeren Träger regulär starten",new SimCommand {Kind=CommandKind.LaunchTransport,ActorId=s.Id,PlanetId=s.TargetPlanetId});
-                if(s.Kind==ShipKind.Freighter&&!s.AutoSupply)return Order("Frachtkapazität einsetzen","Eigener Frachter bedient nur tatsächliche Hafenbedarfe",new SimCommand {Kind=CommandKind.SetAutoSupply,ActorId=s.Id,PlanetId=s.TargetPlanetId,BoolValue=true});
+                if(s.Kind==ShipKind.Freighter&&!s.AutoSupply&&s.Id!=v.TradeFreighterId)return Order("Frachtkapazität einsetzen","Eigener Frachter bedient nur tatsächliche Hafenbedarfe",new SimCommand {Kind=CommandKind.SetAutoSupply,ActorId=s.Id,PlanetId=s.TargetPlanetId,BoolValue=true});
                 if(s.Kind==ShipKind.ColonyShip)
                 {
                     var target=v.Worlds.Find(w=>w.OwnerId==0);if(target==null)continue;

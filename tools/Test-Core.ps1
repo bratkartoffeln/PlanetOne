@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$CompilerPath)
+param([string]$CompilerPath,[ValidateSet('All','Reference','Combat')][string]$Suite='All')
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -20,6 +20,7 @@ if (-not $CompilerPath -or -not (Test-Path -LiteralPath $CompilerPath)) {
 }
 
 $coreFiles = @(Get-ChildItem -LiteralPath (Join-Path $projectRoot 'Assets\PlanetOne\Core') -Filter *.cs -File -Recurse)
+$platformFiles = @(Get-ChildItem -LiteralPath (Join-Path $projectRoot 'Assets\PlanetOne\Platform') -Filter *.cs -File -Recurse)
 $testFiles = @(Get-ChildItem -LiteralPath (Join-Path $projectRoot 'Tests\Core') -Filter *.cs -File -Recurse)
 if ($coreFiles.Count -eq 0 -or $testFiles.Count -eq 0) { throw 'Simulationsquellen oder Kernpruefungen fehlen.' }
 $testExecutable = Join-Path $outputDirectory 'PlanetOne.Core.Tests.exe'
@@ -27,13 +28,17 @@ $compilerArguments = @(
     '/nologo', '/langversion:7.3', '/target:exe', '/platform:anycpu', '/warn:4', '/warnaserror+',
     '/reference:System.Runtime.Serialization.dll', '/reference:System.Xml.dll',
     ('/out:' + $testExecutable)
-) + @($coreFiles.FullName) + @($testFiles.FullName)
+) + @($coreFiles.FullName) + @($platformFiles.FullName) + @($testFiles.FullName)
 
 Write-Output ('Compiler: ' + $CompilerPath)
 & $CompilerPath @compilerArguments
 if ($LASTEXITCODE -ne 0) { throw "Core-Kompilierung fehlgeschlagen: Exitcode $LASTEXITCODE" }
 
-& $testExecutable 2>&1 | Tee-Object -FilePath (Join-Path $outputDirectory 'results.txt')
+$testArguments=@()
+if($Suite -eq 'Reference') { $testArguments=@('--reference') }
+if($Suite -eq 'Combat') { $testArguments=@('--combat') }
+$resultName=if($Suite -eq 'All'){'results.txt'}else{'results-'+$Suite+'.txt'}
+& $testExecutable @testArguments 2>&1 | Tee-Object -FilePath (Join-Path $outputDirectory $resultName)
 $testExitCode = $LASTEXITCODE
 if ($testExitCode -ne 0) { throw "Core-Pruefungen fehlgeschlagen: Exitcode $testExitCode" }
-Write-Output ('Pruefprotokoll: ' + (Join-Path $outputDirectory 'results.txt'))
+Write-Output ('Pruefprotokoll: ' + (Join-Path $outputDirectory $resultName))

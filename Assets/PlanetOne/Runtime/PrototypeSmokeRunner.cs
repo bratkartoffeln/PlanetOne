@@ -621,6 +621,67 @@ namespace PlanetOne.Runtime
                 Require(controller.SelectPlanet(1) && !controller.StarSelected,"Planet selection replaces star selection: "+layout);
             }
             Require(SaveCodec.ToJson(mining.State)==beforeMapInspection,"Belt zoom and star information never mutate resources orders or time");
+
+            controller.StartReferenceScenario();controller.SetSimulationPaused(true);
+            var reference=controller.Simulation;
+            Require(reference.State.Planets.Count==5 && reference.State.ComputerFactions.Count==2 && reference.State.Ships.Count==0,"F05 starts three ordinary colonies and two independent AI without free fleets");
+            Require(controller.SaveGame(),"Reference game saves through the real filesystem adapter");
+            string referenceJson=SaveCodec.ToJson(reference.State);
+            Require(controller.SaveGame(),"Second save creates the previous valid snapshot");
+            File.WriteAllText(controller.ActiveSavePath,"{damaged");
+            Require(!controller.LoadGame() && ReferenceEquals(reference,controller.Simulation) && SaveCodec.ToJson(reference.State)==referenceJson,"Corrupt file leaves the complete running simulation unchanged");
+            Require(controller.LoadBackupGame() && SaveCodec.ToJson(controller.Simulation.State)==referenceJson,"Explicit backup action restores the previous valid reference game");
+            Require(controller.SaveGame(),"Saving after recovery keeps the last valid backup");
+            Require(SaveCodec.ToJson(PlanetOne.Platform.SnapshotStore.Load(controller.ActiveSavePath+".bak"))==referenceJson,"Corrupt primary never overwrites the valid backup");
+            controller.StartSpaceFixture();controller.SetView(2);
+            Require(controller.OpenPlanetId==2 && !reference.IsPlanetKnown(1,2),"Fixture views a world that is unknown in the saved reference game");
+            Require(controller.LoadGame() && controller.OpenPlanetId==0,"Loading an unknown former surface returns to the system without leaking old terrain");
+            Require(SaveCodec.ToJson(controller.Simulation.State)==referenceJson,"View fallback does not change saved knowledge or simulation state");
+            controller.SetView(1);yield return null;yield return Capture("reference-start-surface.png");Require(captureFailure==null,captureFailure??"Reference colony captured");
+            controller.SetView(0);yield return null;yield return Capture("reference-start-system.png");Require(captureFailure==null,captureFailure??"Reference system captured");
+            controller.SetSettingsVisible(true);
+            Require(!controller.HandleShortcut(KeyCode.Space)&&controller.Simulation.State.Paused,"Settings consume pause shortcuts without changing the simulation");
+            Require(!controller.HandleShortcut(KeyCode.F9),"Settings block accidental load shortcuts");
+            Require(controller.HandleShortcut(KeyCode.Escape),"Escape dismisses the active modal through the keyboard adapter");
+            Require(controller.HandleShortcut(KeyCode.F5),"F5 dispatches the same validated save action as the menu");
+            string keyboardSave=SaveCodec.ToJson(controller.Simulation.State);
+            Require(controller.HandleShortcut(KeyCode.Space)&&!controller.Simulation.State.Paused,"Space resumes through the real shortcut dispatcher");
+            controller.Simulation.Step(5);controller.HandleShortcut(KeyCode.Space);
+            Require(controller.HandleShortcut(KeyCode.F9)&&SaveCodec.ToJson(controller.Simulation.State)==keyboardSave,"F9 restores the exact saved state after keyboard pause and continuation");
+            controller.SetView(1);var shortcutWorld=controller.Simulation;
+            Require(controller.HandleShortcut(KeyCode.Tab)&&controller.OpenPlanetId==0&&ReferenceEquals(shortcutWorld,controller.Simulation),"Tab returns to the system without replacing the simulation");
+            string referenceFile=null;var arguments=Environment.GetCommandLineArgs();
+            for(int i=0;i<arguments.Length-1;i++)if(arguments[i]=="-referenceSave")referenceFile=arguments[i+1];
+            if(referenceFile!=null)
+            {
+                var startup=GameSimulation.CreateReferenceScenario(8026);startup.Metrics=new SimulationMetrics();startup.Step(5000);
+                File.WriteAllText(Path.Combine(outputDirectory,"startup-performance.csv"),startup.Metrics.Csv());
+                Require(SimulationMetrics.Percentile(startup.Metrics.TickMilliseconds,.95)<20,"Reference startup simulation p95 stays within 20 ms during the first 5000 ticks");
+                PlanetOne.Platform.SnapshotStore.Save(controller.ActiveSavePath,PlanetOne.Platform.SnapshotStore.Load(referenceFile));
+                Require(controller.LoadGame(),"Exported Windows player loads the paid end-to-end reference outcome");
+                var measured=controller.Simulation;controller.SetSimulationPaused(false);
+                measured.Step(200);measured.Metrics=new SimulationMetrics();measured.Step(5000);
+                var metrics=measured.Metrics;measured.Metrics=null;controller.SetSimulationPaused(true);
+                File.WriteAllText(Path.Combine(outputDirectory,"simulation-performance.csv"),metrics.Csv());
+                int buildings=0,units=0,couriers=0;foreach(var world in measured.State.Planets){buildings+=world.Buildings.Count;units+=world.Units.Count;couriers+=world.Shipments.Count;}
+                string hardware="CPU: "+SystemInfo.processorType+"\nRAM MiB: "+SystemInfo.systemMemorySize+"\nGPU: "+SystemInfo.graphicsDeviceName+"\nGPU MiB: "+SystemInfo.graphicsMemorySize+"\nAPI: "+SystemInfo.graphicsDeviceVersion+"\nOS: "+SystemInfo.operatingSystem+"\nResolution: "+Screen.width+"x"+Screen.height+"\nWorlds: "+measured.State.Planets.Count+"\nBuildings: "+buildings+"\nShips: "+measured.State.Ships.Count+"\nUnits: "+units+"\nCouriers: "+couriers+"\nAI: "+measured.State.ComputerFactions.Count+"\nTarget FPS: "+Application.targetFrameRate+"\nVSync: "+QualitySettings.vSyncCount;
+                File.WriteAllText(Path.Combine(outputDirectory,"performance-hardware.txt"),hardware);
+                Require(SimulationMetrics.Percentile(metrics.TickMilliseconds,.95)<20,"Reference simulation p95 stays within the declared 20 ms per tick budget");
+                foreach(int view in new[]{0,1})
+                {
+                    controller.SetView(view);for(int i=0;i<60;i++)yield return null;
+                    var frames=new List<double>();for(int i=0;i<360;i++){yield return null;frames.Add(Time.unscaledDeltaTime*1000);}
+                    double p95=SimulationMetrics.Percentile(frames,.95);
+                    File.AppendAllText(Path.Combine(outputDirectory,"render-performance.csv"),(view==0?"system":"surface")+","+frames.Count+","+p95.ToString("F4",System.Globalization.CultureInfo.InvariantCulture)+"\n");
+                    Require(p95<33.3,"Reference "+(view==0?"system":"surface")+" render frame p95 stays within 33.3 ms (simulation measured separately)");
+                    yield return Capture(view==0?"reference-completed-system.png":"reference-completed-surface.png");Require(captureFailure==null,captureFailure??"Completed reference view captured");
+                }
+                long memory=PlanetOne.Platform.ProcessMemory.WorkingSetBytes();
+                File.AppendAllText(Path.Combine(outputDirectory,"performance-hardware.txt"),"\nWorking set bytes: "+memory);
+                Require(memory>0&&memory<2L*1024*1024*1024,"Reference player working set stays below the declared 2 GiB budget");
+                Require(measured.State.Winners.Contains(1)&&controller.ScenarioOutcomeText.Contains("Koloniekonsortium"),"Completed reference outcome names the player in the persistent result display");
+                if(measured.State.Winners.Contains(3))Require(controller.ScenarioOutcomeText.Contains("Helios-Verbund"),"Shared victory names the actual coalition partner in the result display");
+            }
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)

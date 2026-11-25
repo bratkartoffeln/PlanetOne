@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$PlayerPath,[ValidateRange(1024,3840)][int]$Width=1440,[ValidateRange(720,2160)][int]$Height=900)
+param([string]$ReferenceSave,[string]$PlayerPath,[ValidateRange(1024,3840)][int]$Width=1440,[ValidateRange(720,2160)][int]$Height=900)
 $ErrorActionPreference='Stop'
 $projectRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if(-not $PlayerPath){$PlayerPath=Join-Path $projectRoot 'Builds\Windows\PlanetOne.exe'}
@@ -44,6 +44,7 @@ public static class PlanetOneIsolatedDesktop {
 }
 '@
 $arguments='-planetOneSmoke -screen-width '+$Width+' -screen-height '+$Height+' -screen-fullscreen 0 -force-d3d11 -smokeOutput "'+$outputDirectory+'" -logFile "'+(Join-Path $outputDirectory 'player.log')+'"'
+if($ReferenceSave){$referencePath=(Resolve-Path -LiteralPath $ReferenceSave).Path;$arguments+=' -referenceSave "'+$referencePath+'"'}
 try {
  [PlanetOneIsolatedDesktop]::Start($PlayerPath,$arguments,$projectRoot)
  $finished=$false

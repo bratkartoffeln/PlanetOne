@@ -154,16 +154,25 @@ namespace PlanetOne.Runtime
             if(panelTexture!=null)Destroy(panelTexture);if(buttonTexture!=null)Destroy(buttonTexture);if(hoverTexture!=null)Destroy(hoverTexture);
         }
 
+        public bool HandleShortcut(KeyCode key)
+        {
+            if (key==KeyCode.Escape) { if(settingsOpen) settingsOpen=false; else if(menuOpen) menuOpen=false; else if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue || spaceMoveTargetMode) {CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;} else if(panelOpen){panelOpen=false;contextOpen=true;} else if(SelectionCardVisible)contextOpen=false; else menuOpen=true; selectionStart=null; shipSelectionStart=null; return true; }
+            if(settingsOpen || menuOpen)return false;
+            if(key==KeyCode.Space){TogglePause();return true;}
+            if(key==KeyCode.F5)return SaveGame();
+            if(key==KeyCode.F9)return LoadGame();
+            if(key==KeyCode.Tab && openPlanetId!=0){SetView(0);return true;}
+            return false;
+        }
         private void HandleKeyboard()
         {
-            if (Input.GetKeyDown(KeyCode.Escape)) { if(settingsOpen) settingsOpen=false; else if(menuOpen) menuOpen=false; else if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue || spaceMoveTargetMode) {CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;} else if(panelOpen){panelOpen=false;contextOpen=true;} else if(SelectionCardVisible)contextOpen=false; else menuOpen=true; selectionStart=null; shipSelectionStart=null; return; }
-            if(settingsOpen || menuOpen) return;
+            if(Input.GetKeyDown(KeyCode.Escape)){HandleShortcut(KeyCode.Escape);return;}
+            if(settingsOpen || menuOpen)return;
             HandleOrbitCamera();
-            if (Input.GetKeyDown(KeyCode.Space)) TogglePause();
-            if (Input.GetKeyDown(KeyCode.F5)) SaveGame();
-            if (Input.GetKeyDown(KeyCode.F9)) LoadGame();
-            if (Input.GetKeyDown(KeyCode.Escape)) CancelPlacement();
-            if (Input.GetKeyDown(KeyCode.Tab) && openPlanetId != 0) SetView(0);
+            if(Input.GetKeyDown(KeyCode.Space))HandleShortcut(KeyCode.Space);
+            if(Input.GetKeyDown(KeyCode.F5))HandleShortcut(KeyCode.F5);
+            if(Input.GetKeyDown(KeyCode.F9))HandleShortcut(KeyCode.F9);
+            if(Input.GetKeyDown(KeyCode.Tab))HandleShortcut(KeyCode.Tab);
             HandleMilitaryKeyboard();
             if (openPlanetId != 0 || !spacePanCaptured)
             {
@@ -761,55 +770,31 @@ namespace PlanetOne.Runtime
         {
             try
             {
-                string savePath = ActiveSavePath;
-                Directory.CreateDirectory(Path.GetDirectoryName(savePath));
-                string json = SaveCodec.ToJson(simulation.State);
-                SaveCodec.FromJson(json); // Validate before replacing the last usable file.
-                string temporary = savePath + ".tmp";
-                File.WriteAllText(temporary, json);
-                if (File.Exists(savePath))
-                {
-                    try { File.Replace(temporary, savePath, savePath + ".bak"); }
-                    catch (PlatformNotSupportedException)
-                    {
-                        File.Copy(savePath, savePath + ".bak", true);
-                        File.Copy(temporary, savePath, true);
-                        File.Delete(temporary);
-                    }
-                }
-                else File.Move(temporary, savePath);
-                Notify("Spiel gespeichert. F9 lädt diesen Stand.");
-                return true;
+                PlanetOne.Platform.SnapshotStore.Save(ActiveSavePath,simulation.State);
+                Notify("Spiel gespeichert. F9 lädt diesen Stand.");return true;
             }
-            catch (Exception exception)
-            {
-                Notify("Speichern fehlgeschlagen: " + exception.Message);
-                Debug.LogException(exception);
-                return false;
-            }
+            catch(Exception error){Notify("Speichern fehlgeschlagen: "+error.Message);Debug.LogWarning("Speichern: "+error.Message);return false;}
         }
 
-        public bool LoadGame()
+        public bool LoadGame(){return LoadSnapshot(false);}
+        public bool LoadBackupGame(){return LoadSnapshot(true);}
+        private bool LoadSnapshot(bool backup)
         {
+            GameSimulation previous=simulation;int previousView=openPlanetId;bool replaced=false;
             try
             {
-                if (!File.Exists(ActiveSavePath)) { Notify("Noch kein Spielstand vorhanden. Mit F5 speichern."); return false; }
-                GameState restored = SaveCodec.FromJson(File.ReadAllText(ActiveSavePath));
-                var replacement = new GameSimulation(restored);
-                int previousView = openPlanetId;
-                simulation = replacement;
-                foodRates.Clear();
-                lastSimulationMessage = simulation.State.LastMessage;
+                string path=ActiveSavePath+(backup?".bak":"");
+                if(!File.Exists(path)){Notify(backup?"Noch keine Sicherung vorhanden. Sie entsteht beim zweiten Speichern.":"Noch kein Spielstand vorhanden. Mit F5 speichern.");return false;}
+                var replacement=new GameSimulation(PlanetOne.Platform.SnapshotStore.Load(path));
+                simulation=replacement;replaced=true;foodRates.Clear();lastSimulationMessage=simulation.State.LastMessage;
                 BuildSpace();
-                SetView(previousView != 0 && simulation.FindPlanet(previousView) != null ? previousView : 0);
-                Notify("Spielstand geladen. Alle Kolonien und Lieferungen wurden wiederhergestellt.");
-                return true;
+                SetView(previousView!=0 && simulation.FindPlanet(previousView)!=null && simulation.IsPlanetKnown(simulation.State.PlayerFactionId,previousView)?previousView:0);
+                Notify(backup?"Letzte gültige Sicherung geladen. Mit F5 als aktuellen Spielstand speichern.":"Spielstand geladen. Alle Kolonien und Lieferungen wurden wiederhergestellt.");return true;
             }
-            catch (Exception exception)
+            catch(Exception error)
             {
-                Notify("Laden fehlgeschlagen; laufendes Spiel bleibt erhalten: " + exception.Message);
-                Debug.LogException(exception);
-                return false;
+                if(replaced){simulation=previous;foodRates.Clear();lastSimulationMessage=previous.State.LastMessage;BuildSpace();SetView(previousView);}
+                Notify("Laden fehlgeschlagen; laufendes Spiel bleibt erhalten: "+error.Message);Debug.LogWarning("Laden: "+error.Message);return false;
             }
         }
 

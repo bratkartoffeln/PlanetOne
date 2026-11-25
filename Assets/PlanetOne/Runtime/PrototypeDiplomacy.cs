@@ -12,11 +12,25 @@ namespace PlanetOne.Runtime
         private string offeredAmount="8",paymentAmount="2";
         private AccessRight offeredRights;
         private bool confirmDiplomaticRisk;
+        public string ScenarioOutcomeText
+        {
+            get
+            {
+                if(simulation.State.Winners.Count==0)return null;
+                var winners=new List<string>();foreach(int id in simulation.State.Winners){var faction=simulation.State.Factions.Find(f=>f.Id==id);if(faction!=null)winners.Add(faction.Name);}
+                return "Szenario abgeschlossen · Sieg: "+string.Join(", ",winners);
+            }
+        }
         private Color DiplomaticColor(int owner) {return owner==PlayerFactionId?Cyan:simulation.AtWar(PlayerFactionId,owner)?Danger:simulation.SharesSensors(PlayerFactionId,owner)?new Color(0.48f,0.72f,0.52f):Muted;}
         public void StartDiplomacyScenario()
         {
             if(!simulation.State.AiScenario&&!simulation.State.InvasionTestFixture&&!simulation.State.SpaceTestFixture&&!simulation.State.MilitaryTestFixture)priorSession=simulation;
             simulation=GameSimulation.CreateDiplomacyScenario(System.Environment.TickCount);foodRates.Clear();controlGroups.Clear();shipGroups.Clear();showingSpacePanel=false;showingMilitary=false;showingDiplomacy=true;BuildSpace();SetView(0);Notify(simulation.State.LastMessage);
+        }
+        public void StartReferenceScenario()
+        {
+            priorSession=simulation;
+            simulation=GameSimulation.CreateReferenceScenario(Environment.TickCount);foodRates.Clear();controlGroups.Clear();shipGroups.Clear();showingSpacePanel=false;showingMilitary=false;showingDiplomacy=true;BuildSpace();SetView(0);Notify(simulation.State.LastMessage);
         }
         public bool RequestDiplomacy(SimCommand command)
         {command.Id=simulation.NextCommandId();command.IssuerId=PlayerFactionId;return simulation.Enqueue(command);}
@@ -90,7 +104,7 @@ namespace PlanetOne.Runtime
             GUILayout.Label("Betreiber: Elektronik + Sensoren erforschen. Sprungtor bauen und 12 Nahrung, 40 Metall, 24 Bauteile, 8 Kristalle und 8 Elektronik anliefern. Danach 60 Sekunden mit Energie, Personal, Nahrung und Kontrolle sichern. Mitgliederwechsel setzt Sicherung zurück.",smallStyle);
             foreach(var p in simulation.State.Planets)foreach(var b in p.Buildings)if(b.Kind==BuildingKind.JumpGate&&GameSimulation.BuildingOwner(p,b)==PlayerFactionId)DiplomacyAction("Sprungtor #"+b.Id+" aktivieren",CommandKind.ActivateGate,b.Id);
             foreach(var g in simulation.State.GateProjects)GUILayout.Label("Tor #"+g.BuildingId+" · "+g.Reason+" · "+g.SecureTicks+" / "+Definitions.GateSecureTicks+" · Teilnehmer "+string.Join(",",g.Participants),smallStyle);
-            if(simulation.State.Winners.Count>0)GUILayout.Label("SZENARIOERFOLG: "+string.Join(",",simulation.State.Winners),headingStyle);
+            if(simulation.State.Winners.Count>0)GUILayout.Label(ScenarioOutcomeText,headingStyle);
             if(confirmDiplomaticRisk){GUILayout.Label("Kapitulation ohne Übergabe: Restgebäude werden neutral, mobile Kräfte außer Dienst gestellt. Unwiderruflich für diese Partie.",smallStyle);DiplomacyAction("Kapitulation bestätigen",CommandKind.Surrender,confirmed:true);}
             if(confirmDiplomaticRisk&&GUILayout.Button("Kapitulation mit Übergabe an gewählten Partner anbieten",buttonStyle))RequestDiplomacy(new SimCommand{Kind=CommandKind.ProposeTreaty,Terms=new TreatyTerms{Kind=TreatyKind.Surrender,Members=new List<int>{PlayerFactionId,diplomacyPartner}}});
         }

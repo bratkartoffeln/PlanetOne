@@ -1,0 +1,7 @@
+{
+  "name": "PlanetOne.Platform",
+  "rootNamespace": "PlanetOne.Platform",
+  "references": ["PlanetOne.Core"],
+  "noEngineReferences": true,
+  "autoReferenced": true
+}
