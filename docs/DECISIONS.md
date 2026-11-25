@@ -1,5 +1,12 @@
 # Entscheidungen und Plattformstrategie
 
+## Räumliche Grafik und natürliche Landschaft (24. November 2026)
+
+- **D-029, Vorgabe:** Die vom Nutzer ausgewählte Konzeptgrafik soll bildgetreu (»1:1«) umgesetzt werden; die frühere Einordnung als unverbindliche Stilrichtung genügt ausdrücklich nicht. Gelände soll natürlich wirken und Berge/Täler besitzen. Gebäude, Fahrzeuge, Raumschiffe und Weltobjekte werden vollständig dreidimensional gestaltet; Kamera räumlich drehbar, Fahrzeugausrichtung abhängig von der Fahrtrichtung. Alle drei Layouts bleiben wählbar.
+- **T-036, entschieden:** Version 1.0.10 setzt geschlossene räumliche Rümpfe, zusammengesetzte Gebäudemodelle, Glas-/Materialshader, Schatten und eine dreh-/neigbare orthografische Kamera ein. Keine Bildtafeln als Ersatz für Gebäude oder Fahrzeuge. Die generierten Modelltafeln dienen nur als Referenz; `docs/GUI_REFERENCE.png` hält die ursprüngliche Zielgrafik fest. Geometrie und aktuelle Renderbilder sind von dieser Zielgrafik zu unterscheiden.
+- **T-037, Arbeitsannahme:** Relief ist deterministische Darstellung anhand Weltkennung und Abmessungen. Die sechsseitige Spiellogik, Sperrfelder, Reichweiten und Bestandsregeln bleiben unverändert; Höhe führt keine unangekündigten Kampfboni oder neuen Unpassierbarkeiten ein. Straßen/Fahrzeuge folgen der Oberfläche, Gebäude stehen auf waagerechten Fundamenten. Darstellungsauswahl verwendet den ersten sichtbaren Geländetreffer. Kamera und Blickrichtung bleiben lokale Präsentationszustände; Savegame-Schema 8 unverändert.
+- **T-038, Prüfung:** Bestehende Core-Regressionen, Windows-Build und isolierter Playerlauf; zusätzlich vier Kamerarichtungen, Reliefhöhen, Auswahl sichtbarer Waben und tatsächliche Bewegungsrichtung von Boden-/Raumeinheiten. Kein Screenreader, Computer-Use oder Umschalten des Arbeitsdesktops. [Ergebnisse und offene Grenzen](3D_GRAFIK_NACHWEIS.md).
+
 ## GUI und Grafik (24. November 2026)
 
 - **D-028, Vorgabe:** Komplette GUI und Grafik mit Texturen überarbeiten. Referenzen: Command & Conquer, Haegemonia und Solar 2. Nach Vorlage dreier Layoutkonzepte beauftragt der Nutzer ausdrücklich alle drei mit Auswahl in den Einstellungen. Dies erweitert den früheren minimalistischen Assetumfang; Waben und Spielregeln bleiben erhalten.
@@ -84,7 +91,7 @@ Stand: 24. November 2026. Unity mit C# ist eingerichtet; Produktversion 1.0.8 er
 | D-008 | Vorgabe | Unity mit C# einsetzen | Ersetzt die frühere Vorgabe, die Engine offenzulassen; Unity-Einrichtung und Projektumsetzung sind beauftragt |
 | D-009 | Arbeitsannahme | Erste vollständige Karte: ein System, drei Startwelten, zwei Monde, Spieler und zwei KI | Ausreichend für Gegner, Verbündete und Konflikte um Expansion |
 | D-010 | Arbeitsannahme | Sechs Handelsgüter, lokale Militärdepots, kein Treibstoff für Grundbewegung | Umfang der Warenketten begrenzen; Transport und Nachschub trotzdem real |
-| D-011 | Arbeitsannahme | 2,5D-Darstellung mit taktischen Bewegungen auf Ebenen | Orthografische Kamera und einfache 3D-Geometrie im Built-in-Renderer; keine frei steuerbare dritte Raumachse im Grundspiel |
+| D-011 | Arbeitsannahme, Darstellung erweitert durch D-029 | Taktische Bewegungen auf Ebenen, vollständige räumliche Darstellung | Dreh-/neigbare orthografische Kamera, 3D-Modelle und Relief im Built-in-Renderer; keine frei steuerbare dritte Simulationsachse im Grundspiel |
 | D-012 | Arbeitsannahme | Taktische Pause; alle Schauplätze laufen sonst gleichzeitig | Bedienung und KI nicht an die aktive Kamera koppeln |
 | D-013 | Arbeitsannahme | Gemeinsames Sprungtorprojekt als erstes Szenarioziel | Kein erzwungener Schlusskrieg zwischen Verbündeten |
 | D-014 | Arbeitsannahme | Desktop zuerst mit Maus und Tastatur; andere Eingaben als getrennte Adapter | Breite Portierbarkeit vorbereiten, ohne alle Plattformen gleichzeitig zu versprechen |

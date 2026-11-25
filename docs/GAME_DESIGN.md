@@ -6,6 +6,8 @@
 - **GUI-002:** Layout, Oberflächengröße und Anzeige der Wabengrenzen sind lokale Einstellungen außerhalb des Spielstands. Ungültige Einstellungen dürfen den Start nicht verhindern.
 - **GUI-003:** Geöffnete Menüs/Einstellungen sperren Weltbefehle und darunterliegende GUI-Eingaben. Kamera und Auswahlprojektion verwenden den tatsächlichen Weltbereich des jeweiligen Layouts. Eine Auswahl über einer GUI-Fläche darf nicht als Weltbefehl interpretiert werden.
 - **GUI-004:** Texturen und Modellverfeinerungen erhalten die Wabengeometrie, Sichtgrenzen und eindeutigen Zustandsanzeigen. Gebäudevorschauen stellen dieselben Modelle wie die Welt dar. Referenzspiele dienen der Gestaltung, nicht als Quelle übernommener Grafikdateien.
+- **GUI-005:** Gebäude, Bodeneinheiten, Gütertransporter, Schiffe und Himmelskörper besitzen räumliche Geometrie. Die Kamera kann um die Welt gedreht und geneigt werden. Bewegte Modelle zeigen mit der Vorderseite in ihre tatsächliche Bewegungsrichtung; Stillstand erhält die letzte Ausrichtung, Kameradrehung verändert keine Einheit.
+- **GUI-006:** Die Oberfläche bildet zusammenhängende, unregelmäßige Berge und Täler ab. Materialübergänge und Felsgruppen folgen der Landschaft. Straßen, Bodenobjekte, Wabengrenzen und Auswahl berücksichtigen die reale Höhe. Verdeckte Bodenpunkte dürfen nicht anstelle der vordersten sichtbaren Landschaft ausgewählt werden. Spielregeln bleiben gemäß T-037 vom Relief getrennt.
 
 Umsetzung und Prüfumfang: [GUI_GRAFIK_NACHWEIS](GUI_GRAFIK_NACHWEIS.md).
 

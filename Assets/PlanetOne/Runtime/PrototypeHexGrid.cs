@@ -9,13 +9,28 @@ namespace PlanetOne.Runtime
 
         public GridCell SurfaceCellAtScreen(Vector2 point)
         {
-            var ray = sceneCamera.ScreenPointToRay(point); float distance;
-            if (!new Plane(Vector3.up, Vector3.zero).Raycast(ray, out distance)) return new GridCell(-1, -1);
-            var hit = ray.GetPoint(distance); return HexGrid.FromWorld(hit.x, hit.z);
+            var ray = sceneCamera.ScreenPointToRay(point); RaycastHit hit;
+            if(reliefCollider==null || !reliefCollider.Raycast(ray,out hit,300))return new GridCell(-1,-1);
+            return HexGrid.FromWorld(hit.point.x,hit.point.z);
         }
 
         public Vector2 SurfaceScreenPoint(double x, double y)
         { return sceneCamera.WorldToScreenPoint(SurfacePosition(x, 0, y)); }
+
+        public bool IsSurfacePointVisible(double x,double y,float height=0)
+        {
+            var position=SurfacePosition(x,height,y);var screen=sceneCamera.WorldToScreenPoint(position);
+            if(screen.z<=0 || !sceneCamera.pixelRect.Contains(screen))return false;
+            var ray=sceneCamera.ScreenPointToRay(screen);RaycastHit hit;
+            if(reliefCollider==null)return false;
+            bool intersects=reliefCollider.Raycast(ray,out hit,300);
+            float distance=Vector3.Dot(position-ray.origin,ray.direction);
+            // A ground point is visible only when it is the front surface. A back-facing
+            // ridge may produce a later hit and must not be classified as visible.
+            return height==0?intersects && Mathf.Abs(hit.distance-distance)<0.02f:!intersects || hit.distance+0.02f>=distance;
+        }
+
+        public float SurfaceElevation(double x,double y){return SurfacePosition(x,0,y).y;}
 
         // Batch smoke tests render the real scene without a window or desktop input.
         // IMGUI is not part of Camera.Render; this is deliberately a world-render proof.
@@ -39,10 +54,10 @@ namespace PlanetOne.Runtime
             }
         }
 
-        private static Vector3 SurfacePosition(double x, float height, double y)
+        private Vector3 SurfacePosition(double x, float height, double y)
         {
             var point = HexGrid.ToWorld(x, y);
-            return new Vector3((float)point.X, height, (float)point.Y);
+            return new Vector3((float)point.X, height+ReliefHeight((float)point.X,(float)point.Y), (float)point.Y);
         }
 
         private static Vector3 HexCorner(int corner, float scale)

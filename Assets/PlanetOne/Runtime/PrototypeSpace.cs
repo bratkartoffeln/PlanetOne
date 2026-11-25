@@ -42,11 +42,12 @@ namespace PlanetOne.Runtime
                 Transform view;
                 if(!shipViews.TryGetValue(ship.Id,out view))
                 {
-                    view=MakePrimitive(ship.Kind==ShipKind.ColonyShip?PrimitiveType.Capsule:PrimitiveType.Cube,"Schiff "+ship.Id,spaceRoot,Vector3.zero,new Vector3(0.32f,0.2f,0.65f),DiplomaticColor(ship.OwnerId));
-                    DecorateShip(view); shipViews[ship.Id]=view;
+                    view=new GameObject("Schiff "+ship.Id).transform;view.SetParent(spaceRoot,false);BuildShipModel(view,ship.Kind);
+                    Part(view,"Fraktionsmarkierung",new Vector3(0,0.11f,0.35f),new Vector3(0.25f,0.02f,0.08f),DiplomaticColor(ship.OwnerId));
+                    shipViews[ship.Id]=view;
                 }
-                view.gameObject.SetActive(true); view.position=new Vector3((float)ship.X,0.6f,(float)ship.Y);
-                view.localScale=selectedShips.Contains(ship.Id)?new Vector3(0.5f,0.3f,0.9f):new Vector3(0.32f,0.2f,0.65f);
+                view.gameObject.SetActive(true); UpdateMotionPose(view,new Vector3((float)ship.X,0.6f,(float)ship.Y),0);
+                view.localScale=Vector3.one*(selectedShips.Contains(ship.Id)?1.4f:1.1f);
             }
             selectedShips.RemoveAll(id=>!simulation.State.Ships.Exists(s=>s.Id==id && !s.Destroyed && !s.Consumed));
         }

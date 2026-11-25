@@ -1,5 +1,14 @@
 # Abnahmeszenarien für PlanetOne
 
+## TEST-025 Räumliche Darstellung und Relief
+
+- **Regeln:** GUI-003 bis GUI-006, CORE-007/008; D-029 und T-037.
+- **Gegeben:** Eine aufgebaute Kolonie auf reliefiertem Hexgelände, Bodentruppen und ein flugfähiges Kolonieschiff.
+- **Wenn:** Kamera bei 45°, 135°, 225° und 315° um die Kolonie dreht und geneigt wird, danach Fahrzeug und Schiff über normale Befehle bewegt werden.
+- **Dann:** Räumliche Seiten/Rückseiten der Modelle sind sichtbar. Auswahl trifft die vorderste sichtbare Geländewabe; verdeckte Punkte werden nicht vorausgesetzt. Straßen und Bodenmodelle folgen der Höhe. Fahrzeug- und Schiffsvorderseite zeigen entlang ihrer realen Bewegung; Pause und Kameradrehung verändern die Ausrichtung nicht. Der vollständige Simulationszustand bleibt durch reine Kameraänderungen identisch.
+- **Relief:** Erneutes Öffnen einer Welt erzeugt dieselbe Höhe; Berge und Täler besitzen nachweislich unterschiedliche Y-Koordinaten. Die bisherigen Hexwege/Sperrfelder und Bestandsprüfungen gelten unverändert.
+- **Prüfung:** Isolierter regulärer Player mit Bildern einschließlich GUI und programmgesteuerten Controllerbefehlen; keine globalen Eingaben, kein Screenreader/Computer-Use. Die Bildtreue zur Konzeptreferenz wird separat beurteilt und nicht aus bestandenen Funktionstests abgeleitet. [Nachweis](3D_GRAFIK_NACHWEIS.md).
+
 Diese Szenarien übersetzen die Spielregeln in beobachtbare Nachweise für Codex. Sie sind Prüfvorlagen, keine bereits vorhandenen oder ausgeführten Laufzeittests. Verbindliche Regeln stehen in [GAME_DESIGN](GAME_DESIGN.md), [AI_DIPLOMACY](AI_DIPLOMACY.md) und [TECHNICAL_ARCHITECTURE](TECHNICAL_ARCHITECTURE.md). Die Umsetzung erfolgt nach [IMPLEMENTATION_PLAN](IMPLEMENTATION_PLAN.md).
 
 ## Durchführung und Ergebnisprotokoll

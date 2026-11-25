@@ -275,6 +275,10 @@ Ein Auftrag nennt normalerweise ein Paket. Codex erledigt dessen notwendigen Umf
 - **Umfang:** Drei gespeicherte Layouts, skalierbare Oberfläche, Spielmenü/Einstellungen, bebilderter Baukatalog, Texturen und Materialfamilien, überarbeitete Gebäude-/Einheitenmodelle, Planeten und Weltraum.
 - **Abnahme:** Sofortiger Layoutwechsel ohne Simulationsänderung, korrekte Wabenauswahl und getrennte GUI-/Welteingabe; gemeinsame Funktionen in allen Ansichten. Reale GUI-Bilder auf isoliertem Desktop, keine Störung des Arbeitsdesktops. Grenzen der manuellen/Plattformprüfung separat ausweisen.
 
+### Zusätzlicher Auftrag: räumliche Grafik, 1.0.10
+
+Die vorhergehende Grafiklieferung wird durch **1.0.10, räumliche Modelle und natürliches Relief**, ergänzt: D-029, GUI-005/006, T-036 bis T-038. Betroffene Module sind Runtime-Darstellung, Modelle/Materialien, Kamera, Auswahl und Bewegungsdarstellung. Umfang und lokale Nachweise stehen in [3D_GRAFIK_NACHWEIS](3D_GRAFIK_NACHWEIS.md). Der Auftrag schließt P19–P21 nicht vorzeitig ab; Bildtreue zur Konzepttafel und technische Funktionsprüfung bleiben getrennte Abnahmekriterien.
+
 ### P19 Speicherstände und Integrationsgrenzen absichern
 
 - **Status:** Offen. **Abhängigkeit:** P18.
