@@ -71,7 +71,7 @@ internal static class OrbitTests
         using(var stream=new MemoryStream(Encoding.UTF8.GetBytes(json)))old=(GameState)new DataContractJsonSerializer(typeof(GameState)).ReadObject(stream);
         Check(old.Version==8,"Fixture is not v8");var migrated=SaveCodec.FromJson(json);var game=new GameSimulation(migrated);
         foreach(var p in old.Planets)Check(Distance(OldPosition(old,p),game.GetOrbitPosition(p.Id))<1e-8,"Migration teleported "+p.Name);
-        var comparison=SaveCodec.FromJson(SaveCodec.ToJson(migrated));comparison.Version=old.Version;
+        var comparison=SaveCodec.FromJson(SaveCodec.ToJson(migrated));comparison.Version=old.Version;comparison.Asteroids=null;comparison.AsteroidBelts=null;
         for(int i=0;i<old.Planets.Count;i++)
         {var p=comparison.Planets[i];p.Kind=old.Planets[i].Kind;p.OrbitPhase=old.Planets[i].OrbitPhase;p.OrbitPeriodSeconds=old.Planets[i].OrbitPeriodSeconds;p.OrbitEccentricity=old.Planets[i].OrbitEccentricity;p.OrbitPeriapsis=old.Planets[i].OrbitPeriapsis;}
         Check(RawJson(old)==RawJson(comparison),"Migration changed goods, ships, orders or another non-orbital value");

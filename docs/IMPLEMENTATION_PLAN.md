@@ -300,6 +300,13 @@ Die vorhergehende Grafiklieferung wird durch **1.0.10, räumliche Modelle und na
 - **Module:** Core-Weltmerkmale, Kartengenerierung, Bau-/Bewegungsvalidierung, physische Logistik, KI-Beobachtung/-Wege, Savegame-Schema 10; Runtime-Biome, Modelle, Materialien, Kamera und Prüfkarte.
 - **Abnahme:** Plausible Planetenzuordnung, Wasser als echte Bau-/Wegegrenze, Gasgründung und Luftfracht ohne Bodeninfrastruktur, unveränderte Warenintegrität und Altdaten, tatsächliche texturierte Spielbilder sowie Rechte-Maustaste-Gesten auf isoliertem Desktop.
 
+### Größenverhältnisse, Korona und Asteroidenabbau – 1.0.14
+
+- **Status:** Umsetzung und lokale Prüfung auf Basis 1.0.13; Nachweise und tatsächliche Git-Integrationsgrenze im [ASTEROIDEN_NACHWEIS](ASTEROIDEN_NACHWEIS.md). M8 bleibt offen.
+- **Grundlage:** D-033/034, T-048 bis T-051, GUI-010/011, SPACE-011, ECO-015 und TEST-029/030.
+- **Module:** Core-Systemgenerator, gemeinsame Befehle, endliche Abbauvorkommen, Raumfracht-/Hafenreservierung, Verlust-/Besitzwechselpfade, Schema 11; Runtime-Systemmaßstab, Projektion, Shader und Abbauverwaltung.
+- **Abnahme:** Seed-stabile optionale Gürtel in freien Bahnregionen; Größenobergrenzen; seitlich symmetrische Korona im echten GPU-Render; physische Förderung und Lieferung; konkurrierende Ansprüche, Sicht-/Eigentumsgrenzen, Abbruch, Verlust, Save/Load und exakte Altdatenmigration. Sichtkontrolle der drei Layouts auf isoliertem Desktop.
+
 ### P19 Speicherstände und Integrationsgrenzen absichern
 
 - **Status:** Offen. **Abhängigkeit:** P18.

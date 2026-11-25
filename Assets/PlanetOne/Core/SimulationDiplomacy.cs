@@ -164,6 +164,7 @@ namespace PlanetOne.Core
             sim.State.Planets.Add(CreatePlanet(sim.State,4,"Helios",-1,3,25,4));
             sim.State.ComputerFactions.Add(new AiState {FactionId=3,Profile=AiProfile.Technology});
             sim.State.LastMessage="M7: Drei unabhängige Fraktionen starten friedlich mit gleichen Mitteln. Verträge und Sprungtorprojekt sind über Diplomatie erreichbar.";
+            AsteroidGeneration.Populate(sim.State);
             sim.UpdateSpaceKnowledge();return sim;
         }
     }

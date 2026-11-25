@@ -12,7 +12,7 @@ namespace PlanetOne.Core
             var source=FindBuilding(payment?t.Terms.TargetPort:t.Terms.SourcePort);var target=FindBuilding(payment?t.Terms.SourcePort:t.Terms.TargetPort);
             int r=(int)(payment?t.Terms.Payment:t.Terms.Goods),remaining=(payment?t.Terms.PaymentAmount-t.PaymentDelivered:t.Terms.Amount-t.Delivered);
             foreach(var s in State.Ships)if(s.Freight!=null&&s.Freight.TreatyId==t.Id&&s.Freight.PaymentLeg==payment)remaining-=s.Freight.Amount;
-            if(ship==null||ship.OwnerId!=c.IssuerId||ship.Kind!=ShipKind.Freighter||ship.Freight!=null||Total(ship.Cargo)>0||ShipPledged(ship.Id)||!PortOwned(source,c.IssuerId)||!PortOwned(target,payment?t.Proposer:t.Terms.Members.Find(f=>f!=t.Proposer)))return "Freier eigener Frachter und vereinbarte unveränderte Häfen benötigt.";
+            if(ship==null||ship.OwnerId!=c.IssuerId||ship.Kind!=ShipKind.Freighter||ship.Freight!=null||ship.Mining!=null||Total(ship.Cargo)>0||ShipPledged(ship.Id)||!PortOwned(source,c.IssuerId)||!PortOwned(target,payment?t.Proposer:t.Terms.Members.Find(f=>f!=t.Proposer)))return "Freier eigener Frachter und vereinbarte unveränderte Häfen benötigt.";
             int amount=Math.Min(remaining,Math.Min(Definitions.Ships[0].Capacity,Math.Min(source.Inventory[r]-source.ReservedOutgoing[r],FreeSpace(target))));
             if(amount<=0){t.Reason="Lieferung wartet: freier Bestand oder Zielplatz fehlt, oder Menge bereits unterwegs";return t.Reason;}
             source.ReservedOutgoing[r]+=amount;target.ReservedIncoming[r]+=amount;ship.AutoSupply=false;foreach(var route in State.Routes)if(route.ShipId==ship.Id)route.Enabled=false;
@@ -35,7 +35,7 @@ namespace PlanetOne.Core
         private string PledgeJoint(TreatyState t,SimCommand c)
         {
             var ship=ActiveShip(c.ActorId);
-            if(!TreatyLive(t)||t.Terms.Kind!=TreatyKind.JointOperation||t.OperationPhase>=OperationPhase.Executing||ship==null||ship.OwnerId!=c.IssuerId||ship.Kind==ShipKind.OrbitalYard||ship.Freight!=null||ShipPledged(ship.Id)||State.ComputerFactions.Exists(a=>a.Operation.Ships.Contains(ship.Id)))return "Freies eigenes Schiff ohne konkurrierende Zusage benötigt.";
+            if(!TreatyLive(t)||t.Terms.Kind!=TreatyKind.JointOperation||t.OperationPhase>=OperationPhase.Executing||ship==null||ship.OwnerId!=c.IssuerId||ship.Kind==ShipKind.OrbitalYard||ship.Freight!=null||ship.Mining!=null||ShipPledged(ship.Id)||State.ComputerFactions.Exists(a=>a.Operation.Ships.Contains(ship.Id)))return "Freies eigenes Schiff ohne konkurrierende Zusage benötigt.";
             if(t.Terms.Goal!=JointGoal.Invade&&Definitions.SpaceWeapons[(int)ship.Kind].Damage==0)return "Schutzauftrag benötigt bewaffnete Eskorte.";
             t.Pledges.Add(new JointPledge {FactionId=c.IssuerId,ShipId=ship.Id,ReadyTick=State.Tick+40});t.OperationPhase=OperationPhase.Preparing;t.Reason="Schiff #"+ship.Id+" exklusiv zugesagt; frühestens in zwei Sekunden bereit";return null;
         }

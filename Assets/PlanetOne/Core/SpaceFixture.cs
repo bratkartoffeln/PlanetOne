@@ -5,9 +5,9 @@ namespace PlanetOne.Core
     /// <summary>Explicit demonstration: prepares only through ordinary paid commands and simulation time.</summary>
     public static class SpaceFixture
     {
-        public static GameSimulation Create()
+        public static GameSimulation Create(int seed=4004)
         {
-            var s=GameSimulation.CreateDefault(4004); s.State.SpaceTestFixture=true;
+            var s=GameSimulation.CreateDefault(seed); s.State.SpaceTestFixture=true;
             Build(s,1,BuildingKind.SolarPlant,10,5); Build(s,1,BuildingKind.Farm,9,7);
             Build(s,1,BuildingKind.Mine,4,4); Build(s,1,BuildingKind.Smelter,6,5);
             Build(s,1,BuildingKind.Workshop,11,5); Build(s,1,BuildingKind.Housing,7,7);

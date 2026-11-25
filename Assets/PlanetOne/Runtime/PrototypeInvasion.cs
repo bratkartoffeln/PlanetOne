@@ -88,8 +88,8 @@ namespace PlanetOne.Runtime
             {
                 LineRenderer ring;
                 if(!dangerRings.TryGetValue(p.Id,out ring) || ring==null)
-                {ring=MakeLine("Naher Orbitalbereich",spaceRoot,Amber,0.035f,true);ring.positionCount=64;dangerRings[p.Id]=ring;for(int i=0;i<64;i++){float a=i*Mathf.PI*2/64;ring.SetPosition(i,new Vector3(Mathf.Cos(a)*(float)Definitions.OrbitalRadius,0.1f,Mathf.Sin(a)*(float)Definitions.OrbitalRadius));}}
-                var pos=simulation.GetOrbitPosition(p.Id);ring.transform.position=new Vector3((float)pos.X,0,(float)pos.Y);ring.gameObject.SetActive(simulation.IsPlanetKnown(PlayerFactionId,p.Id) && (selectedShips.Count>0 || showingSpacePanel && spacePanelTab==3));
+                {ring=MakeLine("Naher Orbitalbereich",spaceRoot,Amber,0.035f,true);ring.positionCount=64;dangerRings[p.Id]=ring;for(int i=0;i<64;i++){float a=i*Mathf.PI*2/64;ring.SetPosition(i,new Vector3(Mathf.Cos(a)*(float)Definitions.OrbitalRadius*SpaceDistanceScale,0.1f,Mathf.Sin(a)*(float)Definitions.OrbitalRadius*SpaceDistanceScale));}}
+                var pos=simulation.GetOrbitPosition(p.Id);ring.transform.position=SpacePosition(pos.X,pos.Y);ring.gameObject.SetActive(simulation.IsPlanetKnown(PlayerFactionId,p.Id) && (selectedShips.Count>0 || showingSpacePanel && spacePanelTab==3));
             }
             foreach(var view in invasionViews.Values) if(view!=null) view.gameObject.SetActive(false);
             foreach(var ring in shieldRings.Values) if(ring!=null) ring.gameObject.SetActive(false);

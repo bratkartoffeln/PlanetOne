@@ -97,8 +97,8 @@ internal static class PlanetEnvironmentTests
         string json=File.ReadAllText("Tests/Core/Fixtures/prototype-v9.json");GameState old;
         using(var stream=new MemoryStream(Encoding.UTF8.GetBytes(json)))old=(GameState)new DataContractJsonSerializer(typeof(GameState)).ReadObject(stream);
         Check(old.Version==9,"Not a genuine V9 fixture");var migrated=SaveCodec.FromJson(json);
-        Check(migrated.Version==10 && migrated.Planets[0].Kind==PlanetKind.Temperate,"No migration");
-        migrated.Version=9;for(int i=0;i<old.Planets.Count;i++)migrated.Planets[i].Kind=old.Planets[i].Kind;
+        Check(migrated.Version==SaveCodec.CurrentVersion && migrated.Planets[0].Kind==PlanetKind.Temperate,"No migration");
+        migrated.Asteroids=null;migrated.AsteroidBelts=null;migrated.Version=9;for(int i=0;i<old.Planets.Count;i++)migrated.Planets[i].Kind=old.Planets[i].Kind;
         Check(Raw(old)==Raw(migrated),"Legacy world resized or existing state changed");
     }
     private static void Showcase()
