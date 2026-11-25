@@ -2,9 +2,9 @@
 
 Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0 bis M4 sind umgesetzt und abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen vollständigen zusätzlichen Maustest. M3 ist mit Core-Tests, Windows-Build, Grafiklauf und gezielten tatsächlichen Maus-/Tastatureingaben geprüft; siehe [M3_NACHWEIS](M3_NACHWEIS.md). P08–P10 sind in Version 1.0.3 abgeschlossen; Nachweise und konkrete Grenzen stehen in [M4_NACHWEIS](M4_NACHWEIS.md).
 
-## Aktueller Meilenstein M7 (1.0.8)
+## Aktueller Meilenstein M8 (1.0.15)
 
-P16–P18 sind lokal implementiert und automatisiert geprüft: 126 Core-Tests, Windows-Build, 131 fensterlose Player-Prüfungen und 18 Renderbilder. [M7_NACHWEIS](M7_NACHWEIS.md) dokumentiert Verträge, Koalitionen, reale gemeinsame Operationen, Torziel und Ausscheiden. Manuelle IMGUI-Abnahme und Git-Integration bleiben getrennt offen. M8 ist der nächste Entwicklungsmeilenstein.
+P19–P21 sind lokal implementiert; 161 Core-Tests einschließlich beider vollständiger regulärer F05-Verläufe bestehen. [M8_NACHWEIS](M8_NACHWEIS.md) dokumentiert echte Dateisnapshots, Windows-/Installerprüfung, getrennte Leistungsmessungen und die offenen Abnahmegrenzen. Physische Maus-/Tastaturprüfung, subjektive Bewertung und Git-Integration bleiben ausdrücklich getrennt vom automatisierten Nachweis. Der historische M7-Stand steht in [M7_NACHWEIS](M7_NACHWEIS.md).
 
 ## Projektweite Rasteränderung 1.0.6
 
@@ -309,7 +309,7 @@ Die vorhergehende Grafiklieferung wird durch **1.0.10, räumliche Modelle und na
 
 ### P19 Speicherstände und Integrationsgrenzen absichern
 
-- **Status:** Offen. **Abhängigkeit:** P18.
+- **Status:** Implementiert und lokal automatisiert geprüft in 1.0.15; echte Dateisnapshots und Player-Wiederherstellung, siehe [M8_NACHWEIS](M8_NACHWEIS.md). Physischer manueller Fortsetzungsvergleich und Git-Integration bleiben offen. **Abhängigkeit:** P18.
 - **Module:** Persistenz und alle zustandsführenden Systeme.
 - **Umfang:** Vollständige Speicher-Lade-Prüfung an kritischen Übergängen; saubere Fehler bei ungültigen oder inkompatiblen Daten. Bestehende Tests um tatsächlich gefundene Integrationsfehler ergänzen.
 - **Nicht enthalten:** Cloudspeicher oder unbegrenzte Kompatibilität mit allen zukünftigen Versionen.
@@ -318,7 +318,7 @@ Die vorhergehende Grafiklieferung wird durch **1.0.10, räumliche Modelle und na
 
 ### P20 Plattformen, Bedienung und Leistung prüfen
 
-- **Status:** Offen. **Abhängigkeit:** P19.
+- **Status:** Windows-Build, 1440×900/1280×720-GUI, getrennte Leistungsbudgets sowie ZIP-/Installervergleich, Start aus Testinstallation und Deinstallation bestanden in 1.0.15; Laufdaten in [M8_NACHWEIS](M8_NACHWEIS.md). Physische manuelle Eingabe und andere Plattformen ungeprüft; kein uneingeschränkter Plattformabschluss. **Abhängigkeit:** P19.
 - **Module:** Plattformadapter, Eingabe, Darstellung, Benutzeroberfläche, Export.
 - **Umfang:** Vereinbarte Exportziele aus P01 bauen und auf tatsächlich verfügbaren Zielumgebungen prüfen. Warnungen, Ansichtswechsel, skalierbare Oberflächen und Eingabeprofile prüfen. Simulation und Darstellung getrennt auf dem vereinbarten Lastprofil messen.
 - **Nicht enthalten:** Unvereinbarte Storeveröffentlichung oder behauptete Unterstützung ungeprüfter Hardware.
@@ -327,7 +327,7 @@ Die vorhergehende Grafiklieferung wird durch **1.0.10, räumliche Modelle und na
 
 ### P21 Vollständiges Referenzszenario abnehmen
 
-- **Status:** Offen. **Abhängigkeit:** P20.
+- **Status:** F05 implementiert; regulärer Verlauf einschließlich KI-Invasion, Konvoiverlust, Wiederaufbau und Torerfolg sowie zweiter Verlauf mit erfülltem Handel und Koalitionssieg automatisiert bestanden. Subjektive Bewertung und Git-Abschluss bleiben offen; [M8_NACHWEIS](M8_NACHWEIS.md). **Abhängigkeit:** P20.
 - **Module:** Gesamtes Spiel, Szenariodaten, Ergebnisanzeige.
 - **Umfang:** Ein Stern, drei Startwelten, zwei umkämpfte Monde, ein Spieler und zwei wirtschaftlich eigenständige KI. Alle Startwelten tragen die Grundversorgung; Kristallvorkommen sind erreichbar und ermöglichen konkurrierende beziehungsweise kooperative Entwicklung. Kein kostenloser Nachschub für reguläre Fraktionen.
 - **Nicht enthalten:** Zusätzliche Systeme, Kampagne, fertige künstlerische Ausstattung oder Mehrspieler.

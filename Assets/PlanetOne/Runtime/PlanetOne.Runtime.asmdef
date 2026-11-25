@@ -1,7 +1,7 @@
 {
   "name": "PlanetOne.Runtime",
   "rootNamespace": "PlanetOne.Runtime",
-  "references": ["PlanetOne.Core"],
+  "references": ["PlanetOne.Core", "PlanetOne.Platform"],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

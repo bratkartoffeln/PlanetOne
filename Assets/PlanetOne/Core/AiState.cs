@@ -68,6 +68,7 @@ namespace PlanetOne.Core
     }
     public sealed class AiObservation
     {
+        public long TradeFreighterId;
         public int FactionId, Seed;
         public long Tick;
         public ResearchState Research;

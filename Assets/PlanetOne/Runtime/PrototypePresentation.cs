@@ -174,12 +174,18 @@ namespace PlanetOne.Runtime
                 GUILayout.Label("PLANETONE",titleStyle);GUILayout.Label("SPIELMENÜ",headingStyle);GUILayout.Space(20);
                 if(GUILayout.Button("Fortsetzen",buttonStyle,GUILayout.Height(40)))menuOpen=false;
                 if(GUILayout.Button("Spiel speichern",buttonStyle,GUILayout.Height(40))){SaveGame();menuOpen=false;}
+                GUILayout.BeginHorizontal();
                 if(GUILayout.Button("Spiel laden",buttonStyle,GUILayout.Height(40))){LoadGame();menuOpen=false;}
+                if(GUILayout.Button("Sicherung laden",buttonStyle,GUILayout.Height(40))){LoadBackupGame();menuOpen=false;}
+                GUILayout.EndHorizontal();
                 if(GUILayout.Button("Einstellungen",buttonStyle,GUILayout.Height(40))){menuOpen=false;settingsOpen=true;}
                 if(priorSession!=null && GUILayout.Button("Zur vorherigen Partie zurück",buttonStyle,GUILayout.Height(34)))
                 {simulation=priorSession;priorSession=null;foodRates.Clear();BuildSpace();SetView(0);menuOpen=false;}
                 GUILayout.Space(22);GUILayout.Label("NEUE PARTIE · laufendes Spiel vorher speichern",smallStyle);
+                GUILayout.BeginHorizontal();
+                if(GUILayout.Button("Referenzpartie · Drei Kolonien",buttonStyle,GUILayout.Height(40))){StartReferenceScenario();menuOpen=false;}
                 if(GUILayout.Button("Diplomatische Partie",buttonStyle,GUILayout.Height(40))){StartDiplomacyScenario();menuOpen=false;}
+                GUILayout.EndHorizontal();
                 if(GUILayout.Button("Gegen Computer spielen",buttonStyle,GUILayout.Height(40))){StartAiScenario();menuOpen=false;}
                 GUILayout.Space(12);GUILayout.Label("TESTSZENARIEN · separate Sitzung",smallStyle);
                 GUILayout.BeginHorizontal();

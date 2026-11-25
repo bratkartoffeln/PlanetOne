@@ -16,6 +16,7 @@ namespace PlanetOne.Core
         }
         private string ActivateGate(SimCommand c)
         {
+            if(State.Winners.Count>0)return "Das Szenario ist bereits entschieden. Eine neue Partie startet ein neues Torprojekt.";
             var b=FindBuilding(c.TargetId);string error=GateError(b,c.IssuerId);if(error!=null)return error;
             var gate=State.GateProjects.Find(g=>g.BuildingId==b.Id);
             if(gate!=null&&(gate.Activating||gate.Complete))return "Tor ist bereits aktiv oder abgeschlossen.";

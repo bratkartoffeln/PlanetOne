@@ -4,6 +4,10 @@ PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, ph
 
 Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung verbindet klare Geometrie mit texturierten Oberflächen und dunklem Weltraum. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
 
+## M8: Referenzpartie und sichere Speicherstände in 1.0.15
+
+**Spielmenü → Referenzpartie · Drei Kolonien** startet drei gleich ausgestattete Kolonien, zwei umkämpfte Kristallmonde und zwei selbstständig wirtschaftende KI. **Sicherung laden** stellt ausdrücklich den vorherigen gültigen Spielstand wieder her. Baustellen reservieren nur Material aus erreichbaren Lagern; die KI erfüllt Handelszusagen auch bei laufender automatischer Versorgung. Der [M8-Nachweis](docs/M8_NACHWEIS.md) beschreibt die vollständigen regulären und kooperativen Durchläufe, Dateiprüfungen, Windows-Paketprüfung, Leistungsmessung und verbleibenden Abnahmegrenzen.
+
 ## Größenverhältnisse, Korona und Asteroidenabbau in 1.0.14
 
 Planeten bleiben unter dem halben Sternradius, Monde sind wesentlich kleiner. Auf Nutzerwunsch sind Asteroiden dreimal größer als im ersten 1.0.14-Stand und bleiben unter einem Viertel des Monddurchmessers. Ein weicher Nebelring macht den Gürtel aus der Ferne erkennbar; beim Hineinzoomen blendet er aus. **Brocken aus der Nähe** fokussiert einen einzelnen Asteroiden. Die sichtbaren Bahnabstände sind um Faktor **2,2** vergrößert. Die Sonnenkorona bleibt beim Verschieben und Drehen rund um den Stern verteilt. Ein Klick auf den Stern öffnet seine Infokarte mit Typ, Masse, Radius, Temperatur und Leuchtkraft; **Sterndetails** zeigt die vollständigen Angaben.

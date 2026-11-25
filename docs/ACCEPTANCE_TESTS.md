@@ -1,5 +1,15 @@
 # Abnahmeszenarien für PlanetOne
 
+## TEST-031 M8 – echte Dateien, erreichbares Material und vollständiger Export
+
+- **Grundlage:** P19–P21, TEST-020 bis TEST-022, ARCH-014 bis ARCH-016, D-035 und T-052 bis T-054.
+- F05 beginnt mit drei gleichen endlichen Kolonien und zwei unbesiedelten Kristallmonden. Regulärer Aufbau, automatische physische Fracht, Forschung, bezahlte KI-Invasion, vorbereitete Verteidigung, echter Konvoiverlust, bezahlter Wiederaufbau und abgeschlossenes Torziel sind in einem durchgehenden Zustand nachzuweisen. Keine Testressourcen oder vorbereiteten Gratisflotten.
+- Zweiter Verlauf: real erfüllte beidseitige Handelslieferung und gemeinsamer Koalitionssieg. Nichtteilnehmer gewinnen nicht. Globale Industriewarenbilanzen und Kennungen bleiben erhalten.
+- Echte Dateisnapshots während Frachtbeladung/Flug, Truppenabstieg, Besetzung, Kündigungsfrist und Toraktivierung vergleichen, einschließlich exakter Fortsetzung. Defekte/übergroße/gesperrte Dateien dürfen weder den laufenden Zustand noch die letzte gültige Sicherung zerstören.
+- Eine im geladenen Stand unbekannte zuvor geöffnete Oberfläche darf nicht sichtbar bleiben. „Sicherung laden“ muss ausdrücklich den vorherigen gültigen Stand verwenden. Modal gesperrte F5/F9-/Pause-Aktionen dürfen nicht ausgeführt werden.
+- Baustelle am Kommandozentrum mit abgetrenntem Materiallager: Ablehnung ohne Reservierung; nach echter Wegeanbindung muss dieselbe Ware genau einmal angeliefert werden. KI-Handelszusagen dürfen nicht dauerhaft durch automatisch neu vergebene Versorgungsfahrten blockiert werden.
+- Windows-Installer und ZIP vergleichen, aus der isolierten Testinstallation starten und anschließend deinstallieren. Start-/Endprofil, Komponentenzeit, Darstellung und echter Prozess-Arbeitssatz mit Hardware und Objektzahlen protokollieren. Physische Bedienung und subjektive Bewertung separat kennzeichnen.
+
 ## TEST-030 Sternauswahl und Gürtelannäherung
 
 - **Grundlage:** D-034, T-051, GUI-010/011.

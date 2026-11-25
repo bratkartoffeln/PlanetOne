@@ -167,7 +167,7 @@ namespace PlanetOne.Runtime
                 Texture portrait=CurrentPortrait();if(portrait!=null)GUI.DrawTexture(new Rect(10,y+7,80,BottomHeight-14),portrait,ScaleMode.ScaleToFit);
                 DrawContextCommands(new Rect(100,y+14,width-SideWidth-116,38),false);
             }
-            string message=Time.unscaledTime<notificationUntil?notification:placement.HasValue?"Bauplatz wählen · Rechtsklick oder Esc: abbrechen":spaceMoveTargetMode?"Flugziel anklicken · Rechtsklick: abbrechen":null;
+            string message=Time.unscaledTime<notificationUntil?notification:placement.HasValue?"Bauplatz wählen · Rechtsklick oder Esc: abbrechen":spaceMoveTargetMode?"Flugziel anklicken · Rechtsklick: abbrechen":ScenarioOutcomeText;
             if(!string.IsNullOrEmpty(message))
             {
                 float x=CurrentLayout==InterfaceLayout.OrbitalBridge?216:18;

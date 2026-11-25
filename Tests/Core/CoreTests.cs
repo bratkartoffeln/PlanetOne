@@ -7,8 +7,10 @@ internal static class CoreTests
     private static int failures;
     private static int checks;
 
-    private static int Main()
+    private static int Main(string[] args)
     {
+        if(args.Length>0 && args[0]=="--combat") {Run("M8 paid reference defense",ReferenceCombat.Run);return failures==0?0:1;}
+        if(args.Length>0 && args[0]=="--reference") {ReferenceTests.Register(Run);Console.WriteLine(failures==0?"All "+checks+" reference tests passed.":failures+" reference test(s) failed.");return failures==0?0:1;}
         Run("Fixed steps do not depend on render frame grouping", FixedSteps);
         Run("Pause preserves world and queues commands", Pause);
         Run("Invalid ownership, terrain and overlap reject builds", InvalidBuilds);
@@ -45,6 +47,9 @@ internal static class CoreTests
         OrbitTests.Register(Run);
         PlanetEnvironmentTests.Register(Run);
         AsteroidTests.Register(Run);
+        SnapshotStoreTests.Register(Run);
+        TransitionTests.Register(Run);
+        ReferenceTests.Register(Run);
         Console.WriteLine(failures == 0 ? "All " + checks + " core tests passed." : failures + " test(s) failed.");
         return failures == 0 ? 0 : 1;
     }
