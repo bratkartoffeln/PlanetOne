@@ -24,7 +24,7 @@ namespace PlanetOne.Runtime
             if(simulation.State.InvasionTestFixture)
             {
                 GUILayout.Label("M5 PRÜFKARTE · endliche Testbestände",smallStyle);
-                if(priorSession!=null && GUILayout.Button("Zur laufenden Kolonie zurück",buttonStyle)) {simulation=priorSession;priorSession=null;BuildSpace();SetView(0);return;}
+                if(priorSession!=null && GUILayout.Button("Zur laufenden Kolonie zurück",buttonStyle)) {RestorePreviousSession();return;}
             }
             GUILayout.Label("RAUMKRIEG UND LANDUNG",headingStyle);
             DrawInvasionNotice();

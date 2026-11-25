@@ -19,7 +19,7 @@ namespace PlanetOne.Runtime
             GUILayout.Label("M6 · COMPUTERGEGNER",headingStyle);
             GUILayout.Label("Die Freien Stationen bauen selbstständig auf. Szenariovorgabe: Krieg. Beide Seiten starten mit denselben Vorräten und ohne Flotte. Gegnerwissen bleibt verborgen.",smallStyle);
             if(priorSession!=null&&GUILayout.Button("Zur vorherigen Kolonie zurück",buttonStyle,GUILayout.Height(36)))
-            {simulation=priorSession;priorSession=null;foodRates.Clear();BuildSpace();SetView(0);}
+            {RestorePreviousSession();}
         }
     }
 }

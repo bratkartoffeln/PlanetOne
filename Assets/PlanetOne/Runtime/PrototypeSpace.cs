@@ -160,7 +160,7 @@ namespace PlanetOne.Runtime
             if(simulation.State.SpaceTestFixture)
             {
                 GUILayout.Label("PRÜFKARTE · separate Testsitzung",smallStyle);
-                if(priorSession!=null && GUILayout.Button("Zur laufenden Kolonie zurück",buttonStyle)) { simulation=priorSession; priorSession=null; foodRates.Clear(); BuildSpace(); SetView(0); return; }
+                if(priorSession!=null && GUILayout.Button("Zur laufenden Kolonie zurück",buttonStyle)) { RestorePreviousSession(); return; }
             }
             if(spacePanelTab==0) DrawFleetPanel(); else if(spacePanelTab==1) DrawResearchPanel(); else if(spacePanelTab==2) DrawSupplyPanel(); else DrawInvasionPanel();
         }

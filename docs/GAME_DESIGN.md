@@ -2,6 +2,9 @@
 
 ## Ergänzung: auswählbare Darstellung
 
+- **GUI-013:** Das Spiel startet im Hauptmenü. Reguläre Szenarien und Prüfkarten sind getrennt erkennbar. Startwerte sind prüfbare ganze Zahlen; neue Partien verwenden die bestehenden endlichen Startbedingungen. Menü und Einstellungen halten die Simulationsfortschaltung an, ohne den gespeicherten Pausenzustand zu ändern. Eine kurze Starthilfe erklärt vorhandene Aktionen und bietet direkte Navigation.
+- **GUI-014:** Acht unabhängige lokale Speicherplätze besitzen jeweils eine vorherige gültige Sicherung. Alte Einzeldateien bleiben ladbar und unverändert. Belegte manuelle Speicherziele, Laden, Partiewechsel und Beenden verlangen im Spiel eine ausdrückliche Bestätigung. F5 aktualisiert den aktiven Platz beziehungsweise verwendet beim ersten Speichern einen freien Platz; bei vollem Katalog wird nichts ungefragt überschrieben. Beschädigte Dateien bleiben mit Fehlermeldung sichtbar; eine Sicherung wird niemals stillschweigend anstelle des gewählten Stands geladen.
+
 - **GUI-012:** Häufige Objektbefehle bleiben in allen Layouts sichtbar, Spezialaufgaben öffnen sich gezielt. Kurzer Rechtsklick zeigt ein benanntes Objekt-/Zielmenü; Rechtsziehen bleibt Kamerabewegung. Öffnen, Schließen und Navigieren erteilt keine Spielaufträge. Objekt, Welt und Akteure bleiben während eines Menüs fest zugeordnet; verlorene Sicht oder Eigentumsänderung sperrt veraltete Aktionen. Außenklick wird beim Schließen verbraucht. Rückbau zeigt eine ausdrückliche Bestätigung. Bedienung und Abgrenzung: [Befehls-GUI](BEFEHLS_GUI_NACHWEIS.md).
 
 - **GUI-001:** Kommandozentrale, Orbitale Brücke und Freier Weltraum sind Layouts derselben Partie. Wechsel verändert weder Zeit, Güter, Befehle noch Sichtwissen. Alle vorhandenen Spielbereiche bleiben erreichbar.

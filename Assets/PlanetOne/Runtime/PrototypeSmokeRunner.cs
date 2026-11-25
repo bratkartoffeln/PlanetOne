@@ -42,7 +42,7 @@ namespace PlanetOne.Runtime
             catch (Exception exception) { setupFailure = exception; }
             if (setupFailure != null) { Complete(false, setupFailure); yield break; }
 
-            IEnumerator run = Array.IndexOf(Environment.GetCommandLineArgs(),"-commandUiOnly")>=0?RunCommandChecks():RunChecks();
+            IEnumerator run = Array.IndexOf(Environment.GetCommandLineArgs(),"-sessionUiOnly")>=0?RunSessionChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-commandUiOnly")>=0?RunCommandChecks():RunChecks();
             while (true)
             {
                 bool hasNext = false;
@@ -685,6 +685,7 @@ namespace PlanetOne.Runtime
                 if(measured.State.Winners.Contains(3))Require(controller.ScenarioOutcomeText.Contains("Helios-Verbund"),"Shared victory names the actual coalition partner in the result display");
             }
             var commandChecks=RunCommandChecks();while(commandChecks.MoveNext())yield return commandChecks.Current;
+            var sessionChecks=RunSessionChecks();while(sessionChecks.MoveNext())yield return sessionChecks.Current;
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)

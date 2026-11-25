@@ -45,7 +45,7 @@ namespace PlanetOne.Runtime
         {
             GUILayout.Label("DIPLOMATIE UND SPRUNGTOR",headingStyle);
             if(simulation.State.SpaceTestFixture&&simulation.State.DiplomacyScenario)GUILayout.Label("TESTFIXTURE · Endliche vorgebaute Anlagen und Bestände; kein regulärer Start.",smallStyle);
-            if(priorSession!=null&&GUILayout.Button("Zur vorherigen Partie zurück",buttonStyle)){simulation=priorSession;priorSession=null;showingDiplomacy=false;BuildSpace();SetView(0);return;}
+            if(priorSession!=null&&GUILayout.Button("Zur vorherigen Partie zurück",buttonStyle)){RestorePreviousSession();return;}
             foreach(var f in simulation.State.Factions)if(f.Id!=PlayerFactionId)
                 if(GUILayout.Button(f.Name+" · "+(f.Status!=FactionStatus.Active?"Ausgeschieden":simulation.AtWar(PlayerFactionId,f.Id)?"Krieg":"Frieden"),f.Id==diplomacyPartner?selectedButtonStyle:buttonStyle,GUILayout.Height(30)))diplomacyPartner=f.Id;
             GUILayout.Label("Vertrauen: "+simulation.Trust(PlayerFactionId,diplomacyPartner)+" · Laufzeit 10 Min., Kündigung 60 Sek.",smallStyle);

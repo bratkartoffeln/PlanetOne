@@ -35,6 +35,7 @@ namespace PlanetOne.Runtime
         {
             get
             {
+                if(!hasSession)return new Rect(0,0,Screen.width,Screen.height);
                 float s = UiScale, left = CurrentLayout == InterfaceLayout.OrbitalBridge ? 200 * s : 0;
                 float right = CurrentLayout == InterfaceLayout.CommandCenter ? SideWidth * s : 0;
                 return new Rect(left, BottomHeight*s, Mathf.Max(1,Screen.width-left-right), Mathf.Max(1,Screen.height-(TopHeight+BottomHeight)*s));
@@ -84,8 +85,8 @@ namespace PlanetOne.Runtime
         }
         public void ConfigurePresentationTestPath(string path) { presentationPath=path; LoadPresentationSettings(); UpdateCamera(); }
         public void ReloadPresentationSettings() { LoadPresentationSettings(); UpdateCamera(); }
-        public void SetSettingsVisible(bool visible) { CloseCommandMenu();settingsOpen=visible; selectionStart=null; shipSelectionStart=null;CancelSpacePan(); }
-        public void SetMenuVisible(bool visible) { CloseCommandMenu();menuOpen=visible; selectionStart=null; shipSelectionStart=null;CancelSpacePan(); }
+        public void SetSettingsVisible(bool visible) { CloseCommandMenu();if(visible){settingsReturnToMenu=menuOpen || !hasSession;settingsOpen=true;menuOpen=false;}else CloseSettings();selectionStart=null; shipSelectionStart=null;CancelSpacePan(); }
+        public void SetMenuVisible(bool visible) { CloseCommandMenu();menuOpen=visible;if(visible){sessionPage=SessionPage.Home;pendingSessionAction=null;sessionError=null;} selectionStart=null; shipSelectionStart=null;CancelSpacePan(); }
         public void OpenPresentationSection(int section)
         {
             if(section<0 || section>6)throw new ArgumentOutOfRangeException("section");
@@ -168,39 +169,11 @@ namespace PlanetOne.Runtime
                 {presentation.Scale=scales[i];UpdateCamera();SavePresentationSettings();}
                 GUILayout.EndHorizontal();
                 if(settingsError!=null)GUILayout.Label(settingsError,bodyStyle);
-                GUILayout.Space(12);if(GUILayout.Button("Zurück zum Spiel",buttonStyle,GUILayout.Height(36)))settingsOpen=false;
+                GUILayout.Space(12);if(GUILayout.Button("Zurück",buttonStyle,GUILayout.Height(36)))CloseSettings();
             }
             else
             {
-                GUILayout.Label("PLANETONE",titleStyle);GUILayout.Label("SPIELMENÜ",headingStyle);GUILayout.Space(20);
-                if(GUILayout.Button("Fortsetzen",buttonStyle,GUILayout.Height(40)))menuOpen=false;
-                if(GUILayout.Button("Spiel speichern",buttonStyle,GUILayout.Height(40))){SaveGame();menuOpen=false;}
-                GUILayout.BeginHorizontal();
-                if(GUILayout.Button("Spiel laden",buttonStyle,GUILayout.Height(40))){LoadGame();menuOpen=false;}
-                if(GUILayout.Button("Sicherung laden",buttonStyle,GUILayout.Height(40))){LoadBackupGame();menuOpen=false;}
-                GUILayout.EndHorizontal();
-                if(GUILayout.Button("Einstellungen",buttonStyle,GUILayout.Height(40))){menuOpen=false;settingsOpen=true;}
-                if(priorSession!=null && GUILayout.Button("Zur vorherigen Partie zurück",buttonStyle,GUILayout.Height(34)))
-                {simulation=priorSession;priorSession=null;foodRates.Clear();BuildSpace();SetView(0);menuOpen=false;}
-                GUILayout.Space(22);GUILayout.Label("NEUE PARTIE · laufendes Spiel vorher speichern",smallStyle);
-                GUILayout.BeginHorizontal();
-                if(GUILayout.Button("Referenzpartie · Drei Kolonien",buttonStyle,GUILayout.Height(40))){StartReferenceScenario();menuOpen=false;}
-                if(GUILayout.Button("Diplomatische Partie",buttonStyle,GUILayout.Height(40))){StartDiplomacyScenario();menuOpen=false;}
-                GUILayout.EndHorizontal();
-                if(GUILayout.Button("Gegen Computer spielen",buttonStyle,GUILayout.Height(40))){StartAiScenario();menuOpen=false;}
-                GUILayout.Space(12);GUILayout.Label("TESTSZENARIEN · separate Sitzung",smallStyle);
-                GUILayout.BeginHorizontal();
-                if(GUILayout.Button("Aufbau / Raumfahrt",buttonStyle,GUILayout.Height(32))){StartSpaceFixture();menuOpen=false;}
-                if(GUILayout.Button("Bodengefecht",buttonStyle,GUILayout.Height(32))){StartMilitaryFixture();menuOpen=false;}
-                GUILayout.EndHorizontal();GUILayout.BeginHorizontal();
-                if(GUILayout.Button("Invasion",buttonStyle,GUILayout.Height(32))){StartInvasionFixture();menuOpen=false;}
-                if(GUILayout.Button("Verträge / Sprungtor",buttonStyle,GUILayout.Height(32))){StartDiplomacyFixture();menuOpen=false;}
-                GUILayout.EndHorizontal();
-                GUILayout.BeginHorizontal();
-                if(GUILayout.Button("Planetentypen / Luftfracht",buttonStyle,GUILayout.Height(32))){StartPlanetEnvironmentFixture();menuOpen=false;}
-                if(GUILayout.Button("Asteroidenabbau",buttonStyle,GUILayout.Height(32))){StartAsteroidFixture();menuOpen=false;}
-                GUILayout.EndHorizontal();
-                GUILayout.Space(10);if(GUILayout.Button("Spiel beenden",buttonStyle,GUILayout.Height(32)))Application.Quit();
+                DrawSessionMenu();
             }
             GUILayout.EndArea();
         }

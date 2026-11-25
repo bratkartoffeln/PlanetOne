@@ -202,7 +202,7 @@ namespace PlanetOne.Runtime
                 if (GUILayout.Button("Angriff Nord auslösen", buttonStyle, GUILayout.Height(28))) MilitaryFixture.OrderAttack(simulation, true);
                 if (GUILayout.Button("Angriff Süd auslösen", buttonStyle, GUILayout.Height(28))) MilitaryFixture.OrderAttack(simulation, false);
                 if (priorSession != null && GUILayout.Button("Zur laufenden Kolonie zurück", buttonStyle, GUILayout.Height(28)))
-                { simulation = priorSession; priorSession = null; foodRates.Clear(); BuildSpace(); SetView(0); return; }
+                { RestorePreviousSession(); return; }
             }
             GUILayout.Space(8);
             foreach (var u in p.Units)
