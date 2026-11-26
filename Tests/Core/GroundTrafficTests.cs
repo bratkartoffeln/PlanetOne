@@ -50,7 +50,7 @@ internal static class GroundTrafficTests
         var depot=new BuildingState{Id=sim.State.NextEntityId++,Kind=BuildingKind.Warehouse,X=18,Y=curved?7:6,Built=true,Health=Definitions.BuildingHealth(BuildingKind.Warehouse)};p.Buildings.Add(depot);
         var a=new ShipmentState{Id=sim.State.NextEntityId++,SourceId=depot.Id,TargetId=hq.Id,Phase=ShipmentPhase.Returning,Traffic=new GroundTrafficState{Docked=true}};
         var b=new ShipmentState{Id=sim.State.NextEntityId++,SourceId=hq.Id,TargetId=depot.Id,Phase=ShipmentPhase.Returning,Traffic=new GroundTrafficState{Docked=true}};
-        Check(GameSimulation.RoadHalfWidth==.13&&GameSimulation.RoadLaneOffset+GameSimulation.GroundCourierRadius(a)<GameSimulation.RoadHalfWidth,"Courier hull does not fit the restored narrow road");
+        Check(GameSimulation.GroundCourierRadius(a)>.2&&GameSimulation.GroundCourierRadius(a)<GameSimulation.RoadLaneOffset,"Large courier hull does not fit its directional corridor");
         for(int x=8;x<=18;x++)
         {
             int y=curved&&x>12?7:6;

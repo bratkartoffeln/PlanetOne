@@ -210,3 +210,31 @@ Die folgende synchron gerenderte Nahaufnahme zeigt echte Kuriermodelle und die F
 ![Zwei verkleinerte Transporter auf schmaler Straße](GUI_1_0_18/schmale-strasse-gegenverkehr.png)
 
 Auch Installer und ZIP wurden nach der Breitenkorrektur neu erstellt: Manifest-Commit `f192a15bf043714e63a12b7c1bf0beb7ab174b01`. Dateivergleich, isolierte Installation und Deinstallation bestanden (`TestResults/narrow-roads-installer.log`). Der betroffene Playernachweis ist der oben genannte Interaktions-/Modelllauf; der frühere vollständige installierte GUI-Lauf wurde für diese begrenzte Korrektur nicht wiederholt. Das vorherige Paket liegt archiviert unter `TestResults/DistributionBeforeNarrowRoads-20261126`.
+
+## Aktueller Folgeauftrag: Versorgungsnetz statt Asphalt
+
+D-048 / LOG-016 / TEST-041 ersetzen die zuvor dokumentierte Straßenbreitenkorrektur. Die Transporter besitzen wieder Radius 0,24; Richtungsversatz ±0,30 und körperbasierte Freigaben erhalten kollisionsfreien Gegenverkehr. Dauerhafte Asphaltmodelle entfallen. Das interne Netz bleibt eine physische Transportvoraussetzung, keine Waren-Teleportation.
+
+**Bedienung:** Im Baumenü oder bei einem ausgewählten Gebäude „Verbindung planen“ wählen. Ohne Vorauswahl zuerst ein eigenes Startgebäude anklicken, danach das Zielgebäude oder einen zukünftigen Bauplatz. Eine grüne Vorschau zeigt den vollständigen Weg um Hindernisse; ungültige Ziele erscheinen rot. Ein einzelner Core-Befehl prüft und übernimmt die gesamte Verbindung. Escape, Rechtsklick oder Ansichtswechsel beenden die Planung. Ein anschließend gewählter Gebäudetyp beendet sie ebenfalls. „Abschnitt sperren“ unterbricht eine Verbindung gezielt.
+
+**Anzeige:** Normal sichtbar bleiben Gelände, Gebäude, größere Fahrzeuge und die Be-/Entladung. Gebäudeauswahl zeigt relevante Lieferungen; L oder „Logistikansicht“ zeigt das ganze Netz, Richtungspfeile, Warenmengen, Wartezustände und offene Lieferungen. Ein beladener Kurier trägt seinen tatsächlichen Container, eine Leerfahrt keinen. Gaswelten behalten automatische Frachtdrohnen und benötigen keine Bodenverbindungen.
+
+**Regeln und Nachweis:** Drei neue Coretests prüfen Hindernisumfahrung mit bezahltem Bau, vollständig abgelehnte ungültige Verbindungen sowie exakte Speicherfortsetzung ohne Warenduplikation. Insgesamt bestehen 215 Core-/Plattformtests einschließlich beider vollständiger F05-Siege; `TestResults/supply-network-core.log`. Beim Wiedervergrößern wurde ein zu knapper Einfahrtsabstand im Langzeittest erkannt und auf den zuvor bewährten Körperabstand plus 0,02 zurückgesetzt. Kosten, Gegner und Zeitlimits blieben unverändert.
+
+Der 720p-Gestaltungslauf `20261126-142358` bestand 516 Einzelbedingungen plus Gesamt-PASS und erzeugte 94 PNGs. Der erste anschließende Gesamtlauf war nicht erfolgreich: Ein vorheriges Menü blockierte korrekt den L-Shortcut. Die neue Prüfsequenz schließt ihre vorausgehenden Menüs ausdrücklich; die reguläre Menüsperre wurde nicht verändert. Der finale Nachweis folgt unten. Alle Spieltests laufen auf einem separaten, niemals aktivierten Windows-Desktop, ohne Computer-Use, Screenreader oder globale Eingaben.
+
+### Abschließende Prüfung des Versorgungsnetzes
+
+Der vollständige Windows-Playerlauf `20261126-143225` (1440×900) bestand **1076 Einzelbedingungen plus Gesamt-PASS**, mit **193 PNGs**. Simulation p95: Start 1,6485 ms, Solo-Endzustand 4,0218 ms. Renderzeit p95: System 16,7362 ms, Oberfläche 16,7350 ms. Arbeitssatz 412.688.384 Bytes (etwa 394 MiB), i7-13700 / RTX 3060 Ti / Windows 11 / D3D11. Die vorhandenen Leistungsbudgets bestehen. Befehl: `tools/Test-Presentation.ps1 -ReferenceSave TestResults/Reference/victory.json`.
+
+Bei der direkten Bildkontrolle lagen zwei Frachtbeschriftungen übereinander. Die abschließende Darstellung ordnet kollidierende Beschriftungen nun vertikal versetzt an und zeigt den Text deckend. Außerdem wurden drei verbliebene Straßen-Hinweistexte auf Versorgungsverbindungen umgestellt. Der darauf folgende gezielte Playerlauf prüft den neu gebauten Stand; sein Ergebnis und die aktuelle Paketquelle werden unten ergänzt.
+
+Der abschließende Interaktionslauf `20261126-143620` bestand **217 Einzelbedingungen plus Gesamt-PASS**, mit **28 PNGs**, nach erneut erfolgreichem Unity-Build. Darunter: echte geladene Fahrt außerhalb des Depots, Verbindungsplanung, Abbruch, bezahlter Bauauftrag und größere Gegenverkehrsmodelle. Befehl: `tools/Test-Presentation.ps1 -InteractionOnly`. Die folgenden Bilder stammen aus diesem Stand; Frachtbeschriftung, Planung und Fahrzeugnahaufnahme wurden direkt visuell kontrolliert.
+
+| Darstellung | Aktuelles Playerbild |
+|---|---|
+| Normale Oberfläche ohne Asphalt | ![Normale Ansicht](GUI_1_0_18/supply-normal.png) |
+| Zuschaltbares Versorgungsnetz | ![Logistikansicht](GUI_1_0_18/supply-overlay.png) |
+| Vollständige Verbindungsvorschau | ![Verbindung planen](GUI_1_0_18/supply-connection-preview.png) |
+| Echte Materiallieferung zum Bauplatz | ![Frachtfahrt](GUI_1_0_18/supply-live-delivery.png) |
+| Größere Modelle bei Gegenverkehr | ![Transportermodelle](GUI_1_0_18/supply-corridor-passing-models.png) |

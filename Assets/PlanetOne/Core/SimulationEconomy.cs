@@ -34,14 +34,14 @@ namespace PlanetOne.Core
             {
                 b.Operational = false;
                 if (b.Deconstructing)
-                { SetStatus(p, b, "RecoveringMaterials", connected.Contains(b.Id) ? "Rückbau: Material wird abgeholt" : "Rückbau: Straßenanschluss fehlt"); continue; }
+                { SetStatus(p, b, "RecoveringMaterials", connected.Contains(b.Id) ? "Rückbau: Material wird abgeholt" : "Rückbau: Versorgungsanschluss fehlt"); continue; }
                 if (!connected.Contains(b.Id))
                 {
                     var isolated = Definitions.Get(b.Kind);
                     if (b.Built && b.Enabled && Definitions.IsTower(b.Kind) && b.EnergyStored >= isolated.EnergyUse * Definitions.TickSeconds)
                     { b.EnergyStored = Math.Max(0, b.EnergyStored - isolated.EnergyUse * Definitions.TickSeconds); b.Operational = true;
                         SetStatus(p, b, "LocalReserve", "Versorgungsweg unterbrochen; örtlicher Energiepuffer"); }
-                    else SetStatus(p, b, "NoRoad", "Kein Straßenanschluss");
+                    else SetStatus(p, b, "NoRoad", "Kein Versorgungsanschluss");
                     continue;
                 }
                 var definition = Definitions.Get(b.Kind);

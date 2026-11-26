@@ -31,8 +31,8 @@ namespace PlanetOne.Runtime
                     float yawRadius=ModelYawRadius(model,true),envelope=PrototypeController.ModelMotionRadius(model,true,!gas);
                     Require(size!=null && yawRadius>0 && envelope<=size.PhysicalRadius+.00001f,"Real "+(gas?"gas":"land")+" model including moving parts fits its core body: "+names[i]);
                     if(!gas&&(names[i]=="Kurier"||names[i]=="Baufahrzeug"))
-                        Require(envelope<GameSimulation.RoadLaneOffset&&envelope+GameSimulation.RoadLaneOffset<GameSimulation.RoadHalfWidth,
-                            "Narrow-road model leaves space for opposing traffic and stays inside its lane: "+names[i]);
+                        Require(envelope<GameSimulation.RoadLaneOffset&&size.PhysicalRadius>.2f,
+                            "Restored full-size model leaves space for opposing traffic: "+names[i]);
                     report.Add((gas?"Gas":"Land")+" / "+names[i]+": scale "+size.PreferredScale.ToString("F5",CultureInfo.InvariantCulture)+" -> "+size.AppliedScale.ToString("F5",CultureInfo.InvariantCulture)+
                         "; envelope "+size.BeforeRadius.ToString("F5",CultureInfo.InvariantCulture)+" -> "+envelope.ToString("F5",CultureInfo.InvariantCulture)+"; yaw="+yawRadius.ToString("F5",CultureInfo.InvariantCulture)+"; core="+size.PhysicalRadius.ToString("F5",CultureInfo.InvariantCulture));
                     var turret=model.Find("Turret");var crane=model.Find("Kranarm");Quaternion craneRest=crane==null?Quaternion.identity:crane.localRotation;
@@ -57,14 +57,14 @@ namespace PlanetOne.Runtime
                     reverse.position+=new Vector3(0,.02f,-(float)GameSimulation.RoadLaneOffset);
                     forward.rotation=Quaternion.Euler(0,90,0);reverse.rotation=Quaternion.Euler(0,-90,0);
                     Require(Vector3.Distance(forward.position,reverse.position)>ActualHorizontalMeshRadius(forward)+ActualHorizontalMeshRadius(reverse),
-                        "Opposing real courier meshes fit side by side on the restored road width");
+                        "Opposing full-size courier meshes fit side by side in the supply corridor");
                     controller.SetSurfaceFocus(new Vector3(12,0,6*(float)HexGrid.RowHeight));controller.SetOrbitCamera(0,75);
                     yield return null;
                     // Synchronous world render: the normal camera update would reset a
                     // temporary inspection zoom before an asynchronous screenshot.
-                    Camera.main.orthographicSize=.45f;
-                    controller.CaptureWorld(Path.Combine(outputDirectory,"narrow-road-passing-models.png"));
-                    Require(ScreenshotExists(Path.Combine(outputDirectory,"narrow-road-passing-models.png")),"Narrow two-lane road and opposing courier models captured close up");
+                    Camera.main.orthographicSize=.8f;
+                    controller.CaptureWorld(Path.Combine(outputDirectory,"supply-corridor-passing-models.png"));
+                    Require(ScreenshotExists(Path.Combine(outputDirectory,"supply-corridor-passing-models.png")),"Full-size couriers captured without a permanent road surface");
                 }
                 foreach(var model in models)Destroy(model.gameObject);yield return null;
             }

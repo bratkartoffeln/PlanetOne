@@ -64,6 +64,8 @@ namespace PlanetOne.Runtime
         }
         private void UpdateShipmentPose(Transform view,ShipmentState shipment)
         {
+            var cargo=view.Find(AtmosphereSurface?"Frachtcontainer":"Ladebehälter");
+            if(cargo!=null)cargo.gameObject.SetActive(shipment.Amount>0&&shipment.Phase!=ShipmentPhase.Loading);
             Vector3 position=ShipmentRoadPosition(shipment);UpdateSurfaceMotion(view,position);
             if(GameSimulation.IsConstructionVehicle(shipment))
             {

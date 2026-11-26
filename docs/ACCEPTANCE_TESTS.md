@@ -405,3 +405,11 @@ Bezug: LOG-015, SURFACE-011, GUI-022, D-045–047.
 Aktuelle Laufdaten und verbleibende Integrationsprüfungen stehen in [GUI_BEWEGUNG_BAU_NACHWEIS](GUI_BEWEGUNG_BAU_NACHWEIS.md).
 
 **Ergänzung TEST-040:** Auf der früheren Fahrbahnbreite müssen entgegengesetzte Kuriere gleichzeitig starten und auf gerader sowie gekrümmter Strecke ohne Ausweichen ankommen. Tatsächliche Modellhüllen einschließlich Drehung und Kran müssen in ihre Spur passen; eine Nahaufnahme zeigt beide Modelle nebeneinander. Luftfracht behält ihre bisherige Größe.
+
+## TEST-041 Versorgungsnetz ohne permanente Asphaltflächen
+
+- Grundlage: LOG-016, D-048, T-075–077, P04/P05/P19/P20.
+- Start-/Zielverbindung um Fels und Gebäude planen; vollständige Vorschau und atomare Ausführung müssen denselben Pfad prüfen. Eigentumswechsel, fremde Quelle, ungültiges Ziel, unpassierbare Barriere und Gaswelt ablehnen, ohne Teilstrecken anzulegen.
+- Freier Endpunkt bleibt bebaubar. Material und Baufahrzeug fahren tatsächlich zum bezahlten Bau; keine Waren werden durch Planung erzeugt. Gequeue-te Verbindung speichern/laden und exakt fortsetzen.
+- Normale Ansicht enthält keine Asphaltmeshes; Logistikansicht und Auswahl verändern keine Simulation. L, sichtbarer Schalter, zwei Endpunkte, ungültiges Ziel, Esc und Ansichtswechsel prüfen. Aktive Lieferungen und Vorschau im wirklichen Player aufnehmen.
+- Große Fahrzeugmodelle samt Dreh-/Kran-/Hanghülle bleiben getrennt; echte geladene und leere Rückfahrten unterscheiden sich. Früherer TEST-040 zur schmalen sichtbaren Fahrbahn ist durch dieses Konzept ersetzt, die Gegenverkehrs-/Kollisionsprüfungen bleiben bestehen.

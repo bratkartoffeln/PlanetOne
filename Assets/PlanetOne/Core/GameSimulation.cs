@@ -236,13 +236,13 @@ namespace PlanetOne.Core
             int index = y * p.Width + x;
             if (kind == BuildingKind.CrystalMine && p.Terrain[index] != 3) return "Kristallminen benötigen ein Kristallvorkommen.";
             if (kind != BuildingKind.CrystalMine && p.Terrain[index] == 3) return "Dieses Feld ist für Kristallabbau reserviert.";
-            if (p.Roads[index] && kind != BuildingKind.Gate) return "Auf dieser Fläche liegt bereits eine Straße.";
+            if (p.Roads[index] && kind != BuildingKind.Gate) return "Auf dieser Fläche verläuft ein Transportkorridor.";
             if (kind == BuildingKind.Mine && p.Terrain[index] != 2) return "Erzminen benötigen ein Erzvorkommen.";
             if (kind != BuildingKind.Mine && p.Terrain[index] == 2) return "Dieses Feld ist für den Erzabbau reserviert.";
             var headquarters = p.Buildings.Find(b => b.Kind == BuildingKind.Headquarters && b.Built);
             var proposedSite = new BuildingState { X = x, Y = y };
             if (headquarters == null || FindPath(p, headquarters, proposedSite) == null)
-                return "Zuerst eine Straße vom Kommandozentrum bis an den Bauplatz legen.";
+                return "Zuerst eine Versorgungsverbindung vom Kommandozentrum zum Bauplatz planen.";
             var definition = Definitions.Get(kind);
             for (int r = 0; r < 6; r++)
             {
@@ -250,7 +250,7 @@ namespace PlanetOne.Core
                 int available = 0;
                 foreach (var b in p.Buildings)
                     if (BuildingOwner(p,b)==factionId && b.Built && !b.Deconstructing && IsStorage(b) && FindPath(p,b,proposedSite)!=null) available += b.Inventory[r] - b.ReservedOutgoing[r];
-                if (available < definition.Cost[r]) return "Nicht genug " + Definitions.ResourceName((ResourceKind)r) + " in erreichbaren lokalen Lagern. Vorräte und Straßenverbindung prüfen.";
+                if (available < definition.Cost[r]) return "Nicht genug " + Definitions.ResourceName((ResourceKind)r) + " in erreichbaren lokalen Lagern. Vorräte und Versorgungsverbindung prüfen.";
             }
             return null;
         }
@@ -274,6 +274,7 @@ namespace PlanetOne.Core
             if (!State.Factions.Exists(f => f.Id == command.IssuerId))
             { Report(command, false, "UnknownFaction", "Unbekannte Fraktion."); return; }
             if (!FactionActive(command.IssuerId)) { Report(command,false,"FactionInactive","Ausgeschiedene Fraktion kann keine Aufträge erteilen."); return; }
+            if(command.Kind==CommandKind.ConnectSupply){ApplySupplyConnection(command);return;}
             if (command.Kind == CommandKind.MineAsteroid) { ApplyMining(command); return; }
             if (command.Kind >= CommandKind.ProposeTreaty) { ApplyDiplomacy(command); return; }
             if (p == null) { Report(command, false, "UnknownPlanet", "Unbekannter Planet."); return; }
@@ -289,19 +290,19 @@ namespace PlanetOne.Core
             {
                 if (command.X < 0 || command.Y < 0 || command.X >= p.Width || command.Y >= p.Height ||
                     !p.Roads[command.Y * p.Width + command.X])
-                { Report(command, false, "InvalidTarget", "Hier liegt keine Straße."); return; }
+                { Report(command, false, "InvalidTarget", "Hier verläuft keine Versorgungsverbindung."); return; }
                 p.Roads[command.Y * p.Width + command.X] = false;
-                Report(command, true, "RoadRemoved", "Straße entfernt. Betroffene Lieferungen suchen einen Weg oder warten."); return;
+                Report(command, true, "RoadRemoved", "Verbindungsabschnitt gesperrt. Lieferungen suchen einen Umweg oder warten."); return;
             }
             if (command.Kind == CommandKind.PlaceRoad)
             {
                 error = ValidateCell(p, command.X, command.Y, command.IssuerId);
                 if (error != null) { Report(command, false, "InvalidPlacement", error); return; }
                 int index = command.Y * p.Width + command.X;
-                if (p.Roads[index]) { Report(command, false, "Occupied", "Hier liegt bereits eine Straße."); return; }
+                if (p.Roads[index]) { Report(command, false, "Occupied", "Hier verläuft bereits eine Versorgungsverbindung."); return; }
                 if (p.Terrain[index] >= 2) { Report(command, false, "InvalidTerrain", "Erzvorkommen für den Bergbau freihalten."); return; }
                 p.Roads[index] = true;
-                Report(command, true, "RoadPlaced", "Straße angelegt. Straßenbau ist vorläufig kostenfrei.");
+                Report(command, true, "RoadPlaced", "Versorgungsabschnitt angelegt. Verbindungen sind vorläufig kostenfrei.");
                 return;
             }
             if (command.Kind == CommandKind.SetBuildingEnabled || command.Kind == CommandKind.SetBuildingPriority ||

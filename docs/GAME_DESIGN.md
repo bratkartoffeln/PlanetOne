@@ -327,3 +327,7 @@ Die folgenden Abgrenzungen verhindern, dass ein Umsetzungspaket unbemerkt weiter
 **SURFACE-011:** Je ein Panzer kann auf zwei benachbarten Waben stehen. Bewegte Einheiten nutzen eine freie Umfahrung, bevor sie stehende eigene Einheiten zum Platzmachen veranlassen. Aktive Baufahrzeuge bleiben während der Arbeit unbeweglich; andere Einheiten umfahren die Arbeitsstelle oder warten. Abschluss und Abbruch erlauben erst wieder die reguläre Rückfahrt.
 
 **GUI-022:** Aus Mausbefehlen entstehen transparente bogenförmige Zielpfeile, grün für Bewegung und rot für Angriff. Sie folgen dem bewegten Akteur und sichtbaren Zielen, verschwinden bei Ankunft bzw. tatsächlichem Angriff und werden bei Befehlsersatz entfernt. Sie markieren den Auftrag, keine ballistische Berechnung des Waffenfluges und keine garantierte direkte Fahrstrecke.
+
+## LOG-016 Versorgungsnetz und sichtbarer Warenfluss
+
+LOG-015 wird in der Darstellung durch ein Versorgungsnetz ersetzt: keine dauerhaften Straßenflächen, größere Bodenfahrzeuge mit getrennten Richtungsfahrkorridoren. Verbindungen werden mit Start-/Zielauswahl vollständig geplant; der zweite Endpunkt darf ein zukünftiger Bauplatz sein. Ein fehlgeschlagener Auftrag verändert keine Teilstrecke. Waren fahren weiterhin physisch zwischen erreichbaren Lagern und Gebäuden. Eine Gebäudeauswahl zeigt relevante Lieferungen, die zuschaltbare Logistikansicht das ganze eigene Netz samt Richtung, Fracht und Wartezustand. Gaswelten nutzen weiterhin Frachtdrohnen.

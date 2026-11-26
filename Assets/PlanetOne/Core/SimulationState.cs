@@ -10,7 +10,7 @@ namespace PlanetOne.Core
     public enum CommandKind { PlaceBuilding, PlaceRoad, RemoveRoad, CancelConstruction, DemolishBuilding,
         SetBuildingEnabled, SetBuildingPriority, SetPaused, SetTimeScale,
         RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget, BuildShip, FlyShip, GuardPlanet, EscortShip, Colonize, StartResearch, SetSupplyPolicy, AssignFreight, CancelFreight, SetAutoSupply, SetTradeRoute, MoveShipPosition,
-        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters, ProposeTreaty, AcceptTreaty, RejectTreaty, WithdrawTreaty, TerminateTreaty, BreachTreaty, DeclareWar, DispatchTrade, PledgeShip, StartJointOperation, CancelJointOperation, ActivateGate, Surrender, MineAsteroid }
+        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters, ProposeTreaty, AcceptTreaty, RejectTreaty, WithdrawTreaty, TerminateTreaty, BreachTreaty, DeclareWar, DispatchTrade, PledgeShip, StartJointOperation, CancelJointOperation, ActivateGate, Surrender, MineAsteroid, ConnectSupply }
     public enum ShipmentPhase { Loading, InTransit, Unloading, Returning, Recovering,
         BuilderOutbound, Building, BuilderReturning }
     public enum RelationKind { Peace, War }
@@ -128,7 +128,7 @@ namespace PlanetOne.Core
         [DataMember] public List<PlanetState> Planets = new List<PlanetState>();
         [DataMember] public List<SimCommand> PendingCommands = new List<SimCommand>();
         [DataMember] public List<long> ProcessedCommandIds = new List<long>();
-        [DataMember] public string LastMessage = "Kolonie bereit. Baue Straßen, Energie und eine Erzverarbeitung.";
+        [DataMember] public string LastMessage = "Kolonie bereit. Plane Versorgungsverbindungen und baue Energieversorgung und Erzverarbeitung.";
     }
 
     [DataContract, Serializable]

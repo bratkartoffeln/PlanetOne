@@ -132,7 +132,7 @@ namespace PlanetOne.Runtime
                 if(p.OwnerId==PlayerFactionId && reliefMap!=null)
                 {
                     GUI.DrawTexture(map,reliefMap);
-                    for(int y=0;y<p.Height;y++)for(int x=0;x<p.Width;x++)if(p.Roads[y*p.Width+x])
+                    for(int y=0;y<p.Height;y++)for(int x=0;x<p.Width;x++)if(supplyOverlay && p.Roads[y*p.Width+x])
                         Fill(new Rect(map.x+(x+(y%2)*0.5f)/p.Width*map.width,map.y+(1-y/(float)p.Height)*map.height,3,2),new Color(0.2f,0.47f,0.48f));
                 }
                 foreach(var b in p.Buildings)

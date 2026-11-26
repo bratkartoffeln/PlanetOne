@@ -417,3 +417,7 @@ Leistungsmessungen verwenden ein festgehaltenes Szenario und Hardwareprofil. Ein
 ### Korrektur: schmale zweispurige Straßen
 
 LOG-015 / TEST-040 / T-070: frühere Breite wiederherstellen, beide Richtungsfahrspuren erhalten, Straßenkuriere und Baufahrzeuge samt Modell und Kollisionskörper verkleinern. 45 gezielte Prüfungen und 212 vollständige Coretests einschließlich beider F05-Siege bestanden. Aktueller isolierter Modellnachweis und Paket werden im Gesamtnachweis dokumentiert.
+
+### Versorgungsnetz – bestätigter Folgeauftrag
+
+LOG-016 / TEST-041 / D-048 / T-075–077 ersetzen die sichtbaren Straßen durch bedarfsabhängige Lieferlinien und eine Logistikansicht. Größere Fahrzeuge, atomare Endpunktverbindungen, echte Warenfahrten und Be-/Entladung sind implementiert. 215 vollständige Coretests und 1076 Bedingungen im vollständigen isolierten Playerlauf bestehen. Aktuelle Darstellungsnachkorrektur und Paketnachweis stehen im GUI-Nachweis; GitHub-Pflichtchecks und Merge bleiben separat auszuweisen.

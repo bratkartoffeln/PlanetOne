@@ -166,8 +166,9 @@ namespace PlanetOne.Runtime
         {
             if(viewFlightActive){if(key==KeyCode.Escape){FinishViewFlight();return true;}return false;}
             if(IsCommandMenuOpen){if(key==KeyCode.Escape){CloseCommandMenu();return true;}return false;}
-            if (key==KeyCode.Escape) { if(settingsOpen)CloseSettings(); else if(HandleSessionEscape()){} else if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue || spaceMoveTargetMode) {CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;} else if(panelOpen){panelOpen=false;contextOpen=true;} else if(SelectionCardVisible)contextOpen=false; else ShowSessionPage(SessionPage.Home); selectionStart=null; shipSelectionStart=null; return true; }
+            if (key==KeyCode.Escape) { if(settingsOpen)CloseSettings(); else if(HandleSessionEscape()){} else if(placement.HasValue || placingRoad || removingRoad || planningSupply || militaryTargetMode.HasValue || spaceMoveTargetMode) {CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;} else if(panelOpen){panelOpen=false;contextOpen=true;} else if(SelectionCardVisible)contextOpen=false; else ShowSessionPage(SessionPage.Home); selectionStart=null; shipSelectionStart=null; return true; }
             if(settingsOpen || menuOpen)return false;
+            if(key==KeyCode.L && openPlanetId!=0){ToggleSupplyOverlay();return true;}
             if(key==KeyCode.Space){TogglePause();return true;}
             if(key==KeyCode.F5)return SaveGame();
             if(key==KeyCode.F9)return LoadGame();
@@ -180,6 +181,7 @@ namespace PlanetOne.Runtime
             if(settingsOpen || menuOpen || IsCommandMenuOpen || viewFlightActive)return;
             HandleOrbitCamera();
             if(Input.GetKeyDown(KeyCode.Space))HandleShortcut(KeyCode.Space);
+            if(Input.GetKeyDown(KeyCode.L))HandleShortcut(KeyCode.L);
             if(Input.GetKeyDown(KeyCode.F5))HandleShortcut(KeyCode.F5);
             if(Input.GetKeyDown(KeyCode.F9))HandleShortcut(KeyCode.F9);
             if(Input.GetKeyDown(KeyCode.Tab))HandleShortcut(KeyCode.Tab);
@@ -245,6 +247,7 @@ namespace PlanetOne.Runtime
             hoverX = hoverCell.X; hoverY = hoverCell.Y;
             PlanetState planetState = simulation.FindPlanet(openPlanetId);
             bool inside = hoverX >= 0 && hoverY >= 0 && hoverX < planetState.Width && hoverY < planetState.Height;
+            if(HandleSupplyPointer(hoverX,hoverY))return;
             if (!placement.HasValue && !placingRoad && !removingRoad && HandleMilitaryPointer(planetState, inside)) return;
             if (placement.HasValue || placingRoad || removingRoad)
             {
@@ -433,18 +436,6 @@ namespace PlanetOne.Runtime
         private void UpdateSurface()
         {
             PlanetState planet = simulation.FindPlanet(openPlanetId);
-            RefreshRoadVisuals(planet);
-            for (int i = 0; i < planet.Roads.Length; i++)
-            {
-                if (!planet.Roads[i])
-                {
-                    if (roadViews[i] != null) Destroy(roadViews[i].gameObject);
-                    roadViews[i] = null;
-                    continue;
-                }
-                if (roadViews[i] == null)
-                    roadViews[i] = BuildCurvedRoad(i%planet.Width,i/planet.Width,planet);
-            }
             obsoleteBuildings.Clear();
             foreach (long id in buildingViews.Keys) obsoleteBuildings.Add(id);
             foreach (BuildingState building in planet.Buildings)
@@ -572,6 +563,7 @@ namespace PlanetOne.Runtime
             else { DrawBuildingLabels(scale); DrawMilitaryLabels(scale); }
             DrawUnitSelectionFrames(scale);
             DrawOrderArrows(scale);
+            DrawSupplyNetwork(scale);
             DrawPresentationTop(width);
             DrawPresentationNavigation(width,height);
             DrawSidebar(width, height);
@@ -613,7 +605,8 @@ namespace PlanetOne.Runtime
             float tileWidth=(SidebarContentWidth-16)/2;
             if (GUILayout.Button(new GUIContent(definition.Name + "\n" + cost, BuildingIcon(kind),definition.Name+" bauen · "+cost+" · Bauplatz anschließend in der Welt wählen"), placement == kind ? selectedBuildStyle : buildStyle, GUILayout.Height(126+FontUnitSize(16)*2),GUILayout.Width(tileWidth)))
             {
-                placement = placement == kind ? (BuildingKind?)null : kind;
+                var next=placement == kind ? (BuildingKind?)null : kind;
+                CancelPlacement();placement=next;
                 placingRoad = false;
                 removingRoad = false;
                 selectedBuildingId = 0;
@@ -624,6 +617,7 @@ namespace PlanetOne.Runtime
         {
             if(GameSimulation.BuildingOwner(simulation.FindPlanet(building.PlanetId),building)!=PlayerFactionId)
             { GUILayout.Label(Definitions.Get(building.Kind).Name+" · fremde Anlage",headingStyle);GUILayout.Label("Mit Infanterie vor Ort sichern.",bodyStyle);return; }
+            DrawSupplyControls();
             GUILayout.Label(Definitions.Get(building.Kind).Name.ToUpperInvariant(), headingStyle);
             GUILayout.Label(building.Status ?? (building.Built ? "Betriebsbereit" : "Im Bau"), mutedStyle);
             GUILayout.Label("Struktur: " + building.Health.ToString("0") + " / " + Definitions.BuildingHealth(building.Kind), smallStyle);
@@ -652,7 +646,7 @@ namespace PlanetOne.Runtime
             if (building.Deconstructing)
             {
                 GUILayout.Space(10);
-                GUILayout.Label(AtmosphereSurface?"Rückgewinnung wartet auf eine Frachtdrohne und freien Lagerplatz.":"Rückgewinnung wartet hier auf Abholung. Ein erreichbarer Lagerplatz und eine Straße werden benötigt.", smallStyle);
+                GUILayout.Label(AtmosphereSurface?"Rückgewinnung wartet auf eine Frachtdrohne und freien Lagerplatz.":"Rückgewinnung wartet hier auf Abholung. Ein erreichbarer Lagerplatz und eine Versorgungsverbindung werden benötigt.", smallStyle);
                 return;
             }
             if (building.Built && building.Kind != BuildingKind.Headquarters)
@@ -733,24 +727,25 @@ namespace PlanetOne.Runtime
             }
             if(column%2!=0)GUILayout.EndHorizontal();
             GUILayout.Space(4);
+            if(GUILayout.Button(supplyOverlay?"Logistikansicht aus · L":"Logistikansicht · L",buttonStyle))ToggleSupplyOverlay();
             if(AtmosphereSurface) {
                 GUILayout.Label("LUFTFRACHT · 4 Frachtdrohnen, je 8 Waren. Automatische Flugkorridore zwischen Plattformen. Erz und Metall per Raumhafen importieren.",smallStyle);
                 return;
             }
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Straße bauen", placingRoad ? selectedButtonStyle : buttonStyle, GUILayout.MinHeight(UiRowHeight(30))))
+            if (GUILayout.Button("Verbindung planen", planningSupply ? selectedButtonStyle : buttonStyle, GUILayout.MinHeight(UiRowHeight(30))))
             {
-                bool next = !placingRoad; CancelPlacement(); placingRoad = next; selectedBuildingId = 0;
+                BeginSupplyConnection();
             }
-            if (GUILayout.Button("Entfernen", removingRoad ? selectedButtonStyle : buttonStyle, GUILayout.MinHeight(UiRowHeight(30))))
+            if (GUILayout.Button("Abschnitt sperren", removingRoad ? selectedButtonStyle : buttonStyle, GUILayout.MinHeight(UiRowHeight(30))))
             {
                 bool next = !removingRoad; CancelPlacement(); removingRoad = next; selectedBuildingId = 0;
             }
             GUILayout.EndHorizontal();
             GUILayout.Space(7);
-            if (removingRoad) GUILayout.Label("Straße anklicken. Unterbrochene Lieferungen warten oder nutzen einen Umweg; ihre Fracht bleibt erhalten.", smallStyle);
-            else if (placingRoad) GUILayout.Label("Freie Felder verbinden. Straßen sind in dieser Fassung kostenfrei. Rechtsklick beendet den Straßenbau.", smallStyle);
-            else if (placement.HasValue) GUILayout.Label("Freies Feld an einer Straße wählen. Mine nur auf Erz. Rechtsklick beendet den Bau.", smallStyle);
+            if (removingRoad) GUILayout.Label("Eine Verbindungslinie anklicken. Lieferungen nutzen einen Umweg oder warten mit ihrer Fracht.", smallStyle);
+            else if (placingRoad) GUILayout.Label("Freie Felder verbinden. Versorgungsverbindungen sind vorläufig kostenfrei. Rechtsklick beendet die Planung.", smallStyle);
+            else if (placement.HasValue) GUILayout.Label("Bauplatz am Versorgungsnetz wählen. Bei Bedarf zuerst eine Verbindung zum Bauplatz planen.", smallStyle);
             else GUILayout.Label("Metall M · Bauteile B. Alle Baumaterialien werden tatsächlich angeliefert.", smallStyle);
         }
 
@@ -842,7 +837,7 @@ namespace PlanetOne.Runtime
         }
 
         private void TogglePause() { SetSimulationPaused(!simulation.State.Paused); }
-        private void CancelPlacement() { placement = null; placingRoad = false; removingRoad = false; placementReason = null; if (ghost != null) ghost.gameObject.SetActive(false); if (placementModel != null) placementModel.gameObject.SetActive(false); }
+        private void CancelPlacement() { planningSupply=false;supplyStart=0;supplyPreview=null;supplyError=null;placement = null; placingRoad = false; removingRoad = false; placementReason = null; if (ghost != null) ghost.gameObject.SetActive(false); if (placementModel != null) placementModel.gameObject.SetActive(false); }
         private void Notify(string message) { notification = message; notificationUntil = Time.unscaledTime + 8f; }
 
         private BuildingState FindSelected(PlanetState planet)

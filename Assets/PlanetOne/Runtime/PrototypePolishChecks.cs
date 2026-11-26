@@ -10,6 +10,7 @@ namespace PlanetOne.Runtime
     {
         private IEnumerator RunPolishChecks()
         {
+            var network=RunSupplyNetworkChecks();while(network.MoveNext())yield return network.Current;
             controller.ConfigurePresentationTestPath(Path.Combine(outputDirectory,"polish-settings.json"));
             controller.StartReferenceScenario();controller.SetSimulationPaused(true);
             string state=SaveCodec.ToJson(controller.Simulation.State);

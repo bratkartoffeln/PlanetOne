@@ -32,6 +32,7 @@ internal static class CoreTests
         Run("Session commands pause safely and 1x 2x 4x run the same world", SessionCommands);
         Run("Construction capacity respects priorities and unspent material", ConstructionCapacity);
         ConstructionVehicleTests.Register(Run);
+        SupplyNetworkTests.Register(Run);
         Run("Food shortage recovers without free rations or worker extinction", FoodShortageRecovery);
         Run("Priorities and enabled state control scarce energy and workers", OperatingPriorities);
         Run("Road removal holds real loaded cargo until reconnection", RoadInterruption);
@@ -155,7 +156,7 @@ internal static class CoreTests
         var sim = GameSimulation.CreateDefault();
         var planet = sim.FindPlanet(1);
         string preview = sim.ValidatePlacement(1, BuildingKind.Warehouse, 1, 3);
-        Assert(preview != null && preview.Contains("Straße"), "Preview did not explain required road access.");
+        Assert(preview != null && preview.Contains("Versorgungsverbindung"), "Preview did not explain required supply access.");
         Build(sim, BuildingKind.Warehouse, 1, 3);
         Build(sim, BuildingKind.Warehouse, 0, 4);
         Build(sim, BuildingKind.Warehouse, 0, 3);

@@ -49,7 +49,7 @@ namespace PlanetOne.Runtime
             if(openPlanetId==0 || !IsWorldPoint(screenPoint))return false;
             spacePanCaptured=true;spacePanDragged=false;spacePanStart=spacePanLast=screenPoint;
             spacePanContextMenu=contextMenu;
-            spacePanCancelledTarget=placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue;
+            spacePanCancelledTarget=placement.HasValue || placingRoad || removingRoad || planningSupply || militaryTargetMode.HasValue;
             return true;
         }
         public void ContinueSpacePan(Vector2 screenPoint)
