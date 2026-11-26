@@ -266,3 +266,9 @@ Zwischenstände: Nach der Angriffskorrektur bestanden 216 vollständige Coretest
 | Transparenter Bewegungsbogen | ![Bewegungsbogen](GUI_1_0_18/order-arrow-move-green.png) |
 
 Die zuletzt diskutierte Alternative automatischer Fahrspuren nach häufigem Befahren ist **ein Konzeptvorschlag, noch kein umgesetzter Wechsel der Kurierlogistik**. Aktuell gilt das beauftragte schmale Versorgungsnetz mit Endpunktplanung.
+
+### Paketquelle der aktuellen Folgekorrekturen
+
+Installer und portable ZIP wurden aus Spielcode-Commit **a0171bc5e0821bc55b4d476cc034645a46be4ec1** erstellt. `tools/Package-Windows.ps1 -CompilerPath TestResults/Toolchains/InnoSetup-6.4.3/ISCC.exe` und `tools/Test-Installer.ps1` bestanden; ZIP/Installation enthalten dieselben Dateien, isolierte Installation und Deinstallation waren erfolgreich. Nachweis: `TestResults/connections-package.log`, `TestResults/connections-installer.log`, Prüfverzeichnis `TestResults/Installer/5c119b2f3f344124b6ab2a87ed158643`.
+
+Aktuelle Dateien: `Builds/Distribution/PlanetOne-1.0.18-Windows-x64-Setup.exe` und `PlanetOne-1.0.18-Windows-x64.zip`, mit Manifest und SHA256SUMS daneben. Der aktuelle Player wurde vor dem Verpacken isoliert geprüft; ein zusätzlicher Spielstart aus dieser Installation wurde nicht wiederholt. Die älteren Pakete wurden lokal unter `TestResults/DistributionBeforeConnectedWalls-20261126` erhalten. Dieser Nachweiscommit ändert keinen Spielcode. GitHub-Pflichtchecks und Merge sind separat zu prüfen; kein Release veröffentlicht.
