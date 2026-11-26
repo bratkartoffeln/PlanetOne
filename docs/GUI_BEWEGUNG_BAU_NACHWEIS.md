@@ -198,3 +198,13 @@ Installer `Builds/Distribution/PlanetOne-1.0.18-Windows-x64-Setup.exe` und porta
 `tools/Test-Installer.ps1 -RunPlayer -ReferenceSave TestResults/Reference/victory.json` bestand: gleicher Dateiinhalt in ZIP und Installation, isolierte Installation ohne Verknüpfungen oder Registrierungsersatz, **1053 Einzelbedingungen plus Gesamt-PASS** aus dem installierten Player (`20261126-114850`) und erfolgreiche Deinstallation. Testverzeichnis: `TestResults/Installer/24b38ea478fb403b8f1f7ff85688b7dc`; Protokoll: `TestResults/gui18-installer.log`. Der danach folgende Dokumentationscommit ändert keinen Spielcode des Paketmanifests.
 
 Lokale Implementierung, Tests und Paketnachweis sind abgeschlossen. GitHub-Pflichtchecks und verifizierter PR-Merge werden separat nachgeführt. Es wurde kein GitHub-Release veröffentlicht.
+
+### Nachkorrektur: frühere Straßenbreite mit zwei Fahrspuren
+
+Auf Nutzerwunsch gilt wieder **0,26 Welteinheiten Gesamtbreite** statt 1,12. Zwei Fahrspurmitten bleiben bei ±0,065 erhalten; Straßenkuriere und Baufahrzeuge erhalten Radius 0,05 samt entsprechend verkleinerten tatsächlichen Modellen. Der Markierungsstrich wurde ebenfalls schmaler. Die Konfliktfreigabe verwendet die tatsächlichen Fahrzeugradien statt des alten festen Sicherheitsabstands. Bauvorschau und gerenderte Straßen verwenden dieselbe Breite. Luftfracht behält ihre bisherige Größe.
+
+Nachweise nach dieser Korrektur: **45 gezielte Tests**, **212 vollständige Coretests** (`TestResults/narrow-roads-core.log`), erfolgreicher Unity-Build und **198 Einzelbedingungen plus Gesamt-PASS / 23 PNGs** im isolierten Playerlauf `20261126-134037`. Der Gegenverkehrstest prüft gleichzeitiges Losfahren und kollisionsfreie Ankunft ohne Ausweichen auf gerader sowie gekrümmter Straße. Modellprüfungen umfassen bewegliche Teile und Hangneigung. Neuer F05-Solo-Sieg bei Tick **102417**, Koalitionssieg bei **62300**; reale Bestandsbilanzen bleiben erhalten.
+
+Die folgende synchron gerenderte Nahaufnahme zeigt echte Kuriermodelle und die Fahrbahn ohne GUI. Sie wurde direkt visuell kontrolliert; die Bewegung selbst ist durch den Coretest nachgewiesen. Die früheren vollständigen GUI-/Paketnachweise oben gehören zum Stand vor dieser Breitenkorrektur.
+
+![Zwei verkleinerte Transporter auf schmaler Straße](GUI_1_0_18/schmale-strasse-gegenverkehr.png)

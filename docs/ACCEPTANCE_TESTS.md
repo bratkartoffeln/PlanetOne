@@ -403,3 +403,5 @@ Bezug: LOG-015, SURFACE-011, GUI-022, D-045–047.
 - Im isolierten Player erscheinen grüne bzw. rote Bögen aus tatsächlichen Mausbefehlen. Sie verschwinden nach realer Ankunft oder einem tatsächlichen Schuss. Bildkontrolle und aktive Anzeigenelemente werden getrennt geprüft; kein Screenreader, Computer-Use oder Arbeitsdesktopwechsel.
 
 Aktuelle Laufdaten und verbleibende Integrationsprüfungen stehen in [GUI_BEWEGUNG_BAU_NACHWEIS](GUI_BEWEGUNG_BAU_NACHWEIS.md).
+
+**Ergänzung TEST-040:** Auf der früheren Fahrbahnbreite müssen entgegengesetzte Kuriere gleichzeitig starten und auf gerader sowie gekrümmter Strecke ohne Ausweichen ankommen. Tatsächliche Modellhüllen einschließlich Drehung und Kran müssen in ihre Spur passen; eine Nahaufnahme zeigt beide Modelle nebeneinander. Luftfracht behält ihre bisherige Größe.

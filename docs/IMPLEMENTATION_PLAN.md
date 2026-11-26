@@ -413,3 +413,7 @@ Leistungsmessungen verwenden ein festgehaltenes Szenario und Hardwareprofil. Ein
 - **Umfang:** D-045–047 / LOG-015, SURFACE-011, GUI-022 und TEST-040; Core-Fahrspurpositionen, Vorfahrt, Bau-Rückfahrt, freie Umwege, passende Fahrzeughüllen sowie rein darstellende Zielpfeile.
 - **Betroffene Module:** `SimulationGroundTraffic`, `SimulationLogistics`, `SimulationMilitary`, `SimulationSpaceTraffic`, Speicherprüfung; `PrototypeSmoothMotion`, `PrototypeVehicleSizing`, `PrototypeOrderArrows` und deren Integrationsprüfungen.
 - **Status:** Implementiert; gezielte Verhaltenstests und isolierte Zielpfeil-/Modellprüfung bestanden. Beide vollständigen Referenzpartien und abschließende Leistungsmessung bestanden. Auch Paket und installierter Playerlauf bestanden. Git-Integration wird im Gesamtnachweis nachgeführt; noch kein integrierter Abschluss behauptet.
+
+### Korrektur: schmale zweispurige Straßen
+
+LOG-015 / TEST-040 / T-070: frühere Breite wiederherstellen, beide Richtungsfahrspuren erhalten, Straßenkuriere und Baufahrzeuge samt Modell und Kollisionskörper verkleinern. 45 gezielte Prüfungen und 212 vollständige Coretests einschließlich beider F05-Siege bestanden. Aktueller isolierter Modellnachweis und Paket werden im Gesamtnachweis dokumentiert.

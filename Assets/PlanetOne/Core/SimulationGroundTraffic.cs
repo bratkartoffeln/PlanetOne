@@ -34,7 +34,7 @@ namespace PlanetOne.Core
         private long groundSweepTick=-1;
         public static double GroundUnitRadius(UnitKind kind)
         {return kind==UnitKind.Infantry?.36:kind==UnitKind.AntiTank?.38:.46;}
-        public static double GroundCourierRadius(ShipmentState shipment){return .24;}
+        public static double GroundCourierRadius(ShipmentState shipment){return shipment.Airborne?.24:.05;}
         public static SimPoint GroundUnitPosition(UnitState unit){return HexGrid.ToWorld(unit.X,unit.Y);}
         public static bool GroundCourierDocked(ShipmentState shipment)
         {return shipment.Phase==ShipmentPhase.Loading||shipment.Phase==ShipmentPhase.Unloading||shipment.Traffic!=null&&shipment.Traffic.Docked;}
@@ -59,7 +59,8 @@ namespace PlanetOne.Core
             double offset=RoadLaneOffset*Math.Max(0,taper);
             return length<1e-9?center:new SimPoint(center.X+dy/length*offset,center.Y-dx/length*offset);
         }
-        public const double RoadLaneOffset=.30;
+        public const double RoadHalfWidth=.13;
+        public const double RoadLaneOffset=.065;
         private static SimPoint CourierCenterPosition(ShipmentState shipment,double distance)
         {
             if(shipment.Path.Count==0)return new SimPoint(0,0);
@@ -90,7 +91,7 @@ namespace PlanetOne.Core
                     for(double e=other.DistanceTravelled;e<otherEnd;e+=.2)
                     {
                         var c=CourierPathPosition(other,e);var f=CourierPathPosition(other,Math.Min(otherEnd,e+.2));
-                        if(GroundSegmentDistance(a,b,c,f)<.50)return false;
+                        if(GroundSegmentDistance(a,b,c,f)<GroundCourierRadius(shipment)+GroundCourierRadius(other)+.01)return false;
                     }
                 }
             }

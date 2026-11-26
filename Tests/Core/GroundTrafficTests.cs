@@ -43,12 +43,20 @@ internal static class GroundTrafficTests
         Check(moving.Order==UnitOrder.Hold&&HexGrid.Distance(moving.X,moving.Y,26,20)<.001,"Detour never reached its goal");
     }
     private static void TwoLanes()
+    {TwoLanes(false);TwoLanes(true);}
+    private static void TwoLanes(bool curved)
     {
         var sim=Fixture();var p=sim.FindPlanet(1);var hq=p.Buildings[0];
-        var depot=new BuildingState{Id=sim.State.NextEntityId++,Kind=BuildingKind.Warehouse,X=18,Y=6,Built=true,Health=Definitions.BuildingHealth(BuildingKind.Warehouse)};p.Buildings.Add(depot);
+        var depot=new BuildingState{Id=sim.State.NextEntityId++,Kind=BuildingKind.Warehouse,X=18,Y=curved?7:6,Built=true,Health=Definitions.BuildingHealth(BuildingKind.Warehouse)};p.Buildings.Add(depot);
         var a=new ShipmentState{Id=sim.State.NextEntityId++,SourceId=depot.Id,TargetId=hq.Id,Phase=ShipmentPhase.Returning,Traffic=new GroundTrafficState{Docked=true}};
         var b=new ShipmentState{Id=sim.State.NextEntityId++,SourceId=hq.Id,TargetId=depot.Id,Phase=ShipmentPhase.Returning,Traffic=new GroundTrafficState{Docked=true}};
-        for(int x=8;x<=18;x++){p.Roads[6*p.Width+x]=true;a.Path.Add(new GridCell(x,6));b.Path.Insert(0,new GridCell(x,6));}
+        Check(GameSimulation.RoadHalfWidth==.13&&GameSimulation.RoadLaneOffset+GameSimulation.GroundCourierRadius(a)<GameSimulation.RoadHalfWidth,"Courier hull does not fit the restored narrow road");
+        for(int x=8;x<=18;x++)
+        {
+            int y=curved&&x>12?7:6;
+            p.Roads[y*p.Width+x]=true;a.Path.Add(new GridCell(x,y));b.Path.Insert(0,new GridCell(x,y));
+            if(curved&&x==12){p.Roads[7*p.Width+x]=true;a.Path.Add(new GridCell(x,7));b.Path.Insert(0,new GridCell(x,7));}
+        }
         p.Shipments.Add(a);p.Shipments.Add(b);
         bool simultaneous=false;
         for(int i=0;i<600&&p.Shipments.Count>0;i++)

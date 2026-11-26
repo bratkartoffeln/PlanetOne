@@ -32,7 +32,7 @@ namespace PlanetOne.Runtime
         {
             var root=new GameObject("Verkehrsprüfung · "+(logisticsKind==0?kind.ToString():logisticsKind==1?"Kurier":"Baufahrzeug")).transform;
             if(logisticsKind==0)BuildGroundUnitModel(root,kind,Cyan);
-            else BuildGroundLogisticsModel(root,new ShipmentState{Phase=logisticsKind==1?ShipmentPhase.InTransit:ShipmentPhase.BuilderOutbound});
+            else BuildGroundLogisticsModel(root,new ShipmentState{Airborne=AtmosphereSurface,Phase=logisticsKind==1?ShipmentPhase.InTransit:ShipmentPhase.BuilderOutbound});
             root.position=SurfacePosition(x,AtmosphereSurface?.55f:.035f,y);return root;
         }
 

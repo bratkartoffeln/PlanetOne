@@ -21,8 +21,8 @@ namespace PlanetOne.Runtime
                     directions.Add(Vector3.Lerp(center,SurfacePosition(next.X,0,next.Y),.51f));
             }
             if(directions.Count==0){directions.Add(center-Vector3.right*.18f);directions.Add(center+Vector3.right*.18f);}
-            if(directions.Count==1)AddCurvedRibbon(vertices,indices,directions[0],center,center,.56f);
-            else for(int a=0;a<directions.Count;a++)for(int b=a+1;b<directions.Count;b++)AddCurvedRibbon(vertices,indices,directions[a],center,directions[b],.56f);
+            if(directions.Count==1)AddCurvedRibbon(vertices,indices,directions[0],center,center,(float)GameSimulation.RoadHalfWidth);
+            else for(int a=0;a<directions.Count;a++)for(int b=a+1;b<directions.Count;b++)AddCurvedRibbon(vertices,indices,directions[a],center,directions[b],(float)GameSimulation.RoadHalfWidth);
             var mesh=new Mesh{name="Runde Straßenkurven"};mesh.SetVertices(vertices);mesh.SetTriangles(indices,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
             MeshPart("Fahrbahn",root,mesh,Vector3.zero,Vector3.one,new Color(.29f,.31f,.32f));root.gameObject.AddComponent<OwnedSurfaceMesh>().Mesh=mesh;
             // Junction interiors stay unmarked; two-arm curves share the courier centreline.
@@ -34,7 +34,7 @@ namespace PlanetOne.Runtime
                 {
                     float t0=(dash+.12f)/3,t1=(dash+.64f)/3;
                     var start=RoadBend(a,center,b,t0);var end=RoadBend(a,center,b,t1);
-                    AddCurvedRibbon(marks,triangles,start,(start+end)*.5f,end,.018f);
+                    AddCurvedRibbon(marks,triangles,start,(start+end)*.5f,end,.004f);
                 }
                 for(int i=0;i<marks.Count;i++)marks[i]+=Vector3.up*.008f;
                 var marking=new Mesh{name="Zweispurige Straße · Mittellinie"};marking.SetVertices(marks);marking.SetTriangles(triangles,0);marking.RecalculateNormals();

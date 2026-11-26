@@ -30,6 +30,9 @@ namespace PlanetOne.Runtime
                     var model=models[i];var size=model.GetComponent<VehicleModelSize>();
                     float yawRadius=ModelYawRadius(model,true),envelope=PrototypeController.ModelMotionRadius(model,true,!gas);
                     Require(size!=null && yawRadius>0 && envelope<=size.PhysicalRadius+.00001f,"Real "+(gas?"gas":"land")+" model including moving parts fits its core body: "+names[i]);
+                    if(!gas&&(names[i]=="Kurier"||names[i]=="Baufahrzeug"))
+                        Require(envelope<GameSimulation.RoadLaneOffset&&envelope+GameSimulation.RoadLaneOffset<GameSimulation.RoadHalfWidth,
+                            "Narrow-road model leaves space for opposing traffic and stays inside its lane: "+names[i]);
                     report.Add((gas?"Gas":"Land")+" / "+names[i]+": scale "+size.PreferredScale.ToString("F5",CultureInfo.InvariantCulture)+" -> "+size.AppliedScale.ToString("F5",CultureInfo.InvariantCulture)+
                         "; envelope "+size.BeforeRadius.ToString("F5",CultureInfo.InvariantCulture)+" -> "+envelope.ToString("F5",CultureInfo.InvariantCulture)+"; yaw="+yawRadius.ToString("F5",CultureInfo.InvariantCulture)+"; core="+size.PhysicalRadius.ToString("F5",CultureInfo.InvariantCulture));
                     var turret=model.Find("Turret");var crane=model.Find("Kranarm");Quaternion craneRest=crane==null?Quaternion.identity:crane.localRotation;
@@ -45,6 +48,24 @@ namespace PlanetOne.Runtime
                 controller.SetSurfaceFocus(new Vector3(20.5f,0,13.5f*(float)HexGrid.RowHeight));controller.SetOrbitCamera(0,65);Camera.main.orthographicSize=5;
                 yield return null;yield return Capture(gas?"ground-traffic-models-gas.png":"ground-traffic-models-land.png");
                 Require(captureFailure==null,captureFailure??"All six unit types plus courier and builder rendered at physical scale");
+                if(!gas)
+                {
+                    var forward=controller.CreateVehicleGeometryProbe(UnitKind.Engineer,1,12,6);
+                    var reverse=controller.CreateVehicleGeometryProbe(UnitKind.Engineer,1,12,6);
+                    models.Add(forward);models.Add(reverse);
+                    forward.position+=new Vector3(0,.02f,(float)GameSimulation.RoadLaneOffset);
+                    reverse.position+=new Vector3(0,.02f,-(float)GameSimulation.RoadLaneOffset);
+                    forward.rotation=Quaternion.Euler(0,90,0);reverse.rotation=Quaternion.Euler(0,-90,0);
+                    Require(Vector3.Distance(forward.position,reverse.position)>ActualHorizontalMeshRadius(forward)+ActualHorizontalMeshRadius(reverse),
+                        "Opposing real courier meshes fit side by side on the restored road width");
+                    controller.SetSurfaceFocus(new Vector3(12,0,6*(float)HexGrid.RowHeight));controller.SetOrbitCamera(0,75);
+                    yield return null;
+                    // Synchronous world render: the normal camera update would reset a
+                    // temporary inspection zoom before an asynchronous screenshot.
+                    Camera.main.orthographicSize=.45f;
+                    controller.CaptureWorld(Path.Combine(outputDirectory,"narrow-road-passing-models.png"));
+                    Require(ScreenshotExists(Path.Combine(outputDirectory,"narrow-road-passing-models.png")),"Narrow two-lane road and opposing courier models captured close up");
+                }
                 foreach(var model in models)Destroy(model.gameObject);yield return null;
             }
             File.WriteAllLines(Path.Combine(outputDirectory,"ground-traffic-model-radii.txt"),report.ToArray());
