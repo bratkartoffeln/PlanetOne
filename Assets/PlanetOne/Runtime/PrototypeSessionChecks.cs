@@ -87,6 +87,25 @@ namespace PlanetOne.Runtime
             Require(controller.Simulation.State.Tick>tick,"Closing the menu resumes an unpaused game");
             controller.SetSimulationPaused(true);tick=controller.Simulation.State.Tick;controller.ShowSessionPage(SessionPage.Home);controller.HandleShortcut(KeyCode.Escape);yield return new WaitForSecondsRealtime(.15f);
             Require(controller.Simulation.State.Tick==tick && controller.Simulation.State.Paused,"Closing the menu preserves a player-paused game");
+            foreach(int previousWorld in new[]{6,7})
+            {
+                controller.StartPlanetEnvironmentFixture();controller.SetView(previousWorld);
+                Require(controller.OpenPlanetId==previousWorld,"Replacement fixture opens its ocean or gas world: "+previousWorld);
+                int seed=9180+previousWorld;
+                Require(controller.RequestNewSession(0,seed.ToString()) && controller.HasSessionConfirmation,"Replacing a fixture still asks before discarding it");
+                controller.ResolveSessionConfirmation(true);yield return null;
+                Require(controller.OpenPlanetId==0 && !controller.IsViewTransitioning && controller.Simulation.FindPlanet(previousWorld)==null,
+                    "Session replacement clears a previous world that does not exist in the new scenario: "+previousWorld);
+                Require(SaveCodec.ToJson(controller.Simulation.State)==SaveCodec.ToJson(GameSimulation.CreateReferenceScenario(seed).State),
+                    "Ocean/gas fixture replacement preserves the exact new reference economy: "+previousWorld);
+            }
+            controller.SetMenuVisible(false);controller.SetView(0);controller.SetSpaceFocus(Vector3.zero);controller.CloseContextPanel();yield return null;
+            Require(controller.SelectStarAtScreen(Camera.main.WorldToScreenPoint(Vector3.zero)) && controller.StarSelected,"Replacement test selects the actual central star");
+            Require(controller.RequestNewSession(0,"9188") && controller.HasSessionConfirmation,"Star selection does not bypass session confirmation");
+            controller.ResolveSessionConfirmation(true);yield return null;
+            Require(controller.OpenPlanetId==0 && !controller.StarSelected && controller.Simulation.FindPlanet(controller.SelectedPlanetId)!=null &&
+                SaveCodec.ToJson(controller.Simulation.State)==SaveCodec.ToJson(GameSimulation.CreateReferenceScenario(9188).State),
+                "Starting a new reference game after star selection selects a valid world without dereferencing the star sentinel");
             controller.ConfigureSmokeSavePath(Path.Combine(outputDirectory,"smoke-save.json"));
         }
     }

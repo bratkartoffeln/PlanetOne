@@ -9,6 +9,9 @@ internal static class CoreTests
 
     private static int Main(string[] args)
     {
+        if(args.Length>0 && args[0]=="--ground-traffic") {GroundTrafficTests.Register(Run);Console.WriteLine(failures==0?"All "+checks+" ground traffic tests passed.":failures+" ground traffic test(s) failed.");return failures==0?0:1;}
+        if(args.Length>0 && args[0]=="--space-traffic") {SpaceTrafficTests.Register(Run);Console.WriteLine(failures==0?"All "+checks+" space traffic tests passed.":failures+" space traffic test(s) failed.");return failures==0?0:1;}
+        if(args.Length>0 && args[0]=="--construction") {ConstructionVehicleTests.Register(Run);Console.WriteLine(failures==0?"All "+checks+" construction tests passed.":failures+" construction test(s) failed.");return failures==0?0:1;}
         if(args.Length>0 && args[0]=="--combat") {Run("M8 paid reference defense",ReferenceCombat.Run);return failures==0?0:1;}
         if(args.Length>0 && args[0]=="--reference") {ReferenceTests.Register(Run);Console.WriteLine(failures==0?"All "+checks+" reference tests passed.":failures+" reference test(s) failed.");return failures==0?0:1;}
         Run("Fixed steps do not depend on render frame grouping", FixedSteps);
@@ -28,6 +31,7 @@ internal static class CoreTests
         Run("Faction commands share validation and structured feedback", FactionPermissions);
         Run("Session commands pause safely and 1x 2x 4x run the same world", SessionCommands);
         Run("Construction capacity respects priorities and unspent material", ConstructionCapacity);
+        ConstructionVehicleTests.Register(Run);
         Run("Food shortage recovers without free rations or worker extinction", FoodShortageRecovery);
         Run("Priorities and enabled state control scarce energy and workers", OperatingPriorities);
         Run("Road removal holds real loaded cargo until reconnection", RoadInterruption);
@@ -40,6 +44,8 @@ internal static class CoreTests
         Run("Original prototype v1 save migrates without losing real state", ActualLegacyFixture);
         Run("Twenty minute colony sustains population and pays expansion from local production", SustainableColony);
         MilitaryTests.Register(Run); SpaceTests.Register(Run);
+        GroundTrafficTests.Register(Run);SpaceTrafficTests.Register(Run);
+        CombatPresentationTests.Register(Run);
         InvasionTests.Register(Run);
         HexGridTests.Register(Run);
         AiTests.Register(Run);
@@ -380,11 +386,12 @@ internal static class CoreTests
             p.Buildings.Add(site);
         }
         sim.Step();
-        Assert(p.Buildings.FindAll(b => b.ConstructionStarted).Count == Definitions.ConstructionSlotsPerColony,
-            "Construction exceeded colony capacity.");
-        Assert(p.Buildings[3].ConstructionStarted && !p.Buildings[2].ConstructionStarted, "Priority was ignored for construction.");
+        Assert(p.Shipments.FindAll(GameSimulation.IsConstructionVehicle).Count == Definitions.ConstructionSlotsPerColony &&
+            p.Buildings.TrueForAll(b => !b.ConstructionStarted), "Builders were not dispatched within the shared capacity or started before arrival.");
+        Assert(p.Shipments.Exists(s => s.TargetId == p.Buildings[3].Id) &&
+            !p.Shipments.Exists(s => s.TargetId == p.Buildings[2].Id), "Priority was ignored for construction.");
         Assert(p.Buildings[2].Inventory[(int)ResourceKind.Metal] == 8, "Waiting site consumed materials before construction.");
-        sim.Step(200);
+        WaitFor(sim, () => p.Buildings.TrueForAll(b => b.Built), 1000);
         Assert(p.Buildings.TrueForAll(b => b.Built), "Queued construction did not finish.");
         SaveCodec.Validate(sim.State);
     }

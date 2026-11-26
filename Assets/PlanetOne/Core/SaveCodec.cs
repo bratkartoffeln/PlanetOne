@@ -9,7 +9,7 @@ namespace PlanetOne.Core
     /// <summary>Portable JSON snapshot codec. File locations and atomic writes belong to the platform adapter.</summary>
     public static partial class SaveCodec
     {
-        public const int CurrentVersion = 11;
+        public const int CurrentVersion = 13;
         private const int MaximumJsonLength = 4 * 1024 * 1024;
 
         public static string ToJson(GameState state)
@@ -43,6 +43,8 @@ namespace PlanetOne.Core
                     if(state!=null && state.Version==8) MigrateOrbits(state);
                     if(state!=null && state.Version==9) MigrateEnvironments(state);
                     if(state!=null && state.Version==10) MigrateAsteroids(state);
+                    if(state!=null && state.Version==11) MigrateConstructionVehicles(state);
+                    if(state!=null && state.Version==12) state.Version=CurrentVersion;
                     Validate(state);
                     return state;
                 }
@@ -163,12 +165,25 @@ namespace PlanetOne.Core
                     expectedOutgoing[delivery.SourceId][(int)delivery.Resource] += delivery.Amount;
                     expectedIncoming[delivery.TargetId][(int)delivery.Resource] += delivery.Amount;
                 }
+                int builders = 0;
+                var staffedSites = new HashSet<long>();
                 foreach (var shipment in p.Shipments)
                 {
                     Require(shipment != null && shipment.Id > 0 && entityIds.Add(shipment.Id) &&
                         Enum.IsDefined(typeof(ShipmentPhase), shipment.Phase), "Ungültiger Transport.");
+                    bool builder = GameSimulation.IsConstructionVehicle(shipment);
                     DeliveryReferences(buildings, shipment.SourceId, shipment.TargetId, shipment.Resource,
-                        shipment.Phase == ShipmentPhase.Returning ? 1 : shipment.Amount);
+                        shipment.Phase == ShipmentPhase.Returning || builder ? 1 : shipment.Amount);
+                    if (builder)
+                    {
+                        Require(++builders <= Definitions.ConstructionSlotsPerColony && shipment.Amount == 0 &&
+                            shipment.PhaseProgress == 0 && !shipment.RecoveryReserved &&
+                            buildings[shipment.SourceId].Kind == BuildingKind.Headquarters,
+                            "Ungültiger Baufahrzeugeinsatz oder duplizierte Ladung.");
+                        if (shipment.Phase != ShipmentPhase.BuilderReturning)
+                            Require(staffedSites.Add(shipment.TargetId) && !buildings[shipment.TargetId].Built &&
+                                !buildings[shipment.TargetId].Deconstructing, "Baustelle doppelt oder ungültig besetzt.");
+                    }
                     Require(shipment.Phase != ShipmentPhase.Returning || shipment.Amount == 0, "Rückfahrt enthält duplizierte Ladung.");
                     Require(shipment.Amount <= Definitions.CourierCapacity && shipment.Path != null && shipment.Path.Count > 0,
                         "Ungültige Fracht oder Strecke.");
@@ -183,9 +198,17 @@ namespace PlanetOne.Core
                             "Transportweg überspringt Felder.");
                     }
                     var last = shipment.Path[shipment.Path.Count - 1];
-                    var destination = buildings[shipment.Phase == ShipmentPhase.Returning || shipment.Phase == ShipmentPhase.Recovering
+                    Require(!shipment.BuilderTurnPending||shipment.Phase==ShipmentPhase.BuilderReturning,"Ungültiges Wendemanöver des Baufahrzeugs.");
+                    var destination = buildings[shipment.Phase == ShipmentPhase.Returning || shipment.Phase == ShipmentPhase.Recovering || shipment.Phase == ShipmentPhase.BuilderReturning&&!shipment.BuilderTurnPending
                         ? shipment.SourceId : shipment.TargetId];
                     Require(shipment.RouteBlocked || (last.X == destination.X && last.Y == destination.Y), "Transportweg passt nicht zum Auftrag.");
+                    if (builder)
+                    {
+                        Require(shipment.Phase != ShipmentPhase.Building ||
+                            Math.Abs(shipment.DistanceTravelled - GameSimulation.ShipmentArrivalDistance(shipment)) < 0.000000001,
+                            "Baufahrzeug baut vor seiner Ankunft.");
+                        continue;
+                    }
                     if (shipment.Phase == ShipmentPhase.Loading)
                         expectedOutgoing[shipment.SourceId][(int)shipment.Resource] += shipment.Amount;
                     if (shipment.Phase != ShipmentPhase.Returning && shipment.Phase != ShipmentPhase.Recovering)
@@ -225,6 +248,21 @@ namespace PlanetOne.Core
             foreach (var command in state.PendingCommands)
                 Require(command != null && command.Id > 0 && command.Id < state.NextCommand && commandIds.Add(command.Id),
                     "Doppelte oder ungültige vorgemerkte Befehle.");
+        }
+
+        private static void MigrateConstructionVehicles(GameState state)
+        {
+            Require(state.Planets != null, "Alte Weltliste fehlt.");
+            // Preserve the fraction already built and paid material. A real free courier must
+            // reach an unfinished site before its existing construction can continue.
+            foreach (var planet in state.Planets)
+            {
+                Require(planet != null && planet.Buildings != null, "Alter Koloniezustand fehlt.");
+                foreach (var building in planet.Buildings)
+                    if (building != null && !building.Built && building.ConstructionStarted)
+                        building.BuildProgress *= Definitions.ConstructionDurationMultiplier;
+            }
+            state.Version = CurrentVersion;
         }
 
         private static void DeliveryReferences(Dictionary<long, BuildingState> buildings, long source,

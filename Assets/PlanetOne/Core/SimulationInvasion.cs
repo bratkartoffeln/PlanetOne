@@ -30,7 +30,7 @@ namespace PlanetOne.Core
             if(s.Kind!=ShipKind.LandingTransport || s.Troops.Count>=Definitions.TroopCapacity || u==null || u.Destroyed || u.OwnerId!=s.OwnerId || u.Layer!=TargetLayer.Ground) return false;
             if(s.TransportPhase==TransportPhase.Landed) return s.TargetPlanetId==p.Id && HexGrid.Distance(u.X,u.Y,s.LandingX,s.LandingY)<=1.5;
             var port=p.Buildings.Find(b=>PortOwned(b,s.OwnerId) && b.Operational);
-            return s.TransportPhase==TransportPhase.Space && port!=null && Distance(s.X,s.Y,GetOrbitPosition(p.Id))<=Definitions.DockDistance && HexGrid.Distance(u.X,u.Y,port.X,port.Y)<=1.5;
+            return s.TransportPhase==TransportPhase.Space && port!=null && AtPlanetDock(s,p.Id) && HexGrid.Distance(u.X,u.Y,port.X,port.Y)<=1.5;
         }
         private void ApplyInvasion(SimCommand c)
         {
@@ -48,7 +48,7 @@ namespace PlanetOne.Core
             {
                 var u=p.Units.Find(v=>v.Id==c.TargetId);
                 if(!AtLoadingPoint(s,p,u)) error="Truppe muss am eigenen Hafen oder neben dem gelandeten Träger stehen; vier Plätze maximal.";
-                else { p.Units.Remove(u); u.Order=UnitOrder.Hold; u.Path.Clear(); u.PathDistance=0; u.X=u.Y=u.GoalX=u.GoalY=0; s.Troops.Add(u); s.Status="Verladen: "+s.Troops.Count+" / 4"; }
+                else { p.Units.Remove(u); u.Order=UnitOrder.Hold; u.Path.Clear(); u.PathDistance=0;u.Traffic=null; u.X=u.Y=u.GoalX=u.GoalY=0; s.Troops.Add(u); s.Status="Verladen: "+s.Troops.Count+" / 4"; }
             }
             else if(c.Kind==CommandKind.UnloadTroop)
             {
@@ -59,7 +59,7 @@ namespace PlanetOne.Core
                 {
                     GridCell? cell=null;
                     foreach(var landingCell in HexGrid.LandingCells(s.LandingX,s.LandingY))
-                    { int x=landingCell.X,y=landingCell.Y; if(CanTraverse(p,u.OwnerId,u.Kind,x,y) && !p.Units.Exists(v=>!v.Destroyed && HexGrid.Distance(v.X,v.Y,x,y)<0.7)) cell=new GridCell(x,y); }
+                    { int x=landingCell.X,y=landingCell.Y; if(GroundCellAvailable(p,u.OwnerId,u.Kind,x,y)) cell=new GridCell(x,y); }
                     if(!cell.HasValue) error="Landefläche belegt; Truppen zuerst wegbewegen.";
                     else { s.Troops.Remove(u); u.X=u.GoalX=cell.Value.X; u.Y=u.GoalY=cell.Value.Y; u.Status="Gelandet"; p.Units.Add(u); }
                 }
@@ -77,7 +77,7 @@ namespace PlanetOne.Core
             else if(c.Kind==CommandKind.LoadShipSupplies)
             {
                 var port=FindBuilding(c.TargetId);
-                if(c.IntValue<0 || c.IntValue>=6 || c.Amount<=0 || c.Amount>24 || s.Kind!=ShipKind.LandingTransport || !PortOwned(port,c.IssuerId) || !port.Operational || s.TransportPhase!=TransportPhase.Space || Distance(s.X,s.Y,GetOrbitPosition(port.PlanetId))>Definitions.DockDistance) error="Träger am betriebsfähigen eigenen Hafen und gültige Menge benötigt.";
+                if(c.IntValue<0 || c.IntValue>=6 || c.Amount>24 || c.Amount<=0 || s.Kind!=ShipKind.LandingTransport || !PortOwned(port,c.IssuerId) || !port.Operational || s.TransportPhase!=TransportPhase.Space || !AtPlanetDock(s,port.PlanetId)) error="Träger am betriebsfähigen eigenen Hafen und gültige Menge benötigt.";
                 else if(Total(s.Cargo)+c.Amount>Definitions.Ships[(int)s.Kind].Capacity || port.Inventory[c.IntValue]-port.ReservedOutgoing[c.IntValue]<c.Amount) error="Frachtraum oder freie Hafenware fehlt.";
                 else { port.Inventory[c.IntValue]-=c.Amount; s.Cargo[c.IntValue]+=c.Amount; }
             }
@@ -102,6 +102,7 @@ namespace PlanetOne.Core
                 else { s.Order=ShipOrder.Bombard; s.TargetPlanetId=p.Id; s.LandingX=c.X; s.LandingY=c.Y; s.ActionProgress=0; Emit(p.OwnerId,p.Id,s.Id,"OrbitalWarning","Orbitalfeuer angekündigt: "+c.X+" / "+c.Y); }
             }
             else error="Unbekannter Invasionsbefehl.";
+            if(error==null && s!=null && (c.Kind==CommandKind.AttackShip || c.Kind==CommandKind.RetreatShip || c.Kind==CommandKind.RepairShip))ResetSpaceDestination(s);
             Report(c,error==null,error==null?"InvasionOrderAccepted":"InvalidInvasionOrder",error??"Auftrag angenommen.");
         }
         private void ApplyGroundInvasion(PlanetState p, SimCommand c)
@@ -148,16 +149,26 @@ namespace PlanetOne.Core
                 if(enemy==null || ProtectedShip(s.OwnerId,enemy) || s.Cooldown>0 || s.Ammunition==0 || Distance(s.X,s.Y,new SimPoint(enemy.X,enemy.Y))>weapon.Range) continue;
                 double damage=weapon.Damage;
                 if(s.Kind==ShipKind.TorpedoShip) damage*=enemy.Kind==ShipKind.Corvette || enemy.Kind==ShipKind.Scout ? 0.4 : 1.5;
-                s.Ammunition--; s.Cooldown=weapon.Interval; HurtShip(enemy,damage); s.Status="Raumgefecht gegen #"+enemy.Id;
+                s.Ammunition--; s.Cooldown=weapon.Interval;
+                RecordCombatShot(s.Kind==ShipKind.TorpedoShip?CombatVisualKind.Missile:CombatVisualKind.Cannon,0,s.Id,s.X,s.Y,0,enemy.Id,enemy.X,enemy.Y);
+                HurtShip(enemy,damage); s.Status="Raumgefecht gegen #"+enemy.Id;
                 Emit(enemy.OwnerId,enemy.TargetPlanetId,enemy.Id,"ShipUnderAttack","Schiff #"+enemy.Id+" unter Beschuss.");
             }
             foreach(var p in State.Planets) { TickOrbitalDefense(p); TickOccupation(p); }
             foreach(var h in State.Beachheads) TickBeachhead(h);
         }
-        private void HurtShip(ShipState s, double damage) { s.Health=Math.Max(0,s.Health-damage); if(s.Health==0) DestroyShip(s.Id); }
+        private void HurtShip(ShipState s, double damage)
+        {
+            if(s.Destroyed || s.Consumed) return;
+            s.Health=Math.Max(0,s.Health-damage);
+            if(s.Health>0) return;
+            bool ground=s.TransportPhase!=TransportPhase.Space;
+            RecordCombatExplosion(ground?s.TargetPlanetId:0,s.Id,ground?s.LandingX:s.X,ground?s.LandingY:s.Y);
+            DestroyShip(s.Id);
+        }
         private void TickYard(ShipState yard)
         {
-            var p=FindPlanet(yard.TargetPlanetId); var pos=GetOrbitPosition(p.Id); yard.X=pos.X; yard.Y=pos.Y;
+            var p=FindPlanet(yard.TargetPlanetId);UpdateYardTrafficAnchor(yard);
             var port=p.Buildings.Find(b=>PortOwned(b,yard.OwnerId) && b.Operational);
             if(port==null) { yard.Status="Werft ohne eigenen Hafenanschluss"; return; }
             yard.ActionProgress+=Definitions.TickSeconds;
@@ -180,8 +191,11 @@ namespace PlanetOne.Core
             yard.ProductionProgress+=Definitions.TickSeconds;
             yard.Status="Werftbau: "+d.Name+" "+(int)(100*yard.ProductionProgress/d.Seconds)+"%";
             if(yard.ProductionProgress<d.Seconds) return;
+            SimPoint launch;
+            if(!TrySpaceSpawn((ShipKind)yard.ProductionKind,yard.OwnerId,new SimPoint(yard.X,yard.Y),out launch))
+            {yard.ProductionProgress=d.Seconds;yard.Status="Schiff fertig; Werftausflug belegt";return;}
             var weapon=Definitions.SpaceWeapons[yard.ProductionKind];
-            State.Ships.Add(new ShipState {Id=State.NextEntityId++,OwnerId=yard.OwnerId,Kind=(ShipKind)yard.ProductionKind,Health=weapon.Health,Ammunition=weapon.Ammo,Crew=d.Crew,X=yard.X,Y=yard.Y,TargetPlanetId=p.Id,Order=ShipOrder.Guard});
+            State.Ships.Add(new ShipState {Id=State.NextEntityId++,OwnerId=yard.OwnerId,Kind=(ShipKind)yard.ProductionKind,Health=weapon.Health,Ammunition=weapon.Ammo,Crew=d.Crew,X=launch.X,Y=launch.Y,TargetPlanetId=p.Id,Order=ShipOrder.Guard});
             yard.ProductionKind=-1; yard.ProductionProgress=0; yard.ProductionPaid=false;
         }
         private void TickShipRepair(ShipState s)
@@ -204,7 +218,7 @@ namespace PlanetOne.Core
                 {
                     s.Status="Brückenkopf: gelandet; Entladen oder Evakuieren";
                     foreach(var u in p.Units) if(!u.Destroyed && !ProtectedShip(u.OwnerId,s) && !EvacuatingUnit(p,u) && AtWar(s.OwnerId,u.OwnerId) && u.Kind!=UnitKind.AntiAir && u.Cooldown<=0 && u.Ammunition>0 && HexGrid.Distance(u.X,u.Y,s.LandingX,s.LandingY)<=Definitions.Get(u.Kind).Range && HasLineOfSight(p,u.X,u.Y,s.LandingX,s.LandingY))
-                    { u.Ammunition--; u.Cooldown=Definitions.Get(u.Kind).Interval; HurtShip(s,Definitions.Get(u.Kind).Damage); }
+                    { u.Ammunition--; u.Cooldown=Definitions.Get(u.Kind).Interval; RecordShotAtTransport(p,u.Id,u.X,u.Y,UnitShotKind(u.Kind),s); HurtShip(s,Definitions.Get(u.Kind).Damage); }
                     return;
                 }
             s.ActionProgress+=Definitions.TickSeconds;
@@ -212,12 +226,12 @@ namespace PlanetOne.Core
             foreach(var b in p.Buildings)
             {
                 if(ProtectedShip(BuildingOwner(p,b),s) || b.Kind!=BuildingKind.FlakTower || !b.Operational || b.Destroyed || !AtWar(s.OwnerId,BuildingOwner(p,b)) || b.FireCooldown>0 || b.Ammunition<=0 || HexGrid.Distance(s.LandingX,s.LandingY,b.X,b.Y)>Definitions.GetTower(b.Kind).Range) continue;
-                b.Ammunition--; b.FireCooldown=Definitions.GetTower(b.Kind).Interval; HurtShip(s,Definitions.GetTower(b.Kind).Damage);
+                b.Ammunition--; b.FireCooldown=Definitions.GetTower(b.Kind).Interval; RecordShotAtTransport(p,b.Id,b.X,b.Y,CombatVisualKind.Flak,s); HurtShip(s,Definitions.GetTower(b.Kind).Damage);
             }
             foreach(var u in p.Units)
             {
                 if(u.Destroyed || ProtectedShip(u.OwnerId,s) || u.Kind!=UnitKind.AntiAir || !AtWar(s.OwnerId,u.OwnerId) || u.Cooldown>0 || u.Ammunition<=0 || HexGrid.Distance(s.LandingX,s.LandingY,u.X,u.Y)>Definitions.Get(u.Kind).Range) continue;
-                u.Ammunition--; u.Cooldown=Definitions.Get(u.Kind).Interval; HurtShip(s,Definitions.Get(u.Kind).Damage);
+                u.Ammunition--; u.Cooldown=Definitions.Get(u.Kind).Interval; RecordShotAtTransport(p,u.Id,u.X,u.Y,CombatVisualKind.Flak,s); HurtShip(s,Definitions.Get(u.Kind).Damage);
             }
             if(s.Destroyed || s.ActionProgress<Definitions.TransitionSeconds) return;
             if(s.TransportPhase==TransportPhase.Descending)
@@ -227,7 +241,15 @@ namespace PlanetOne.Core
                 if(landingError!=null) { s.TransportPhase=TransportPhase.Ascending; s.ActionProgress=0; s.Status="Landung abgebrochen: "+landingError; return; }
                 s.TransportPhase=TransportPhase.Landed;
             }
-            else { s.TransportPhase=TransportPhase.Space; s.Order=ShipOrder.Guard; }
+            else
+            {
+                SimPoint arrival;
+                if(!TrySpaceSpawn(s.Kind,s.OwnerId,pos,out arrival))
+                {s.ActionProgress=Definitions.TransitionSeconds;s.Status="Aufstieg wartet auf freien Orbitplatz";return;}
+                s.X=arrival.X;s.Y=arrival.Y;s.TransportPhase=TransportPhase.Space;s.Order=ShipOrder.Guard;
+                s.TrafficGoalSet=true;s.TrafficAnchorX=pos.X;s.TrafficAnchorY=pos.Y;
+                s.TrafficOffsetX=arrival.X-pos.X;s.TrafficOffsetY=arrival.Y-pos.Y;s.TrafficYieldUntil=0;
+            }
             s.ActionProgress=0;
         }
         private void TickOrbitalDefense(PlanetState p)
@@ -239,7 +261,7 @@ namespace PlanetOne.Core
                 if(b.Ammunition==0 && b.Inventory[3]-b.ReservedOutgoing[3]>0) { b.Inventory[3]--; p.ConsumedTotals[3]++; b.Ammunition=Definitions.AmmoPerPart; }
                 if(b.FireCooldown>0 || b.Ammunition==0) continue;
                 foreach(var s in State.Ships) if(IsShipVisible(BuildingOwner(p,b),s) && AtWar(BuildingOwner(p,b),s.OwnerId) && Distance(s.X,s.Y,GetOrbitPosition(p.Id))<=Definitions.OrbitalRadius)
-                { b.Ammunition--; b.FireCooldown=2; HurtShip(s,24); break; }
+                { b.Ammunition--; b.FireCooldown=2; RecordCombatShot(CombatVisualKind.Orbital,p.Id,b.Id,b.X,b.Y,0,s.Id,s.X,s.Y); HurtShip(s,24); break; }
             }
         }
         private void TickBombard(ShipState s)
@@ -249,6 +271,7 @@ namespace PlanetOne.Core
             s.ActionProgress+=Definitions.TickSeconds; s.Status="Orbitalfeuer vorbereitet: "+(int)(100*s.ActionProgress/Definitions.BombardSeconds)+"%";
             if(s.ActionProgress<Definitions.BombardSeconds) return;
             s.Ammunition-=2; s.Order=ShipOrder.Hold; s.ActionProgress=0;
+            RecordCombatShot(CombatVisualKind.Orbital,0,s.Id,s.X,s.Y,p.Id,0,s.LandingX,s.LandingY,s.OwnerId==State.PlayerFactionId,2);
             if(Shielded(p,s.OwnerId,s.LandingX,s.LandingY)) { s.Status="Orbitalfeuer vom Schild abgefangen"; return; }
             foreach(var b in p.Buildings) if(!b.Destroyed && AtWar(s.OwnerId,BuildingOwner(p,b)) && HexGrid.Distance(b.X,b.Y,s.LandingX,s.LandingY)<=1.2) HurtBuilding(p,b,70);
             foreach(var u in p.Units) if(!u.Destroyed && !ProtectedGuest(p,s.OwnerId,u.Id) && AtWar(s.OwnerId,u.OwnerId) && HexGrid.Distance(u.X,u.Y,s.LandingX,s.LandingY)<=1.2) HurtUnit(p,u,70,UnitKind.Artillery);
@@ -308,6 +331,8 @@ namespace PlanetOne.Core
             for(int i=p.Shipments.Count-1;i>=0;i--)
             {
                 var d=p.Shipments[i];var a=FindBuilding(d.SourceId);var b=FindBuilding(d.TargetId);
+                if(IsConstructionVehicle(d))
+                { if(BuildingOwner(p,a)!=BuildingOwner(p,b))ReturnConstructionVehicle(d); continue; }
                 if(BuildingOwner(p,a)==BuildingOwner(p,b) || d.Phase==ShipmentPhase.Recovering || d.Phase==ShipmentPhase.Returning) continue;
                 b.ReservedIncoming[(int)d.Resource]-=d.Amount;
                 if(d.Phase==ShipmentPhase.Loading) {a.ReservedOutgoing[(int)d.Resource]-=d.Amount;p.Shipments.RemoveAt(i);continue;}
@@ -322,8 +347,10 @@ namespace PlanetOne.Core
             {
                 var weapon=Definitions.Get(enemy.Kind);
                 if(enemy.Destroyed || EvacuatingUnit(p,enemy) || !AtWar(h.OwnerId,enemy.OwnerId) || weapon.AntiAir || enemy.Cooldown>0 || enemy.Ammunition<=0 || HexGrid.Distance(enemy.X,enemy.Y,h.X,h.Y)>weapon.Range || !HasLineOfSight(p,enemy.X,enemy.Y,h.X,h.Y)) continue;
-                enemy.Ammunition--;enemy.Cooldown=weapon.Interval;h.Health=Math.Max(0,h.Health-weapon.Damage);
-                if(h.Health==0) {h.Destroyed=true;p.LostTotals[0]+=h.Food;p.LostTotals[3]+=h.Parts;h.Food=h.Parts=0;return;}
+                enemy.Ammunition--;enemy.Cooldown=weapon.Interval;
+                RecordCombatShot(UnitShotKind(enemy.Kind),p.Id,enemy.Id,enemy.X,enemy.Y,p.Id,h.Id,h.X,h.Y);
+                h.Health=Math.Max(0,h.Health-weapon.Damage);
+                if(h.Health==0) {RecordCombatExplosion(p.Id,h.Id,h.X,h.Y);h.Destroyed=true;p.LostTotals[0]+=h.Food;p.LostTotals[3]+=h.Parts;h.Food=h.Parts=0;return;}
             }
             if(EnemyNear(p,h.OwnerId,h.X,h.Y,2)) return;
             var engineer=p.Units.Find(u=>!u.Destroyed && u.OwnerId==h.OwnerId && u.Kind==UnitKind.Engineer && HexGrid.Distance(u.X,u.Y,h.X,h.Y)<=1.5);

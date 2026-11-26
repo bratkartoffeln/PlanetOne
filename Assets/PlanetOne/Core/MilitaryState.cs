@@ -32,6 +32,7 @@ namespace PlanetOne.Core
         [DataMember] public string Status = "Hält Stellung";
         // P12 will supply real carriers. Only explicitly marked fixtures may create these targets now.
         [DataMember] public TargetLayer Layer;
+        [DataMember] public GroundTrafficState Traffic;
     }
 
     [DataContract, Serializable]

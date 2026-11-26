@@ -27,7 +27,7 @@ namespace PlanetOne.Core
                 if(s.TransportPhase!=TransportPhase.Space)
                 { var p=state.Planets.Find(v=>v.Id==s.TargetPlanetId); Require(p!=null && s.LandingX>=0 && s.LandingY>=0 && s.LandingX<p.Width && s.LandingY<p.Height && s.ActionProgress<=Definitions.TransitionSeconds+0.001,"Ungültige Landung."); }
                 Require(s.ProductionKind==-1 || s.Kind==ShipKind.OrbitalYard && s.ProductionKind>=(int)ShipKind.Scout && s.ProductionKind<Definitions.Ships.Length,"Ungültiger Werftauftrag.");
-                Require(Finite(s.ProductionProgress) && s.ProductionProgress>=0 && (s.ProductionKind>=0?s.ProductionProgress<Definitions.Ships[s.ProductionKind].Seconds && (s.ProductionProgress==0 || s.ProductionPaid):s.ProductionProgress==0 && !s.ProductionPaid),"Ungültiger Werftfortschritt.");
+                Require(Finite(s.ProductionProgress) && s.ProductionProgress>=0 && (s.ProductionKind>=0?s.ProductionProgress<=Definitions.Ships[s.ProductionKind].Seconds && (s.ProductionProgress==0 || s.ProductionPaid):s.ProductionProgress==0 && !s.ProductionPaid),"Ungültiger Werftfortschritt.");
                 foreach(var u in s.Troops) Require(u.OwnerId==s.OwnerId && (!s.Destroyed || u.Destroyed),"Ungültiger Truppeneigentümer oder Transportverlust.");
                 // Reuse all existing troop invariants and the global identity set for actual embarked objects.
                 var hold=new PlanetState {Width=18,Height=14,Units=s.Troops};

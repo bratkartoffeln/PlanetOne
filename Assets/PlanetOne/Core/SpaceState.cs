@@ -25,6 +25,11 @@ namespace PlanetOne.Core
         [DataMember] public int[] Cargo = new int[6];
         [DataMember] public FreightJob Freight;
         [DataMember] public MiningJob Mining;
+        [DataMember] public bool TrafficGoalSet;
+        [DataMember] public double TrafficAnchorX, TrafficAnchorY, TrafficOffsetX, TrafficOffsetY;
+        [DataMember] public double TrafficYieldX, TrafficYieldY;
+        [DataMember] public long TrafficYieldUntil, TrafficYieldFor;
+        [DataMember] public int TrafficWaitTicks;
         [DataMember] public string Status = "Bereit";
     }
     [DataContract, Serializable]

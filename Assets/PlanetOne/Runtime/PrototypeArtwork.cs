@@ -18,7 +18,7 @@ namespace PlanetOne.Runtime
             Texture2D icon;if(buildingIcons.TryGetValue(kind,out icon))return icon;
             var root=new GameObject("Baukatalog-Vorschau").transform;root.position=new Vector3(2000,2000,2000);
             var cameraObject=new GameObject("Baukatalog-Kamera");var camera=cameraObject.AddComponent<Camera>();
-            var target=RenderTexture.GetTemporary(96,64,24);var previous=RenderTexture.active;
+            var target=RenderTexture.GetTemporary(192,128,24);var previous=RenderTexture.active;
             try
             {
                 PopulateBuildingModel(root,kind);
@@ -27,7 +27,7 @@ namespace PlanetOne.Runtime
                 camera.orthographic=true;camera.orthographicSize=0.76f;camera.aspect=1.5f;camera.nearClipPlane=0.01f;camera.farClipPlane=20;
                 camera.transform.position=root.position+new Vector3(0,2.4f,-2);camera.transform.LookAt(root.position+Vector3.up*0.3f);
                 camera.targetTexture=target;camera.Render();RenderTexture.active=target;
-                icon=new Texture2D(96,64,TextureFormat.RGB24,false);icon.ReadPixels(new Rect(0,0,96,64),0,0);icon.Apply();buildingIcons[kind]=icon;return icon;
+                icon=new Texture2D(192,128,TextureFormat.RGB24,false);icon.ReadPixels(new Rect(0,0,192,128),0,0);icon.Apply();buildingIcons[kind]=icon;return icon;
             }
             finally{RenderTexture.active=previous;camera.targetTexture=null;RenderTexture.ReleaseTemporary(target);root.gameObject.SetActive(false);Destroy(root.gameObject);Destroy(cameraObject);}
         }
@@ -40,18 +40,19 @@ namespace PlanetOne.Runtime
             if(label.Contains("Fundament") || label=="Straße" || label=="Wohnmodul" || label=="Dach")mode=3;
             if(label=="Solarfläche")mode=4;
             if(label.Contains("Kristall"))mode=5;
-            if(label=="Pflanzreihe")mode=6;
+            if(label=="Pflanzreihe" || label=="Blattwerk" || label=="Gras" || label=="Dachgarten")mode=6;
             if(label.StartsWith("Planet "))mode=7;
             if(label.Contains("Stern") || label=="Sonne")mode=8;
             if(label.StartsWith("Mond "))mode=9;
             if(label=="Sternennebel")mode=10;
-            if(label=="Straße")mode=11;
-            if(label.Contains("anzeige") || label.Contains("markierung") || label=="Antrieb" || label=="Fenster")mode=0;
+            if(label=="Straße" || label=="Fahrbahn")mode=11;
+            if(label.Contains("anzeige") || label.Contains("markierung") || label=="Antrieb" || label.Contains("fenster") || label=="Fenster")mode=0;
             string key=mode+":"+color.ToString()+":"+(label=="Gelände"?"grid":mode==7?label:"");Material material;
             if(artMaterials.TryGetValue(key,out material))return material;
-            material=new Material(mode==10?Resources.Load<Shader>("SpaceBackdrop"):worldShader){name="PlanetOne "+label};
+            material=new Material(mode==10?Resources.Load<Shader>("SpaceBackdrop"):mode==6?Resources.Load<Shader>("ColonyFoliage"):worldShader){name="PlanetOne "+label};
             if(mode==10){material.SetTexture("_MainTex",Resources.Load<Texture2D>("StarlessNebula"));artMaterials[key]=material;return material;}
             material.color=color;
+            if(mode==6){artMaterials[key]=material;return material;}
             material.SetTexture("_MainTex",surfaceAtlas);material.SetFloat("_SurfaceKind",mode);material.SetFloat("_HexTerrain",label=="Gelände"?1:0);
             int variant=0;foreach(char c in label)variant=(variant*31+c)%997;material.SetFloat("_Variant",variant/99f);
             artMaterials[key]=material;Shader.SetGlobalFloat("_PlanetOneGrid",presentation.Grid?1:0);return material;

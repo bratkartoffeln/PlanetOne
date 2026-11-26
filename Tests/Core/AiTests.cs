@@ -13,9 +13,11 @@ internal static class AiTests
         run("M6 broken road triggers reconnection rather than duplicate production", BrokenRoad);
         run("M6 missing transport capacity prevents an invasion start", Capacity);
         run("M6 AI snapshots preserve knowledge decisions and exact continuation", Persistence);
+        run("A single-colony AI pays for a freighter to fulfil an accepted trade",TradeCarrier);
         run("M6 observed defenses change landing plans while stale contacts retain their last state", Adaptation);
         run("M6 damaged fleets retreat physically and release exclusive assignments", Retreat);
         run("M6 courier congestion reduces optional consumption without inventing vehicles", Congestion);
+        run("M6 artillery maintains a real siege across planning turns until the tower falls", SiegeOrder);
         run("M6 paid expansion and a real prepared invasion advance through ordinary commands", LongScenario);
         run("M6 peaceful colonization pays its full manifest without military conquest", Colonization);
         run("M6 multiple seeds preserve finite economies and explain planning choices", Seeds);
@@ -75,6 +77,23 @@ internal static class AiTests
         var s=InvasionFixture.Create();s.State.Paused=false;s.State.Factions[0].IsPlayer=false;s.State.Factions[1].IsPlayer=true;s.State.PlayerFactionId=2;
         s.State.ComputerFactions.Add(new AiState {FactionId=1});return s;
     }
+    private static void TradeCarrier()
+    {
+        var s=MilitaryWorld();s.State.DiplomacyScenario=true;s.State.Relations[0].Relation=RelationKind.Peace;s.State.ComputerFactions[0].NextPlanTick=40;
+        var source=s.FindPlanet(2).Buildings.Find(b=>b.Kind==BuildingKind.Spaceport);
+        var target=s.FindPlanet(1).Buildings.Find(b=>b.Kind==BuildingKind.Spaceport);
+        int metal=s.FindPlanet(1).ConsumedTotals[2],parts=s.FindPlanet(1).ConsumedTotals[3];
+        Check(s.Enqueue(new SimCommand{Id=s.NextCommandId(),IssuerId=2,PlanetId=2,Kind=CommandKind.ProposeTreaty,
+            Terms=new TreatyTerms{Kind=TreatyKind.Trade,Members=new System.Collections.Generic.List<int>{2,1},SourcePort=source.Id,TargetPort=target.Id,Goods=ResourceKind.Metal,Amount=8,Payment=ResourceKind.Parts,PaymentAmount=2,DurationTicks=120000}}),"Trade proposal not queued");
+        TreatyState trade=null;
+        for(int i=0;i<8000;i++)
+        {s.Step();trade=s.State.Treaties.Find(t=>t.Terms.SourcePort==source.Id&&t.Terms.TargetPort==target.Id);if(trade!=null&&trade.PaymentDelivered==2)break;}
+        if(trade==null||trade.PaymentDelivered!=2)File.WriteAllText("TestResults/Core/ai-trade-blocked.json",SaveCodec.ToJson(s.State));
+        Check(trade!=null&&trade.PaymentDelivered==2&&s.State.Ships.Exists(t=>t.OwnerId==1&&t.Kind==ShipKind.Freighter),"One-colony AI never paid for physical trade transport: "+(trade==null?"no treaty":trade.Phase+" / "+trade.Reason));
+        var cost=Definitions.Ships[(int)ShipKind.Freighter].Cost;
+        Check(s.FindPlanet(1).ConsumedTotals[2]>=metal+cost[2]&&s.FindPlanet(1).ConsumedTotals[3]>=parts+cost[3],"Trade transport bypassed production costs");
+        SaveCodec.Validate(s.State);
+    }
     private static void Adaptation()
     {
         var s=MilitaryWorld();var ai=s.State.ComputerFactions[0];
@@ -96,7 +115,7 @@ internal static class AiTests
     private static void Retreat()
     {
         var s=MilitaryWorld();var ai=s.State.ComputerFactions[0];var carrier=s.State.Ships.Find(t=>t.Kind==ShipKind.LandingTransport);var escort=s.State.Ships.Find(t=>t.Kind==ShipKind.EscortFrigate);
-        var target=s.GetOrbitPosition(2);carrier.X=target.X;carrier.Y=target.Y;carrier.TargetPlanetId=2;carrier.Health=40;escort.X=target.X;escort.Y=target.Y;escort.TargetPlanetId=2;
+        var target=s.GetOrbitPosition(2);carrier.X=target.X;carrier.Y=target.Y;carrier.TargetPlanetId=2;carrier.Health=40;escort.X=target.X+1;escort.Y=target.Y;escort.TargetPlanetId=2;
         ai.Operation=new AiOperation {HomePlanetId=1,TargetPlanetId=2,Phase=OperationPhase.Executing};ai.Operation.Ships.Add(carrier.Id);ai.Operation.Ships.Add(escort.Id);
         s.State.Ships.RemoveAll(t=>t.OwnerId==2);s.Step(41);
         Check(ai.Operation.Phase==OperationPhase.Aborting,"Damaged carrier did not abort");
@@ -114,6 +133,38 @@ internal static class AiTests
         var v=s.ObserveForAi(2);var w=v.Worlds.Find(a=>a.Id==2);w.Shipments=4;w.PendingDeliveries=16;
         var plan=AiPlanner.Plan(v,s.State.ComputerFactions[0]);
         Check(plan.Command!=null&&plan.Command.Kind==CommandKind.SetBuildingEnabled&&!plan.Command.BoolValue&&plan.Command.TargetId==factory.Id,"Congestion increased production");
+    }
+    private static void SiegeOrder()
+    {
+        var s=MilitaryWorld();s.State.Ships.RemoveAll(t=>t.OwnerId==2);
+        // Explicit siege fixture: transfer the existing embarked army to a legal landed
+        // formation. The separate full invasion test still verifies approach and unloading.
+        var flak=s.FindPlanet(2).Buildings.Find(b=>b.Kind==BuildingKind.FlakTower);flak.X=9;flak.Y=10;
+        var carrier=s.State.Ships.Find(t=>t.Kind==ShipKind.LandingTransport);
+        carrier.TargetPlanetId=2;carrier.TransportPhase=TransportPhase.Landed;carrier.LandingX=4;carrier.LandingY=9;
+        var operation=new AiOperation{HomePlanetId=1,TargetPlanetId=2,Phase=OperationPhase.Executing,LandingChosen=true,LandingX=4,LandingY=9};
+        operation.Ships.Add(carrier.Id);int row=10;
+        foreach(var unit in carrier.Troops){unit.X=6;unit.Y=row++;unit.GoalX=6;unit.GoalY=(int)unit.Y;unit.Layer=TargetLayer.Ground;s.FindPlanet(2).Units.Add(unit);operation.Units.Add(unit.Id);}
+        carrier.Troops.Clear();s.State.ComputerFactions[0].Operation=operation;
+        UnitState artillery=null;BuildingState target=null;
+        for(int tick=0;tick<1800&&target==null;tick++)
+        {
+            s.Step();
+            artillery=s.FindPlanet(2).Units.Find(u=>u.OwnerId==1&&u.Kind==UnitKind.Artillery&&!u.Destroyed&&u.Order==UnitOrder.Attack);
+            if(artillery!=null)target=s.FindPlanet(2).Buildings.Find(b=>b.Id==artillery.TargetId&&!b.Destroyed&&Definitions.IsTower(b.Kind));
+        }
+        Check(target!=null,"Prepared artillery never starts a real siege");
+        int ammunition=artillery.Ammunition;long started=s.State.Tick;int planTicks=0;
+        for(int tick=0;tick<600&&!target.Destroyed;tick++)
+        {
+            s.Step();
+            if(target.Destroyed)break;
+            Check(!artillery.Destroyed&&artillery.Order==UnitOrder.Attack&&artillery.TargetId==target.Id,"An existing siege was replaced by a rally move before its visible tower fell");
+            Check(s.State.ComputerFactions[0].Operation.Phase==OperationPhase.Executing,"Siege abandoned a viable invasion");
+            if((s.State.Tick-started)%Definitions.AiPlanTicks==0)planTicks++;
+        }
+        Check(target.Destroyed&&planTicks>=2&&artillery.Ammunition<ammunition,"Tower was not destroyed by sustained paid ammunition over multiple planning turns");
+        SaveCodec.Validate(s.State);
     }
     private static void LongScenario()
     {

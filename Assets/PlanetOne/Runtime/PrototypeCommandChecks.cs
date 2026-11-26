@@ -51,7 +51,7 @@ namespace PlanetOne.Runtime
             var space=controller.Simulation;var colony=space.State.Ships.Find(s=>s.Kind==ShipKind.ColonyShip);
             controller.SelectShip(colony.Id);controller.CloseContextPanel();var moon=space.GetOrbitPosition(3);controller.SetSpaceFocus(PrototypeController.SpacePosition(moon.X,moon.Y));yield return null;
             Vector2 target=Camera.main.WorldToScreenPoint(controller.CelestialView(3).position);int orders=space.State.PendingCommands.Count;
-            Require(controller.BeginSpacePan(target) && controller.EndSpacePan(target) && controller.IsCommandMenuOpen,"Short right click on a target world opens contextual fleet orders");
+            Require(controller.BeginSpacePan(target,true) && controller.EndSpacePan(target) && controller.IsCommandMenuOpen,"Control-right-click on a target world opens contextual fleet orders");
             Require(space.State.PendingCommands.Count==orders,"Opening target world commands does not send a ship");
             yield return Capture("commands-planet-target.png");Require(captureFailure==null,captureFailure??"World target commands captured");
             Require(controller.InvokeContextCommand("fly"),"Explicit planet flight action accepted");
@@ -68,7 +68,7 @@ namespace PlanetOne.Runtime
             var repair=controller.Simulation.State.PendingCommands[controller.Simulation.State.PendingCommands.Count-1];
             Require(repair.Kind==CommandKind.RepairTarget && repair.ActorId==engineer.Id && repair.TargetId==solar.Id,"Repair keeps the clicked building and previously selected engineer distinct");
             controller.SelectBuilding(solar.Id);
-            Require(controller.BeginSurfacePan(buildingPoint) && controller.EndSpacePan(buildingPoint),"Right click on a rendered building opens its actual actions");
+            Require(controller.BeginSurfacePan(buildingPoint,true) && controller.EndSpacePan(buildingPoint),"Control-right-click on a rendered building opens its actual actions");
             Require(controller.InvokeContextCommand("toggle"),"Rendered building menu toggles operation");AdvanceSeconds(.1);
             Require(!solar.Enabled,"Building operation changes through the normal simulation queue");
             controller.SelectBuilding(solar.Id);controller.OpenSelectionCommandMenu(controller.WorldViewport.center);

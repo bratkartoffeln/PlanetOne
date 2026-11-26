@@ -128,10 +128,13 @@ internal static class InvasionTests
     private static void Evacuation()
     {
         var s=World();var carrier=InvasionFixture.AddShip(s,2,1,ShipKind.LandingTransport);
-        Cmd(s,CommandKind.LandTransport,carrier.Id,planet:2,x:3,y:9);s.Step(165);
+        Check(Cmd(s,CommandKind.LandTransport,carrier.Id,planet:2,x:3,y:9),"Evacuation carrier landing rejected");s.Step(165);
+        Check(carrier.TransportPhase==TransportPhase.Landed,"Evacuation carrier never landed");
         var u=InvasionFixture.AddUnit(s,2,1,UnitKind.Infantry,1,1);u.Health=31;
         Check(!Cmd(s,CommandKind.LoadTroop,carrier.Id,u.Id,2),"Remote evacuation allowed");
-        Check(Cmd(s,CommandKind.MoveUnit,u.Id,planet:2,x:3,y:9),"Evacuation move rejected");s.Step(150);
+        // The landed carrier occupies its center; boarding happens from a free adjacent hex.
+        Check(Cmd(s,CommandKind.MoveUnit,u.Id,planet:2,x:3,y:8),"Evacuation move rejected");s.Step(150);
+        Check(HexGrid.Distance(u.X,u.Y,carrier.LandingX,carrier.LandingY)<=1.5 && HexGrid.Distance(u.X,u.Y,carrier.LandingX,carrier.LandingY)>.5,"Evacuation approach must remain beside the physical carrier");
         Check(Cmd(s,CommandKind.LoadTroop,carrier.Id,u.Id,2),"Nearby evacuation failed");
         Cmd(s,CommandKind.LaunchTransport,carrier.Id,planet:2);s.Step(165);Check(carrier.TransportPhase==TransportPhase.Space && carrier.Troops[0].Health==31 && !s.FindPlanet(2).Units.Contains(u),"Evacuation lost identity/damage");SaveCodec.Validate(s.State);
     }

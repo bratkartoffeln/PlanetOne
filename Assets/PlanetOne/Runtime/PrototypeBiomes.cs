@@ -42,11 +42,73 @@ namespace PlanetOne.Runtime
         private void BuildTree(Transform parent,Vector3 position,float size,int variation)
         {
             var root=new GameObject("Flora").transform;root.SetParent(parent,false);root.localPosition=position;root.localScale=Vector3.one*size;
-            Rod(root,"Stamm",Vector3.zero,Vector3.up*.9f,.09f,new Color(.22f,.17f,.10f));
-            for(int i=0;i<3;i++) {
-                float a=(variation*37+i*120)*Mathf.Deg2Rad;
-                Part(root,"Pflanzreihe",new Vector3(Mathf.Sin(a)*.18f,.65f+i*.16f,Mathf.Cos(a)*.18f),new Vector3(.6f,.6f,.55f),new Color(.18f,.32f,.11f),PrimitiveType.Sphere);
+            root.localRotation=Quaternion.Euler(0,variation*137.5f,0);
+            bool conifer=variation%4==0;
+            float height=.8f+(variation%7)*.065f;
+            Rod(root,"Baumrinde",Vector3.zero,Vector3.up*height,.038f,new Color(.22f,.17f,.105f));
+            if(conifer)
+            {
+                for(int layer=0;layer<4;layer++)
+                    MeshPart("Blattwerk",root,FoliageMesh(variation,true),new Vector3(0,.3f+layer*.22f,0),new Vector3(.64f-layer*.1f,.55f,.64f-layer*.1f),new Color(.13f,.27f+.015f*(variation%5),.18f));
+                return;
             }
+            for(int i=0;i<5;i++)
+            {
+                float a=(variation*37+i*137)*Mathf.Deg2Rad;
+                var crown=new Vector3(Mathf.Sin(a)*.24f,height*.72f+i*.055f,Mathf.Cos(a)*.24f);
+                Rod(root,"Ast",new Vector3(0,height*.48f,0),crown,.019f,new Color(.24f,.18f,.11f));
+                MeshPart("Blattwerk",root,FoliageMesh(variation+i,false),crown,new Vector3(.58f,.51f,.54f),new Color(.17f+.018f*(variation%4),.31f+.018f*(i%3),.105f+.012f*(variation%5)));
+            }
+        }
+        private Mesh FoliageMesh(int variation,bool conifer)
+        {
+            string key=(conifer?"pine":"leaves")+(variation%5);Mesh mesh;if(modelMeshes.TryGetValue(key,out mesh))return mesh;
+            const int rings=8,sides=10;var vertices=new Vector3[(rings+1)*(sides+1)];var triangles=new int[rings*sides*6];int index=0;
+            for(int ring=0;ring<=rings;ring++)for(int side=0;side<=sides;side++)
+            {
+                float latitude=ring*Mathf.PI/rings,angle=side*Mathf.PI*2/sides;
+                float radius=conifer?(1-ring/(float)rings)*.65f:Mathf.Sin(latitude)*.55f;
+                float rough=1+Mathf.Sin(side*2.7f+ring*3.1f+variation)*.13f;
+                float y=conifer?ring/(float)rings-.25f:Mathf.Cos(latitude)*.52f;
+                vertices[ring*(sides+1)+side]=new Vector3(Mathf.Cos(angle)*radius*rough,y,Mathf.Sin(angle)*radius*rough);
+                if(ring<rings&&side<sides)
+                {
+                    int a=ring*(sides+1)+side,b=a+1,c=a+sides+1,d=c+1;
+                    triangles[index++]=a;triangles[index++]=conifer?c:b;triangles[index++]=conifer?b:c;
+                    triangles[index++]=b;triangles[index++]=conifer?c:d;triangles[index++]=conifer?d:c;
+                }
+            }
+            mesh=new Mesh{name=conifer?"Gestufte Nadelkrone":"Unregelmäßiges Blattwerk"};mesh.vertices=vertices;mesh.triangles=triangles;mesh.RecalculateNormals();mesh.RecalculateBounds();modelMeshes[key]=mesh;return mesh;
+        }
+        private void BuildShrub(Transform parent,Vector3 position,float size,int variation)
+        {
+            MeshPart("Blattwerk",parent,FoliageMesh(variation,false),position+Vector3.up*size*.2f,new Vector3(size,size*.6f,size),new Color(.25f,.34f,.14f));
+        }
+        private void BuildGroundCover(PlanetState planet)
+        {
+            if(planet.Kind!=PlanetKind.Temperate&&planet.Kind!=PlanetKind.Ocean)return;
+            var vertices=new System.Collections.Generic.List<Vector3>();var indices=new System.Collections.Generic.List<int>();
+            var random=new System.Random(planet.Id*193+41);
+            for(int y=0;y<planet.Height;y++)for(int x=0;x<planet.Width;x++)
+            {
+                int cell=y*planet.Width+x;
+                if(planet.Terrain[cell]!=0 || planet.Roads[cell] || planet.Buildings.Exists(b=>b.X==x&&b.Y==y))continue;
+                var at=SurfacePosition(x,0,y);if(planet.Kind==PlanetKind.Ocean&&at.y<.15f)continue;
+                if(Mathf.PerlinNoise(at.x*.22f+planet.Id,at.z*.2f) < .46f)continue;
+                for(int i=0;i<4;i++)
+                {
+                    float wx=at.x+(float)random.NextDouble()*.65f-.325f,wz=at.z+(float)random.NextDouble()*.55f-.275f;
+                    var foot=new Vector3(wx,ReliefHeight(wx,wz)+.012f,wz);float height=.035f+(float)random.NextDouble()*.055f;
+                    float angle=(float)random.NextDouble()*Mathf.PI*2;var side=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*.025f;
+                    int first=vertices.Count;var tip=foot+Vector3.up*height+side*.6f;
+                    vertices.Add(foot-side);vertices.Add(tip);vertices.Add(foot+side);
+                    vertices.Add(foot+side);vertices.Add(tip);vertices.Add(foot-side);
+                    for(int vertex=0;vertex<6;vertex++)indices.Add(first+vertex);
+                }
+            }
+            if(vertices.Count==0)return;
+            var mesh=new Mesh{name="Bodengräser",indexFormat=UnityEngine.Rendering.IndexFormat.UInt32};mesh.SetVertices(vertices);mesh.SetTriangles(indices,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
+            var grass=MeshPart("Gras",surfaceRoot,mesh,Vector3.zero,Vector3.one,new Color(.27f,.36f,.12f));grass.gameObject.AddComponent<OwnedSurfaceMesh>().Mesh=mesh;
         }
         private void BuildFloatingPlatform(Transform root)
         {
@@ -67,7 +129,14 @@ namespace PlanetOne.Runtime
                 Part(root,"Schwebetriebwerk",at,new Vector3(.24f,.06f,.24f),Steel,PrimitiveType.Cylinder);
                 Part(root,"Antrieb",at-Vector3.up*.08f,new Vector3(.15f,.10f,.15f),Cyan,PrimitiveType.Sphere);
             }
-            if(!courier)Rod(root,kind==UnitKind.Engineer?"Werkzeugarm":"Geschütz",new Vector3(0,.35f,.1f),new Vector3(0,.36f,.58f),.045f,Steel);
+            if(!courier && kind==UnitKind.Engineer)Rod(root,"Werkzeugarm",new Vector3(0,.35f,.1f),new Vector3(0,.36f,.58f),.045f,Steel);
+            else if(!courier)
+            {
+                var turret=new GameObject("Turret").transform;turret.SetParent(root,false);turret.localPosition=new Vector3(0,.39f,.05f);
+                HullPart(turret,Vector3.zero,new Vector3(.24f,.12f,.22f),color);
+                Rod(turret,"Geschütz",new Vector3(0,.02f,.05f),new Vector3(0,.03f,.53f),.045f,Steel);
+                var muzzle=new GameObject("MuzzlePosition").transform;muzzle.SetParent(turret,false);muzzle.localPosition=new Vector3(0,.03f,.53f);
+            }
         }
     }
     public sealed class OwnedBiomeMaterial:MonoBehaviour

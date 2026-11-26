@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$ReferenceSave,[string]$PlayerPath,[switch]$CommandUiOnly,[switch]$SessionUiOnly,[ValidateRange(1024,3840)][int]$Width=1440,[ValidateRange(720,2160)][int]$Height=900)
+param([string]$ReferenceSave,[string]$PlayerPath,[switch]$CommandUiOnly,[switch]$SessionUiOnly,[switch]$PolishOnly,[switch]$InteractionOnly,[ValidateRange(1024,3840)][int]$Width=1440,[ValidateRange(720,2160)][int]$Height=900)
 $ErrorActionPreference='Stop'
 $projectRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if(-not $PlayerPath){$PlayerPath=Join-Path $projectRoot 'Builds\Windows\PlanetOne.exe'}
@@ -45,25 +45,36 @@ public static class PlanetOneIsolatedDesktop {
 '@
 $arguments='-planetOneSmoke -screen-width '+$Width+' -screen-height '+$Height+' -screen-fullscreen 0 -force-d3d11 -smokeOutput "'+$outputDirectory+'" -logFile "'+(Join-Path $outputDirectory 'player.log')+'"'
 if($ReferenceSave){$referencePath=(Resolve-Path -LiteralPath $ReferenceSave).Path;$arguments+=' -referenceSave "'+$referencePath+'"'}
+if($PolishOnly){$arguments+=' -polishOnly'}
+if($InteractionOnly){$arguments+=' -interactionOnly'}
 if($SessionUiOnly){$arguments+=' -sessionUiOnly'}
 if($CommandUiOnly){$arguments+=' -commandUiOnly'}
 try {
  [PlanetOneIsolatedDesktop]::Start($PlayerPath,$arguments,$projectRoot)
  $finished=$false
- for($i=0;$i -lt 18;$i++){
+ # The expanded full suite includes three layouts, model hulls and both reference
+ # performance stages. Individual performance budgets remain checked in the player.
+ for($i=0;$i -lt 36;$i++){
   if([PlanetOneIsolatedDesktop]::Wait()){$finished=$true;break}
   Write-Output 'Isolierter GUI-Test laeuft; Arbeitsdesktop bleibt unveraendert.'
  }
- if(-not $finished){throw 'Isolierter GUI-Test nach 180 Sekunden beendet.'}
+ if(-not $finished){throw 'Isolierter GUI-Test nach 360 Sekunden beendet.'}
  if([PlanetOneIsolatedDesktop]::ExitCode() -ne 0){throw ('Player fehlgeschlagen: '+$outputDirectory)}
  $report=Join-Path $outputDirectory 'smoke-result.txt'
  if(-not (Test-Path -LiteralPath $report)){throw 'Player lieferte kein Pruefprotokoll.'}
- foreach($layout in @('CommandCenter','OrbitalBridge','OpenSpace')){
-  $views=if($SessionUiOnly){@('Home','NewGame','Save','Guide')}elseif($CommandUiOnly){@('building','unit')}else{@('surface','space')}
+ $layouts=if($InteractionOnly){@()}else{@('CommandCenter','OrbitalBridge','OpenSpace')}
+ foreach($layout in $layouts){
+  $views=if($PolishOnly){@('surface','space','type140','large')}elseif($SessionUiOnly){@('Home','NewGame','Save','Guide')}elseif($CommandUiOnly){@('building','unit')}else{@('surface','space')}
   foreach($view in $views){
-   $imageName=if($SessionUiOnly){'sessions-'+$layout+'-'+$view+'.png'}elseif($CommandUiOnly){'commands-'+$view+'-'+$layout+'.png'}else{'layout-'+$layout+'-'+$view+'.png'}
+   $imageName=if($PolishOnly){'polish-'+$layout+'-'+$view+'.png'}elseif($SessionUiOnly){'sessions-'+$layout+'-'+$view+'.png'}elseif($CommandUiOnly){'commands-'+$view+'-'+$layout+'.png'}else{'layout-'+$layout+'-'+$view+'.png'}
    $imagePath=Join-Path $outputDirectory $imageName
    if(-not (Test-Path -LiteralPath $imagePath) -or (Get-Item -LiteralPath $imagePath).Length -lt 1024){throw ('GUI-Bild fehlt: '+$imagePath)}
+  }
+ }
+ if($InteractionOnly){
+  foreach($name in @('direct-ground-attack-cursor.png','direct-space-attack-cursor.png','planet-focus-tracking.png','space-traffic-swept-models.png')){
+   $imagePath=Join-Path $outputDirectory $name
+   if(-not (Test-Path -LiteralPath $imagePath) -or (Get-Item -LiteralPath $imagePath).Length -lt 1024){throw ('Interaktionsbild fehlt: '+$imagePath)}
   }
  }
  if(Select-String -LiteralPath (Join-Path $outputDirectory 'player.log') -Pattern 'GUI Error|Exception:|Shader error' -Quiet){throw ('Fehler im Player-Log: '+$outputDirectory)}

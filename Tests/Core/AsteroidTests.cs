@@ -17,7 +17,7 @@ internal static class AsteroidTests
         run("Captured return ports never receive mined cargo from the former owner",PortLoss);
         run("Mining save continuation preserves extraction travel and unloading exactly",Continuation);
         run("Asteroid saves reject forged reserves totals cargo and missing references",InvalidSaves);
-        run("Actual version ten migration preserves every existing value without injecting belts",Migration);
+        run("Overlapping version ten couriers are rejected unchanged and current asteroid saves preserve all values",LegacyOverlap);
     }
     private static void Check(bool value,string message){if(!value)throw new Exception(message);}
     private static string fixture;
@@ -123,12 +123,27 @@ internal static class AsteroidTests
             bool rejected=false;try{SaveCodec.ToJson(s.State);}catch(InvalidDataException){rejected=true;}Check(rejected,"Forged mining state accepted "+kind);
         }
     }
-    private static string Raw(GameState state){using(var stream=new MemoryStream()){new DataContractJsonSerializer(typeof(GameState)).WriteObject(stream,state);return Encoding.UTF8.GetString(stream.ToArray());}}
-    private static void Migration()
+    private static void LegacyOverlap()
     {
-        string json=File.ReadAllText("Tests/Core/Fixtures/prototype-v10.json");GameState old;
-        using(var stream=new MemoryStream(Encoding.UTF8.GetBytes(json)))old=(GameState)new DataContractJsonSerializer(typeof(GameState)).ReadObject(stream);
-        var migrated=SaveCodec.FromJson(json);Check(old.Version==10 && migrated.Version==11 && migrated.Asteroids.Count==0 && migrated.AsteroidBelts.Count==0,"Old world mutated");
-        migrated.Version=10;migrated.Asteroids=null;migrated.AsteroidBelts=null;Check(Raw(old)==Raw(migrated),"Legacy state changed");
+        const string path="Tests/Core/Fixtures/prototype-v10.json";
+        byte[] original=File.ReadAllBytes(path);GameState old;
+        using(var stream=new MemoryStream(original))old=(GameState)new DataContractJsonSerializer(typeof(GameState)).ReadObject(stream);
+        Check(old.Version==10,"Not the original version ten fixture");bool overlap=false;
+        foreach(var planet in old.Planets)for(int i=0;i<planet.Shipments.Count;i++)for(int j=i+1;j<planet.Shipments.Count;j++)
+        {
+            var a=planet.Shipments[i];var b=planet.Shipments[j];if(GameSimulation.GroundCourierDocked(a)||GameSimulation.GroundCourierDocked(b))continue;
+            var pa=GameSimulation.GroundCourierPosition(a);var pb=GameSimulation.GroundCourierPosition(b);
+            double x=pa.X-pb.X,y=pa.Y-pb.Y,radius=GameSimulation.GroundCourierRadius(a)+GameSimulation.GroundCourierRadius(b)-GameSimulation.GroundTrafficTolerance;
+            if(x*x+y*y<radius*radius)overlap=true;
+        }
+        Check(overlap,"Legacy fixture no longer has coincident physical couriers");
+        bool rejected=false;try{SaveCodec.FromJson(Encoding.UTF8.GetString(original));}
+        catch(InvalidDataException error){rejected=error.Message.Contains("überlagern");}
+        Check(rejected,"Overlapping legacy couriers were accepted or failed without the physical conflict reason");
+        Check(original.SequenceEqual(File.ReadAllBytes(path)),"Rejected legacy fixture was modified");
+        // The current-format preservation requirement remains exact; old files are never repaired in place.
+        var current=GameSimulation.CreateDiplomacyScenario(2);string snapshot=SaveCodec.ToJson(current.State);
+        var restored=SaveCodec.FromJson(snapshot);
+        Check(SaveCodec.ToJson(restored)==snapshot,"Current snapshot changed owners, inventories, asteroid amounts or entity identities");
     }
 }

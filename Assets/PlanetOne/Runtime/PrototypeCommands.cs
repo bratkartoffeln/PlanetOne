@@ -248,7 +248,7 @@ namespace PlanetOne.Runtime
                     if(colony.Length>0)AddAction(list,"colonize","Kolonie gründen",HudIcon.Build,()=>RequestSpaceOrder(CommandKind.Colonize,colony[0],planet:planet),"Kolonieschiff im Zielorbit benötigt",KnownPlanetOwner(p)!=0?"Welt ist nicht als unbesiedelt bekannt":null);
                 }
                 AddAction(list,"open",PlanetEnvironment.Airborne(p)?"Atmosphäre öffnen":"Oberfläche öffnen",HudIcon.Planet,()=>SetView(planet));
-                AddAction(list,"focus","Planet zentrieren",HudIcon.Planet,()=>{var pos=simulation.GetOrbitPosition(planet);SetSpaceFocus(SpacePosition(pos.X,pos.Y));});
+                AddAction(list,"focus","Planet zentrieren",HudIcon.Planet,()=>FocusPlanet(planet));
                 AddAction(list,"overview","Kolonieübersicht",HudIcon.Info,()=>{SetView(planet);OpenPresentationSection(0);},disabled:KnownPlanetOwner(p)!=PlayerFactionId?"Nur für eigene Kolonien":null);return list;
             }
             if(c.Subject==CommandSubject.Asteroid)
@@ -282,9 +282,11 @@ namespace PlanetOne.Runtime
             var action=MenuActions().Find(a=>a.Id==id);if(action==null || action.Disabled!=null)return false;
             keepCommandMenu=false;action.Run();if(!keepCommandMenu)CloseCommandMenu();return true;
         }
+        private float CommandRowHeight {get{return FontUnitSize(18)+FontUnitSize(15)*3+24;}}
+        private float CommandHeaderHeight {get{return FontUnitSize(20)*2+24;}}
         private void PositionCommandMenu(int count)
         {
-            float width=Screen.width/UiScale,height=Screen.height/UiScale,w=Mathf.Min(342,width-16),h=Mathf.Min(76+count*52,height-TopHeight-20);
+            float width=Screen.width/UiScale,height=Screen.height/UiScale,w=Mathf.Min(440+(TextScale-1)*150,width-16),h=Mathf.Min(CommandHeaderHeight+40+count*CommandRowHeight,height-TopHeight-20);
             commandMenuRect=new Rect(Mathf.Clamp(commandMenuAnchor.x+8,8,width-w-8),Mathf.Clamp(commandMenuAnchor.y+8,TopHeight+8,height-h-8),w,h);
         }
         private bool HandleCommandMenuPointer()
@@ -307,27 +309,27 @@ namespace PlanetOne.Runtime
             if(e.type==EventType.KeyDown)
             {
                 if(e.keyCode==KeyCode.UpArrow || e.keyCode==KeyCode.DownArrow)
-                {commandKeyboardIndex=(commandKeyboardIndex+(e.keyCode==KeyCode.UpArrow?-1:1)+actions.Count)%actions.Count;commandMenuScroll.y=Mathf.Max(0,commandKeyboardIndex*52-(commandMenuRect.height-160));e.Use();}
+                {commandKeyboardIndex=(commandKeyboardIndex+(e.keyCode==KeyCode.UpArrow?-1:1)+actions.Count)%actions.Count;commandMenuScroll.y=Mathf.Max(0,commandKeyboardIndex*CommandRowHeight-(commandMenuRect.height-160));e.Use();}
                 else if(e.keyCode==KeyCode.Return || e.keyCode==KeyCode.KeypadEnter){InvokeContextCommand(actions[Mathf.Clamp(commandKeyboardIndex,0,actions.Count-1)].Id);e.Use();return;}
             }
             Fill(new Rect(commandMenuRect.x+4,commandMenuRect.y+5,commandMenuRect.width,commandMenuRect.height),new Color(0,0,0,.5f));
             Fill(commandMenuRect,new Color(.025f,.05f,.065f,.99f));DrawPanel(commandMenuRect);
             Fill(new Rect(commandMenuRect.x,commandMenuRect.y,3,commandMenuRect.height),Cyan);
-            GUI.Label(new Rect(commandMenuRect.x+16,commandMenuRect.y+10,commandMenuRect.width-60,28),commandContext.Title,headingStyle);
+            GUI.Label(new Rect(commandMenuRect.x+16,commandMenuRect.y+10,commandMenuRect.width-60,CommandHeaderHeight-16),commandContext.Title,headingStyle);
             if(HudButton(new Rect(commandMenuRect.xMax-39,commandMenuRect.y+7,30,30),"",HudIcon.Close)){CloseCommandMenu();return;}
-            Rect area=new Rect(commandMenuRect.x+10,commandMenuRect.y+44,commandMenuRect.width-20,commandMenuRect.height-72);
-            commandMenuScroll=GUI.BeginScrollView(area,commandMenuScroll,new Rect(0,0,area.width-18,actions.Count*52));
+            Rect area=new Rect(commandMenuRect.x+10,commandMenuRect.y+CommandHeaderHeight,commandMenuRect.width-20,commandMenuRect.height-CommandHeaderHeight-34);
+            commandMenuScroll=GUI.BeginScrollView(area,commandMenuScroll,new Rect(0,0,area.width-18,actions.Count*CommandRowHeight));
             string invoke=null;
             for(int i=0;i<actions.Count;i++)
             {
-                var a=actions[i];Rect row=new Rect(0,i*52,area.width-20,48);bool enabled=GUI.enabled;GUI.enabled=enabled && a.Disabled==null;
+                var a=actions[i];Rect row=new Rect(0,i*CommandRowHeight,area.width-24,CommandRowHeight-6);bool enabled=GUI.enabled;GUI.enabled=enabled && a.Disabled==null;
                 if(GUI.Button(row,GUIContent.none,i==commandKeyboardIndex?selectedButtonStyle:buttonStyle))invoke=a.Id;
                 GUI.enabled=enabled;Color previous=GUI.color;GUI.color=a.Disabled!=null?Muted:a.Danger?Danger:Cyan;GUI.DrawTexture(new Rect(10,row.y+10,22,22),HudSymbol(a.Icon));GUI.color=previous;
-                GUI.Label(new Rect(42,row.y+4,row.width-47,23),a.Label,a.Disabled!=null?mutedStyle:bodyStyle);
-                GUI.Label(new Rect(42,row.y+26,row.width-47,19),a.Disabled??a.Hint,smallStyle);
+                GUI.Label(new Rect(42,row.y+6,row.width-54,FontUnitSize(18)+8),a.Label,a.Disabled!=null?mutedStyle:bodyStyle);
+                GUI.Label(new Rect(42,row.y+FontUnitSize(18)+14,row.width-54,FontUnitSize(15)*3+6),a.Disabled??a.Hint,smallStyle);
             }
             GUI.EndScrollView();
-            GUI.Label(new Rect(commandMenuRect.x+16,commandMenuRect.yMax-24,commandMenuRect.width-32,20),"Esc: schließen   ·   ↑ ↓ / Enter: auswählen",smallStyle);
+            GUI.Label(new Rect(commandMenuRect.x+16,commandMenuRect.yMax-FontUnitSize(15)-10,commandMenuRect.width-32,FontUnitSize(15)+6),"Esc: schließen   ·   ↑ ↓ / Enter: auswählen",smallStyle);
             if(invoke!=null)InvokeContextCommand(invoke);
         }
     }

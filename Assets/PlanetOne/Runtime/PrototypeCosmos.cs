@@ -14,14 +14,33 @@ namespace PlanetOne.Runtime
         private float lastPlanetClick;
         private int lastClickedPlanet;
         public int SelectedPlanetId {get{return selectedPlanetId;}}
+        public const float OrbitLinePixels=1.25f;
+        private void UpdateOrbitLineWidths()
+        {
+            if(sceneCamera==null || sceneCamera.pixelHeight<=0)return;
+            float width=OrbitLinePixels*2*sceneCamera.orthographicSize/sceneCamera.pixelHeight;
+            foreach(var orbit in orbitViews.Values)
+            {
+                if(orbit==null)continue;
+                var line=orbit.GetComponent<LineRenderer>();
+                line.alignment=LineAlignment.View;line.widthMultiplier=width;line.numCornerVertices=2;
+            }
+        }
+        public float OrbitScreenWidth(int planetId)
+        {
+            Transform orbit;
+            return orbitViews.TryGetValue(planetId,out orbit) && orbit!=null
+                ? orbit.GetComponent<LineRenderer>().widthMultiplier*sceneCamera.pixelHeight/(2*sceneCamera.orthographicSize):0;
+        }
         internal Transform CelestialView(int id){return planetViews[id];}
         public bool SelectPlanet(int id)
         {
             if(simulation.FindPlanet(id)==null || !simulation.IsPlanetKnown(PlayerFactionId,id))return false;
+            if(focusedPlanetId!=0 && focusedPlanetId!=id)CancelPlanetFocus();
             CloseCommandMenu();selectedAsteroidId=0;selectedPlanetId=id;selectedShips.Clear();contextOpen=true;panelOpen=false;
             showingSpacePanel=false;showingDiplomacy=false;presentationSection=0;return true;
         }
-        public bool OpenSelectedPlanet(){bool build=panelOpen && presentationSection==1;if(!SelectPlanet(selectedPlanetId))return false;SetView(selectedPlanetId);if(build)OpenPresentationSection(1);return true;}
+        public bool OpenSelectedPlanet(){if(!SelectPlanet(selectedPlanetId))return false;return BeginViewFlight(selectedPlanetId);}
         private Transform CreateCelestial(PlanetState p,Transform parent,Vector3 position,float diameter)
         {
             if(celestialAtlas==null)celestialAtlas=Resources.Load<Texture2D>("CelestialAtlas");

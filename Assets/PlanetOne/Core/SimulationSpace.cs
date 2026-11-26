@@ -91,6 +91,7 @@ namespace PlanetOne.Core
                 else { ship.Order = ShipOrder.Escort; ship.EscortId = target.Id; ship.AutoSupply = false; }
             }
             else error = "Unbekannter Raumbefehl.";
+            if(error==null && ship!=null && c.Kind!=CommandKind.SetAutoSupply && c.Kind!=CommandKind.Colonize)ResetSpaceDestination(ship);
             Report(c, error == null, error == null ? "SpaceOrderAccepted" : "InvalidSpaceOrder", error ?? "Auftrag angenommen.");
         }
         private bool EscortCycle(long ownId, ShipState target)
@@ -104,7 +105,7 @@ namespace PlanetOne.Core
             if (ship.Kind != ShipKind.ColonyShip || p.OwnerId != 0 || p.Buildings.Count != 0) return "Unbesiedelte Welt und Kolonieschiff benötigt.";
             if(ship.Crew!=Definitions.Ships[(int)ShipKind.ColonyShip].Crew)return "Vollständige Gründungsbesatzung benötigt.";
             for(int resource=0;resource<6;resource++)if(ship.Cargo[resource]<Definitions.Ships[(int)ShipKind.ColonyShip].ColonyCargo[resource])return "Vollständige reale Gründungsausrüstung benötigt.";
-            if (!IsPlanetVisible(ship.OwnerId, p.Id) || Distance(ship.X, ship.Y, GetOrbitPosition(p.Id)) > Definitions.DockDistance) return "Kolonieschiff muss die aufgeklärte Zielwelt erreichen.";
+            if (!IsPlanetVisible(ship.OwnerId, p.Id) || !AtPlanetDock(ship,p.Id)) return "Kolonieschiff muss die aufgeklärte Zielwelt erreichen.";
             int x = 8, y = 6;
             if (p.Terrain[y * p.Width + x] != 0) return "Gründungsfläche ist blockiert.";
             var headquarters = new BuildingState { Id = State.NextEntityId++, PlanetId = p.Id, Kind = BuildingKind.Headquarters, Built = true, X = x, Y = y, Health = Definitions.BuildingHealth(BuildingKind.Headquarters), Inventory = (int[])ship.Cargo.Clone() };
@@ -141,6 +142,7 @@ namespace PlanetOne.Core
         }
         private void TickSpace()
         {
+            BeginSpaceTrafficTick();
             foreach (var p in State.Planets) foreach (var b in p.Buildings)
             {
                 if (!b.Operational || b.Deconstructing || b.ShipBuildKind < 0) continue;
@@ -153,7 +155,9 @@ namespace PlanetOne.Core
                 }
                 b.ShipBuildProgress += Definitions.TickSeconds * p.Productivity; b.Status = "Schiffsbau " + (int)(100 * b.ShipBuildProgress / d.Seconds) + "%";
                 if (b.ShipBuildProgress + 0.0000001 < d.Seconds) continue;
-                var pos = GetOrbitPosition(p.Id);
+                SimPoint pos;
+                if(!TrySpaceSpawn((ShipKind)b.ShipBuildKind,p.OwnerId,GetOrbitPosition(p.Id),out pos))
+                {b.ShipBuildProgress=d.Seconds;b.Status="Schiff fertig; wartet auf freien Ausflug";continue;}
                 State.Ships.Add(new ShipState { Id = State.NextEntityId++, OwnerId = p.OwnerId, Kind = (ShipKind)b.ShipBuildKind, X = pos.X, Y = pos.Y, Crew = d.Crew, Cargo = (int[])d.ColonyCargo.Clone(), TargetPlanetId = p.Id, Order = ShipOrder.Guard, Health = Definitions.SpaceWeapons[b.ShipBuildKind].Health });
                 for (int r = 0; r < 6; r++) p.ConsumedTotals[r] -= d.ColonyCargo[r];
                 b.ShipBuildKind = -1; b.ShipBuildPaid = false; b.ShipBuildProgress = 0; b.Status = "Schiff fertiggestellt";
@@ -193,8 +197,8 @@ namespace PlanetOne.Core
                 else if (ship.Order == ShipOrder.Fly || ship.Order == ShipOrder.Guard)
                 {
                     ship.Status = ship.Order == ShipOrder.Fly ? "Flug zu " + FindPlanet(ship.TargetPlanetId).Name : "Bewacht " + FindPlanet(ship.TargetPlanetId).Name;
-                    MoveShip(ship, GetOrbitPosition(ship.TargetPlanetId));
-                    if (ship.Order == ShipOrder.Fly && Distance(ship.X, ship.Y, GetOrbitPosition(ship.TargetPlanetId)) <= Definitions.DockDistance) { ship.Order = ShipOrder.Guard; ship.Status = "Ziel erreicht"; }
+                    bool arrived=MoveShip(ship, GetOrbitPosition(ship.TargetPlanetId));
+                    if (ship.Order == ShipOrder.Fly && arrived) { ship.Order = ShipOrder.Guard; ship.Status = "Ziel erreicht"; }
                 }
                 else if (ship.Order == ShipOrder.Escort)
                 {
@@ -208,19 +212,7 @@ namespace PlanetOne.Core
         private static double Distance(double x, double y, SimPoint target) { return Math.Sqrt((x - target.X) * (x - target.X) + (y - target.Y) * (y - target.Y)); }
         private bool MoveShip(ShipState ship, SimPoint target)
         {
-            double distance = Distance(ship.X, ship.Y, target), step = Definitions.Ships[(int)ship.Kind].Speed * Definitions.TickSeconds;
-            var next=distance<=step?target:new SimPoint(ship.X+(target.X-ship.X)/distance*step,ship.Y+(target.Y-ship.Y)/distance*step);
-            foreach(var p in State.Planets)if(p.OwnerId>0&&p.OwnerId!=ship.OwnerId&&!AtWar(ship.OwnerId,p.OwnerId)&&IsPlanetVisible(ship.OwnerId,p.Id))
-            {
-                var orbit=GetOrbitPosition(p.Id);double before=Distance(ship.X,ship.Y,orbit),after=Distance(next.X,next.Y,orbit);
-                bool trade=ship.Freight!=null&&ship.Freight.TreatyId>0&&TradePortValid(ship.Freight,FindBuilding(ship.Freight.TargetId),false)&&FindBuilding(ship.Freight.TargetId).PlanetId==p.Id;
-                bool operation=State.Treaties.Exists(t=>TreatyLive(t)&&t.Terms.Kind==TreatyKind.JointOperation&&t.Terms.PlanetId==p.Id&&t.Pledges.Exists(a=>a.ShipId==ship.Id));
-                var right=ship.Kind<=ShipKind.SurveyShip?AccessRight.CivilTransit:AccessRight.MilitaryTransit;
-                if(after<Definitions.OrbitalRadius&&after<before-0.000001&&!trade&&!operation&&!HasAccess(ship.OwnerId,p.OwnerId,p.Id,right)&&!(ship.Order==ShipOrder.Repair&&HasAccess(ship.OwnerId,p.OwnerId,p.Id,AccessRight.Repair)))
-                {ship.Status="Geschützter Orbit (3 Einheiten): Transitrecht fehlt; kein automatischer Krieg";return false;}
-            }
-            if (distance <= step) { ship.X = target.X; ship.Y = target.Y; return true; }
-            ship.X += (target.X - ship.X) / distance * step; ship.Y += (target.Y - ship.Y) / distance * step; return false;
+            return MoveShipWithTraffic(ship,target);
         }
         private bool TryFreight(ShipState ship, BuildingState source, BuildingState target, int resource, int requested)
         {
@@ -230,7 +222,7 @@ namespace PlanetOne.Core
             if (amount <= 0) return false;
             source.ReservedOutgoing[resource] += amount; target.ReservedIncoming[resource] += amount;
             ship.Freight = new FreightJob { SourceId = source.Id, TargetId = target.Id, Resource = (ResourceKind)resource, Amount = amount };
-            ship.Order = ShipOrder.Freight; return true;
+            ResetSpaceDestination(ship);ship.Order = ShipOrder.Freight; return true;
         }
         private void PlanAutomaticFreight(ShipState ship)
         {
@@ -268,7 +260,7 @@ namespace PlanetOne.Core
             if (collecting)
             {
                 source.Inventory[r] -= job.Amount; source.ReservedOutgoing[r] -= job.Amount; ship.Cargo[r] += job.Amount;
-                job.Phase = FreightPhase.Deliver; job.Progress = 0;
+                job.Phase = FreightPhase.Deliver; job.Progress = 0;ResetSpaceDestination(ship);
             }
             else
             {
@@ -279,6 +271,7 @@ namespace PlanetOne.Core
         }
         private void CancelFreight(ShipState ship)
         {
+            ResetSpaceDestination(ship);
             CancelMining(ship);
             var job = ship.Freight;
             if (job != null)
@@ -301,7 +294,7 @@ namespace PlanetOne.Core
                 if (nearest == null) { ship.Status = "Fracht an Bord: kein eigener Hafen mit freiem Platz"; return; }
                 nearest.ReservedIncoming[r] += ship.Cargo[r];
                 ship.Freight = new FreightJob { SourceId = 0, TargetId = nearest.Id, Resource = (ResourceKind)r, Amount = ship.Cargo[r], Phase = FreightPhase.Deliver };
-                ship.Order = ShipOrder.Freight; return;
+                ResetSpaceDestination(ship);ship.Order = ShipOrder.Freight; return;
             }
         }
         public void DestroyShip(long shipId)

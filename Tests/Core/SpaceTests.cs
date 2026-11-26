@@ -56,7 +56,8 @@ internal static class SpaceTests
         Cmd(s, CommandKind.EscortShip, follower.Id, ship.Id);
         double x = ship.X, y = ship.Y; s.Step(); Check(Math.Abs(ship.X-x) + Math.Abs(ship.Y-y) < 0.5, "Movement teleported");
         s.Step(1200); var moon = s.GetOrbitPosition(3); Check(Math.Abs(ship.X-moon.X) < 0.2 && Math.Abs(ship.Y-moon.Y) < 0.2, "Missed moving moon");
-        Check(Math.Abs(ship.X-follower.X) < 0.4, "Escort failed");
+        double escortDistance=Math.Sqrt((ship.X-follower.X)*(ship.X-follower.X)+(ship.Y-follower.Y)*(ship.Y-follower.Y));
+        Check(escortDistance>=Definitions.ShipRadius(ship.Kind)+Definitions.ShipRadius(follower.Kind)+Definitions.SpaceTrafficGap-.000001 && escortDistance<1.5, "Escort failed to retain a nearby physically separate slot");
         Check(!Cmd(s, CommandKind.EscortShip, ship.Id, follower.Id), "Escort cycle accepted");
         var enemy = Ship(s); enemy.OwnerId = 2; enemy.X = 200; enemy.Y = 200;
         Check(!s.IsShipVisible(1, enemy), "Hidden enemy revealed"); enemy.X = ship.X; enemy.Y = ship.Y; s.Step();
@@ -84,9 +85,15 @@ internal static class SpaceTests
     private static void Transfers()
     {
         BuildingState a,b; var s=Fixture(out a,out b); var ship=Ship(s); var other=Ship(s);
-        Cmd(s,CommandKind.AssignFreight,ship.Id,a.Id,2,2,10); Cmd(s,CommandKind.AssignFreight,other.Id,a.Id,2,2,10); s.Step(40);
-        Check(ship.Cargo[2]==0 && other.Freight.Progress==0,"Instant load or parallel berth");
-        a.Enabled=false; double progress=ship.Freight.Progress; s.Step(20); Check(ship.Freight.Progress==progress,"Unpowered port loads"); a.Enabled=true;
+        Cmd(s,CommandKind.AssignFreight,ship.Id,a.Id,2,2,10); Cmd(s,CommandKind.AssignFreight,other.Id,a.Id,2,2,10);
+        for(int i=0;i<40;i++)
+        {
+            double first=ship.Freight.Progress,second=other.Freight.Progress;s.Step();
+            Check(!(ship.Freight.Progress>first && other.Freight.Progress>second),"Port processed two physical berth transfers in one tick");
+        }
+        Check(ship.Cargo[2]==0 && other.Cargo[2]==0 && ship.Freight.Progress+other.Freight.Progress>0,"Instant load or no physical loading");
+        a.Enabled=false; double progress=ship.Freight.Progress,otherProgress=other.Freight.Progress;s.Step(20);
+        Check(ship.Freight.Progress==progress && other.Freight.Progress==otherProgress,"Unpowered port loads");a.Enabled=true;
         Wait(s,()=>ship.Freight==null && other.Freight==null); Check(b.Inventory[2]==20 && a.Inventory[2]==80,"Physical transfer totals wrong"); SaveCodec.Validate(s.State);
     }
     private static void Cancellation()

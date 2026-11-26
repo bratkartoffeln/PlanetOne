@@ -61,13 +61,37 @@ namespace PlanetOne.Core
                     Require(c.X >= 0 && c.Y >= 0 && c.X < p.Width && c.Y < p.Height, "Bodenweg außerhalb der Karte.");
                     if (i > 0) Require(HexGrid.Adjacent(c, u.Path[i - 1]), "Bodenweg überspringt Felder.");
                 }
-                if (u.Path.Count > 0)
+                if (u.Path.Count > 0 && (u.Traffic==null||!u.Traffic.Yielding))
                 {
                     int i = Math.Min((int)u.PathDistance, u.Path.Count - 1);
                     var a = u.Path[i]; var b = u.Path[Math.Min(i + 1, u.Path.Count - 1)]; double t = u.PathDistance - i;
                     Require(Math.Abs(u.X - (a.X + (b.X - a.X) * t)) < 0.000001 &&
                         Math.Abs(u.Y - (a.Y + (b.Y - a.Y) * t)) < 0.000001, "Bodenweg und Einheitenposition widersprechen sich.");
                 }
+                ValidateGroundTraffic(state,p,u.Traffic);
+                Require(u.Traffic==null||!u.Traffic.Docked,"Bodentruppe besitzt einen ungültigen Fahrzeugdockzustand.");
+                if(u.Traffic!=null&&u.Traffic.Yielding)
+                {
+                    var goal=HexGrid.ToWorld(u.Traffic.GoalX,u.Traffic.GoalY);var at=GameSimulation.GroundUnitPosition(u);
+                    Require(Math.Abs(at.X-(u.Traffic.StartX+(goal.X-u.Traffic.StartX)*u.Traffic.Progress))<.000001&&Math.Abs(at.Y-(u.Traffic.StartY+(goal.Y-u.Traffic.StartY)*u.Traffic.Progress))<.000001,"Ausweichweg und Einheitenposition widersprechen sich.");
+                }
+            }
+            if(p.Id>0)
+            {
+                var positions=new List<SimPoint>();var radii=new List<double>();
+                foreach(var unit in p.Units)if(!unit.Destroyed&&unit.Layer==TargetLayer.Ground){positions.Add(GameSimulation.GroundUnitPosition(unit));radii.Add(GameSimulation.GroundUnitRadius(unit.Kind));}
+                foreach(var shipment in p.Shipments)
+                {
+                    ValidateGroundTraffic(state,p,shipment.Traffic);
+                    if(GameSimulation.GroundCourierDocked(shipment))
+                    {
+                        var at=GameSimulation.GroundCourierPosition(shipment);
+                        Require(p.Buildings.Exists(b=>(b.Id==shipment.SourceId||b.Id==shipment.TargetId)&&GroundAtBuilding(at,b)),"Innenfahrzeug steht außerhalb seines tatsächlichen Gebäudes.");
+                    }
+                    else {positions.Add(GameSimulation.GroundCourierPosition(shipment));radii.Add(GameSimulation.GroundCourierRadius(shipment));}
+                }
+                for(int i=0;i<positions.Count;i++)for(int j=i+1;j<positions.Count;j++)
+                {double dx=positions[i].X-positions[j].X,dy=positions[i].Y-positions[j].Y;double radius=radii[i]+radii[j]-GameSimulation.GroundTrafficTolerance;Require(dx*dx+dy*dy>=radius*radius,"Bodeneinheiten oder Fahrzeuge überlagern sich.");}
             }
             var sightings = new HashSet<string>();
             foreach (var s in p.Sightings)
@@ -80,5 +104,14 @@ namespace PlanetOne.Core
                     p.Buildings.Exists(b => b.Id == g.GateId && b.Kind == BuildingKind.Gate) &&
                     gates.Add(g.FactionId + ":" + g.GateId), "Ungültiges Torrecht.");
         }
+        private static void ValidateGroundTraffic(GameState state,PlanetState planet,GroundTrafficState traffic)
+        {
+            if(traffic==null)return;
+            Require(traffic.WaitTicks>=0&&Finite(traffic.Progress)&&traffic.Progress>=0&&traffic.Progress<=1&&Finite(traffic.StartX)&&Finite(traffic.StartY)&&Finite(traffic.RequestX)&&Finite(traffic.RequestY),"Ungültiger Bodenverkehrszustand.");
+            Require(!traffic.Yielding || (!traffic.Docked||traffic.Progress==1)&&traffic.YieldForId>0&&traffic.YieldForId<state.NextEntityId&&traffic.YieldSinceTick>=0&&traffic.YieldSinceTick<=state.Tick&&traffic.GoalX>=0&&traffic.GoalY>=0&&traffic.GoalX<planet.Width&&traffic.GoalY<planet.Height,"Ungültiges Ausweichmanöver.");
+            Require(!traffic.Yielding || traffic.StartX>=0&&traffic.StartX<=planet.Width-.5&&traffic.StartY>=0&&traffic.StartY<=(planet.Height-1)*HexGrid.RowHeight,"Ausweichfahrt beginnt außerhalb der Karte.");
+        }
+        private static bool GroundAtBuilding(SimPoint position,BuildingState building)
+        {var center=HexGrid.ToWorld(building.X,building.Y);double dx=center.X-position.X,dy=center.Y-position.Y;return dx*dx+dy*dy<=(GameSimulation.RoadLaneOffset+.000001)*(GameSimulation.RoadLaneOffset+.000001);}
     }
 }

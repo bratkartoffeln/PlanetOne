@@ -111,7 +111,7 @@ namespace PlanetOne.Core
             if(carrier==null||escort==null)return new AiIntent("Invasion vorbereiten","Echter Träger oder Eskorte fehlt; Start gesperrt","Werft beschafft fehlende Transportkapazität");
             if(carrier.TransportPhase!=TransportPhase.Space)return null;
             if(!op.Ships.Contains(carrier.Id)){op.Ships.Add(carrier.Id);op.Ships.Add(escort.Id);}
-            if(SpaceDistance(carrier,home)>Definitions.DockDistance)
+            if(!AtKnownDock(carrier,home))
             {if(carrier.Order!=ShipOrder.Fly||carrier.TargetPlanetId!=home.Id)return Order("Träger sammeln","Beladung nur am tatsächlichen eigenen Hafen",new SimCommand {Kind=CommandKind.FlyShip,ActorId=carrier.Id,PlanetId=home.Id});return null;}
             var port=home.Buildings.Find(b=>Own(b,v)&&b.Kind==BuildingKind.Spaceport&&b.Operational);if(port==null)return null;
             int[] supply={12,12};int[] resources={0,3};
@@ -173,7 +173,13 @@ namespace PlanetOne.Core
                 var threat=target.Buildings.Find(b=>v.Enemies.Contains(b.OwnerId)&&Definitions.IsTower(b.Kind));
                 if(threat!=null)
                 {
-                    if(u.Kind==UnitKind.Artillery&&(u.Order!=UnitOrder.Attack||u.TargetId!=threat.Id))return Order("Stellung aufbrechen","Aufgeklärte Türme mit vorhandener Artillerie bekämpfen",new SimCommand {Kind=CommandKind.AttackTarget,ActorId=u.Id,TargetId=threat.Id,PlanetId=target.Id});
+                    if(u.Kind==UnitKind.Artillery)
+                    {
+                        if(u.Order!=UnitOrder.Attack||u.TargetId!=threat.Id)return Order("Stellung aufbrechen","Aufgeklärte Türme mit vorhandener Artillerie bekämpfen",new SimCommand {Kind=CommandKind.AttackTarget,ActorId=u.Id,TargetId=threat.Id,PlanetId=target.Id});
+                        // Keep the existing siege order until the observed threat is gone.
+                        // Falling through to the rally move abandons its firing position.
+                        continue;
+                    }
                     if(u.Kind!=UnitKind.Artillery && !target.Units.Exists(a=>op.Units.Contains(a.Id)&&a.Kind==UnitKind.Artillery))
                     {Phase(v,ai,OperationPhase.Aborting,"Aufgeklärte Turmstellung benötigt fehlende Belagerung; Angriff abbrechen");return Abort(v,ai);}
                     if(u.Kind!=UnitKind.Artillery)continue;
@@ -208,7 +214,7 @@ namespace PlanetOne.Core
             foreach(var s in v.Ships)if(op.Ships.Contains(s.Id))
             {
                 if(s.TransportPhase!=TransportPhase.Space){arrived=false;continue;}
-                if(SpaceDistance(s,home)>Definitions.DockDistance){arrived=false;if(s.Order!=ShipOrder.Retreat||s.TargetPlanetId!=home.Id)return Order("Rückzug ausführen",op.Reason,new SimCommand {Kind=CommandKind.RetreatShip,ActorId=s.Id,PlanetId=home.Id});}
+                if(!AtKnownDock(s,home)){arrived=false;if(s.Order!=ShipOrder.Retreat||s.TargetPlanetId!=home.Id)return Order("Rückzug ausführen",op.Reason,new SimCommand {Kind=CommandKind.RetreatShip,ActorId=s.Id,PlanetId=home.Id});}
             }
             if(arrived){Phase(v,ai,OperationPhase.Cancelled,"Überlebende zurück; exklusive Zuweisungen freigegeben");op.Ships.Clear();op.Units.Clear();op.FoodReserved=op.PartsReserved=0;op.RetryAfter=v.Tick+Definitions.AiRetryTicks;}
             return new AiIntent("Operation abbrechen",op.Reason,"Keine identische sofortige Angriffswiederholung");

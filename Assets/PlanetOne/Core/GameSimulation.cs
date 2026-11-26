@@ -38,7 +38,7 @@ namespace PlanetOne.Core
         private static PlanetState CreatePlanet(GameState state, int id, string name, int parent,
             int owner, double radius, double phase)
         {
-            var p = new PlanetState { Id = id, Name = name, ParentId = parent, OwnerId = owner,
+            var p = new PlanetState { Id = id, Name = name, ParentId = parent, OwnerId = owner, Width = 40, Height = 32,
                 OrbitRadius = radius, OrbitPeriodSeconds = OrbitalMotion.Period(radius, parent >= 0), OrbitPhase = phase,
                 OrbitEccentricity = parent >= 0 ? 0.04 : id == 1 ? 0.06 : id == 2 ? 0.09 : 0.12,
                 OrbitPeriapsis = parent >= 0 ? 0.3 : (id - 1) * 0.55,
@@ -60,8 +60,30 @@ namespace PlanetOne.Core
                 for(int y=0;y<p.Height;y++)for(int x=0;x<p.Width;x++)
                     if(!PlanetEnvironment.OceanLand(x,y)){p.Terrain[y*p.Width+x]=4;p.OreRemaining[y*p.Width+x]=0;}
             if(p.Kind==PlanetKind.Temperate)
+            {
+                // Smooth seeded woodland patches, confined to the existing outer forest zone.
+                // The starting colony, roads and deposits retain their original clear terrain.
+                double WoodlandValue(int gx,int gy)
+                {
+                    unchecked
+                    {
+                        uint hash=(uint)state.Seed^((uint)id*0x9e3779b9u)^((uint)gx*0x85ebca6bu)^((uint)gy*0xc2b2ae35u);
+                        hash^=hash>>16;hash*=0x7feb352du;hash^=hash>>15;hash*=0x846ca68bu;hash^=hash>>16;
+                        return (hash&0xffffffu)/16777215d;
+                    }
+                }
+                double WoodlandNoise(double wx,double wy)
+                {
+                    int gx=(int)Math.Floor(wx),gy=(int)Math.Floor(wy);
+                    double u=wx-gx,v=wy-gy;u=u*u*(3-2*u);v=v*v*(3-2*v);
+                    double a=WoodlandValue(gx,gy)*(1-u)+WoodlandValue(gx+1,gy)*u;
+                    double b=WoodlandValue(gx,gy+1)*(1-u)+WoodlandValue(gx+1,gy+1)*u;
+                    return a*(1-v)+b*v;
+                }
                 for(int y=14;y<p.Height;y++)for(int x=18;x<p.Width;x++)
-                    if(Math.Sin(x*.71+y*.9)>.2)p.Terrain[y*p.Width+x]=1;
+                    if(p.Terrain[y*p.Width+x]==0 && WoodlandNoise(x*.16,y*.16)*.7+WoodlandNoise(x*.37+11,y*.37-8)*.3>.51)
+                        p.Terrain[y*p.Width+x]=1;
+            }
             if(PlanetEnvironment.Airborne(p)) {Array.Clear(p.Terrain,0,p.Terrain.Length);Array.Clear(p.OreRemaining,0,p.OreRemaining.Length);}
             if (owner != 0)
             {
@@ -195,13 +217,8 @@ namespace PlanetOne.Core
 
         public SimPoint GetShipmentPosition(ShipmentState shipment)
         {
-            if (shipment.Path.Count == 0) return new SimPoint();
-            double distance = Math.Min(shipment.DistanceTravelled, shipment.Path.Count - 1);
-            int index = Math.Min((int)distance, shipment.Path.Count - 1);
-            GridCell a = shipment.Path[index];
-            GridCell b = shipment.Path[Math.Min(index + 1, shipment.Path.Count - 1)];
-            double fraction = distance - index;
-            return new SimPoint(a.X + (b.X - a.X) * fraction, a.Y + (b.Y - a.Y) * fraction);
+            // Physical world coordinates, including curved roads and a temporary give-way maneuver.
+            return GroundCourierPosition(shipment);
         }
 
         public string ValidatePlacement(int planetId, BuildingKind kind, int x, int y, int factionId = 1)
