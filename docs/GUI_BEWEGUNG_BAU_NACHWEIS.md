@@ -190,3 +190,11 @@ Die ältere Tabelle ist historische Evidenz. Der zuvor rote F05-Rennverlauf wurd
 | Endzustand | 5 Welten, 95 Gebäude, 14 Schiffe, 6 Truppen, 10 Kuriere, 2 KI |
 
 Hardware wie oben: i7-13700, RTX 3060 Ti, Windows 11 / D3D11. Die T-052-Budgets sind erfüllt. Kein aktivierter Arbeitsdesktop, Computer-Use, Screenreader oder globale Eingabe. Die Bilder der langen Prüfkarte zeigen bei ihrem ungewöhnlich langen Namen einen abgeschnittenen Kolonielisten-Eintrag; daraus wird keine fehlerfreie Lesbarkeit beliebiger Textlängen oder pixelgenaue Übereinstimmung mit der Konzepttafel abgeleitet.
+
+### Windows-Paket und installierter Player
+
+Installer `Builds/Distribution/PlanetOne-1.0.18-Windows-x64-Setup.exe` und portable ZIP `Builds/Distribution/PlanetOne-1.0.18-Windows-x64.zip` wurden lokal erstellt. Das Paketmanifest nennt den geprüften Spielcode-Commit **5ef359e825c44874c4b91d8620f5594ee44cae41**. Hashsummen liegen daneben in `SHA256SUMS.txt`; Binärpakete werden nicht ins Repository eingecheckt.
+
+`tools/Test-Installer.ps1 -RunPlayer -ReferenceSave TestResults/Reference/victory.json` bestand: gleicher Dateiinhalt in ZIP und Installation, isolierte Installation ohne Verknüpfungen oder Registrierungsersatz, **1053 Einzelbedingungen plus Gesamt-PASS** aus dem installierten Player (`20261126-114850`) und erfolgreiche Deinstallation. Testverzeichnis: `TestResults/Installer/24b38ea478fb403b8f1f7ff85688b7dc`; Protokoll: `TestResults/gui18-installer.log`. Der danach folgende Dokumentationscommit ändert keinen Spielcode des Paketmanifests.
+
+Lokale Implementierung, Tests und Paketnachweis sind abgeschlossen. GitHub-Pflichtchecks und verifizierter PR-Merge werden separat nachgeführt. Es wurde kein GitHub-Release veröffentlicht.
