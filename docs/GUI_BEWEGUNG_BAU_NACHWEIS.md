@@ -208,3 +208,5 @@ Nachweise nach dieser Korrektur: **45 gezielte Tests**, **212 vollständige Core
 Die folgende synchron gerenderte Nahaufnahme zeigt echte Kuriermodelle und die Fahrbahn ohne GUI. Sie wurde direkt visuell kontrolliert; die Bewegung selbst ist durch den Coretest nachgewiesen. Die früheren vollständigen GUI-/Paketnachweise oben gehören zum Stand vor dieser Breitenkorrektur.
 
 ![Zwei verkleinerte Transporter auf schmaler Straße](GUI_1_0_18/schmale-strasse-gegenverkehr.png)
+
+Auch Installer und ZIP wurden nach der Breitenkorrektur neu erstellt: Manifest-Commit 192a15bf043714e63a12b7c1bf0beb7ab174b01. Dateivergleich, isolierte Installation und Deinstallation bestanden (TestResults/narrow-roads-installer.log). Der betroffene Playernachweis ist der oben genannte Interaktions-/Modelllauf; der frühere vollständige installierte GUI-Lauf wurde für diese begrenzte Korrektur nicht wiederholt. Das vorherige Paket liegt archiviert unter TestResults/DistributionBeforeNarrowRoads-20261126.
