@@ -331,3 +331,7 @@ Die folgenden Abgrenzungen verhindern, dass ein Umsetzungspaket unbemerkt weiter
 ## LOG-016 Versorgungsnetz und sichtbarer Warenfluss
 
 LOG-015 wird in der Darstellung durch ein Versorgungsnetz ersetzt: keine dauerhaften Straßenflächen, größere Bodenfahrzeuge mit getrennten Richtungsfahrkorridoren. Verbindungen werden mit Start-/Zielauswahl vollständig geplant; der zweite Endpunkt darf ein zukünftiger Bauplatz sein. Ein fehlgeschlagener Auftrag verändert keine Teilstrecke. Waren fahren weiterhin physisch zwischen erreichbaren Lagern und Gebäuden. Eine Gebäudeauswahl zeigt relevante Lieferungen, die zuschaltbare Logistikansicht das ganze eigene Netz samt Richtung, Fracht und Wartezustand. Gaswelten nutzen weiterhin Frachtdrohnen.
+
+### LOG-017 / GUI-023 / SURFACE-012 – aktuelle Ergänzung
+
+Transportverbindungen erscheinen als schmale, gerundete Straßenmarkierungen. Endpunktplanung und optionale Logistikansicht bleiben erhalten. Angriffsbefehle führen zur erreichbaren Schussposition und anschließend zum Beschuss. Zielbögen sind transparenter und nur bei ausgewählten Akteuren sichtbar. Mauern und Tore verbinden benachbarte Waben zu schmalen zusammenhängenden Befestigungen, einschließlich Ecken und umlaufender Anlagen (D-049–051, TEST-042).

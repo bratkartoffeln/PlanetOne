@@ -14,7 +14,7 @@ namespace PlanetOne.Runtime
             yield return null;yield return null;
             var p=controller.Simulation.FindPlanet(1);var hq=p.Buildings.Find(b=>b.Kind==BuildingKind.Headquarters);
             string before=SaveCodec.ToJson(controller.Simulation.State);
-            Require(!controller.IsRoadRendered(10,6),"Normal supply view has no permanent asphalt meshes");
+            Require(controller.IsRoadRendered(10,6),"Normal supply view renders narrow transport connections");
             yield return Capture("supply-normal.png");Require(captureFailure==null,"Uncluttered normal supply view captured");
             Require(controller.HandleShortcut(KeyCode.L)&&controller.SupplyOverlayVisible,"L opens the logistics overlay");
             yield return Capture("supply-overlay.png");Require(captureFailure==null,"Network overlay captured");

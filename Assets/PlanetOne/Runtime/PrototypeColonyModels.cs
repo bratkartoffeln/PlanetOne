@@ -8,7 +8,7 @@ namespace PlanetOne.Runtime
         // Each definition has its own silhouette. Shared materials and small details keep the colony coherent.
         private void BuildColonyModel(Transform root,BuildingKind kind)
         {
-            MakeHex("Fundament",root,new Vector3(0,.025f,0),new Vector3(.91f,.05f,.91f),Steel);
+            if(!IsFortification(kind))MakeHex("Fundament",root,new Vector3(0,.025f,0),new Vector3(.91f,.05f,.91f),Steel);
             switch(kind)
             {
                 case BuildingKind.Headquarters:ColonyHeadquarters(root);break;
@@ -265,16 +265,14 @@ namespace PlanetOne.Runtime
         }
         private void ColonyWall(Transform root)
         {
-            Part(root,"Wallsegment",new Vector3(0,.23f,0),new Vector3(.86f,.4f,.24f),Hull);
-            for(int i=-1;i<=1;i++)Part(root,"Mauerpfeiler",new Vector3(i*.35f,.24f,0),new Vector3(.11f,.44f,.34f),Steel);
-            Part(root,"Mauerabschluss",new Vector3(0,.46f,0),new Vector3(.89f,.05f,.27f),Trim);
+            WallArm(root,Vector3.left*.42f,Vector3.right*.42f);
         }
         private void ColonyGate(Transform root)
         {
-            for(int side=-1;side<=1;side+=2)ColonyHall(root,new Vector3(side*.32f,.28f,0),new Vector3(.19f,.5f,.32f),Trim);
-            Part(root,"Torsturz",new Vector3(0,.56f,0),new Vector3(.8f,.12f,.32f),Hull);
+            for(int side=-1;side<=1;side+=2)ColonyHall(root,new Vector3(side*.32f,.28f,0),new Vector3(.14f,.5f,.18f),Trim);
+            Part(root,"Torsturz",new Vector3(0,.56f,0),new Vector3(.78f,.09f,.18f),Hull);
             Part(root,"Torschranke",new Vector3(0,.19f,0),new Vector3(.47f,.26f,.06f),Steel);
-            Part(root,"Zugangsanzeige",new Vector3(0,.56f,.17f),new Vector3(.26f,.03f,.013f),Cyan);
+            Part(root,"Zugangsanzeige",new Vector3(0,.56f,.1f),new Vector3(.26f,.03f,.013f),Cyan);
         }
         private void ColonyJumpGate(Transform root)
         {

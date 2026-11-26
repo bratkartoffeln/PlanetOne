@@ -196,7 +196,8 @@ namespace PlanetOne.Core
             {
                 if(other.Id==unit.Id)continue;
                 if(other.Owner!=unit.OwnerId && (other.Unit!=null?!CanSeeEntity(planet,unit.OwnerId,other.Id):!IsCellVisible(planet,unit.OwnerId,HexGrid.FromWorld(other.Position.X,other.Position.Y).X,HexGrid.FromWorld(other.Position.X,other.Position.Y).Y)))continue;
-                if(Distance(probe.Position.X,probe.Position.Y,other.Position.X,other.Position.Y)<probe.Radius+other.Radius-GroundTrafficTolerance)return false;
+                var occupied=HexGrid.FromWorld(other.Position.X,other.Position.Y);
+                if(occupied.X==x&&occupied.Y==y)return false;
             }
             return true;
         }
@@ -389,7 +390,7 @@ namespace PlanetOne.Core
                     bool adjacent=unit.Order!=UnitOrder.Move&&unit.Order!=UnitOrder.Retreat;
                     var detour=GroundPath(planet,unit,unit.GoalX,unit.GoalY,adjacent,true,false);
                     if(detour!=null&&detour.Count>1)
-                    {unit.Path=offset<.000001?detour:new List<GridCell>();unit.PathDistance=0;unit.Status="Umfährt belegten Weg";return false;}
+                    {unit.Path=offset<.000001?StraightenGroundPath(planet,unit,detour):new List<GridCell>();unit.DirectPath=true;unit.PathDistance=0;unit.Status="Umfährt belegten Weg";return false;}
                 }
                 GroundWait(planet,agent,blocker);unit.Status="Wartet auf freien Weg";return false;
             }

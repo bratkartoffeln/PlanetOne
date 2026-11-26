@@ -238,3 +238,31 @@ Der abschließende Interaktionslauf `20261126-143620` bestand **217 Einzelbeding
 | Vollständige Verbindungsvorschau | ![Verbindung planen](GUI_1_0_18/supply-connection-preview.png) |
 | Echte Materiallieferung zum Bauplatz | ![Frachtfahrt](GUI_1_0_18/supply-live-delivery.png) |
 | Größere Modelle bei Gegenverkehr | ![Transportermodelle](GUI_1_0_18/supply-corridor-passing-models.png) |
+
+## Aktuelle Folgekorrekturen: Straßen, Angriffe, Mauern und direkte Fahrt
+
+D-049–053 / TEST-042 ergänzen und teilweise ersetzen den vorherigen Stand: Schmale gerundete Straßen markieren wieder die Transportverbindungen, bei unverändert großen Transportern. Endpunktplanung und Logistikansicht bleiben bestehen. Gaswelten bleiben straßenfrei.
+
+Die Angriffspfadsuche suchte bisher unmittelbar benachbarte Zielzellen. Ein neuer Regressionstest reproduzierte dadurch einen stehenbleibenden Angreifer, obwohl eine freie Schussposition verfügbar war. Jetzt sucht die Einheit eine erreichbare Position innerhalb ihrer Waffenreichweite und mit gültiger Schusslinie. Der Test verlangt tatsächliche Anfahrt, Munitionsverbrauch und Schaden. Zielbögen sind transparenter und nur bei ausgewählten Akteuren sichtbar; Abwahl ändert den Auftrag nicht.
+
+Mauern und Tore verbinden ihre sechs möglichen Nachbarn, auch in einem umlaufenden Ring. Mauern besitzen schmale Wandkörper statt flächiger Hexfundamente. Entfernen eines Nachbarn aktualisiert die Darstellung; Vorschauen verwenden dieselben Anschlüsse. Die isolierte Geometrie-Prüfkarte setzt dafür ausdrücklich Testsegmente und verändert keine normale Spielökonomie.
+
+Freie Bodenwege verbinden erreichbare Wegpunkte direkt in Weltkoordinaten. Hindernisse und tatsächliche Kollisionskörper bleiben geprüft, während die Belegungsplanung nur die aktuelle Fahrzeugwabe sperrt. Halt und geänderte Aufträge fahren zunächst die aktuelle Zellmitte an. Neue Tests prüfen gerade Fahrt, unveränderte Geschwindigkeit und exakte Speicherfortsetzung während des Zentrierens. Ein Rundungsrest an schrägen Wegpunktenden wurde durch die exakte Übernahme erreichter Endkoordinaten behoben; die zuvor fehlgeschlagenen Ankunfts-/Rückzugsprüfungen bestehen im gezielten Nachlauf.
+
+Zwischenstände: Nach der Angriffskorrektur bestanden 216 vollständige Coretests und 1076 Einzelbedingungen im vollständigen Playerlauf `20261126-144041`. Anschließend bestanden mit Mauern, Toren und ausgewählten Zielbögen 244 Interaktionsbedingungen (`20261126-144606`) sowie 544 Bedingungen bei 1280×720 (`20261126-144619`), jeweils plus Gesamt-PASS. Diese Läufe liegen vor der direkten Bodenfahrt und der letzten Landschaftsauswahl-Korrektur. 45 gezielte Bodenverkehrs-, Hex- und Militärtests bestehen nach der exakten Ankunftskorrektur (`TestResults/movement-targeted.log`). Aktuelle Gesamtergebnisse und Paketquelle werden nachfolgend ergänzt.
+
+### Letzter geprüfter Stand dieser Folgekorrekturen
+
+- **218 vollständige Core-/Plattformtests bestanden**, `TestResults/direct-paths-full-core.log`, einschließlich beider F05-Siege. Danach wurde ausschließlich der neu blockierte direkte Wegpunkt so korrigiert, dass auch dort zuerst zentriert wird. **45 gezielte Tests** inklusive neu blockiertem und wieder freigegebenem Ziel bestehen auf diesem letzten Stand (`TestResults/movement-targeted.log`).
+- Vollständiger isolierter 1440×900-Playerlauf `20261126-145053`: **1104 Einzelbedingungen plus Gesamt-PASS**, **196 PNGs**. Enthält direkte Fahrt, exakte Ankunft, Rückzug, Angriffsanfahrt, verbundene Mauern, Auswahlbögen und Abwahl per Landschaftsauswahl. Simulation p95 Start/Endzustand **1,7856 / 8,8111 ms**, Renderzeit p95 System/Oberfläche **16,6822 / 16,6822 ms**, Arbeitssatz **415.469.568 Bytes**. Vorhandene Budgets bestanden; Hardware wie oben. Dieser Gesamtlauf liegt vor dem letzten Schutz für neu blockierte Wegpunkte.
+- Abschließender erneuter Unity-Build erfolgreich. Interaktionslauf `20261126-145540`: **245 Einzelbedingungen plus Gesamt-PASS**, **31 PNGs**. Er prüft die aktuelle Binärfassung nach diesem Schutz. Alle Läufe bleiben ohne Screenreader, Computer-Use, Desktopaktivierung und globale Eingaben.
+- Die Dateien `supply-*.png` in der vorherigen Bildtabelle wurden durch diesen aktuellen Stand mit schmalen Straßen ersetzt; die ältere asphaltfreie Darstellung bleibt historisch beschrieben. Schmale Straßen, Mauerring und Angriffsanfahrt wurden anhand der gerenderten Bilder direkt kontrolliert.
+
+| Neuer Ablauf | Aktuelles Playerbild |
+|---|---|
+| Zusammenhängender Mauerring mit Tor | ![Mauerring](GUI_1_0_18/connected-walls-gate.png) |
+| Anschlussvorschau nach entferntem Segment | ![Mauervorschau](GUI_1_0_18/connected-wall-preview.png) |
+| Ausgewählter Angreifer fährt mit rotem Zielbogen in Reichweite | ![Angriffsanfahrt](GUI_1_0_18/order-arrow-attack-approach.png) |
+| Transparenter Bewegungsbogen | ![Bewegungsbogen](GUI_1_0_18/order-arrow-move-green.png) |
+
+Die zuletzt diskutierte Alternative automatischer Fahrspuren nach häufigem Befahren ist **ein Konzeptvorschlag, noch kein umgesetzter Wechsel der Kurierlogistik**. Aktuell gilt das beauftragte schmale Versorgungsnetz mit Endpunktplanung.

@@ -421,3 +421,7 @@ LOG-015 / TEST-040 / T-070: frühere Breite wiederherstellen, beide Richtungsfah
 ### Versorgungsnetz – bestätigter Folgeauftrag
 
 LOG-016 / TEST-041 / D-048 / T-075–077 ersetzen die sichtbaren Straßen durch bedarfsabhängige Lieferlinien und eine Logistikansicht. Größere Fahrzeuge, atomare Endpunktverbindungen, echte Warenfahrten und Be-/Entladung sind implementiert. 215 vollständige Coretests und 1076 Bedingungen im vollständigen isolierten Playerlauf bestehen. Aktuelle Darstellungsnachkorrektur und Paketnachweis stehen im GUI-Nachweis; GitHub-Pflichtchecks und Merge bleiben separat auszuweisen.
+
+### Folgeauftrag: Verbindungsstraßen, Befestigungen und direkte Fahrt
+
+D-049–053 / T-078–081 / LOG-017 / GUI-023 / SURFACE-012 / TEST-042 ergänzen das bestätigte Versorgungsnetz. Schmale Straßen, verbundene schmale Mauern/Tore samt Vorschau, Angriffsanfahrt bis zur Schussposition, transparente auswahlabhängige Bögen, direkte freie Bodenfahrt und Zentrieren bei Auftragswechsel sind implementiert. Die Belegungsplanung nutzt die aktuelle Fahrzeugwabe; tatsächliche Körperabstände bleiben geprüft. Landschaftsklick hebt die Einheitenauswahl auf. Aktuelle Test- und Paketnachweise folgen im GUI-Nachweis; ältere dortige Ergebnisse bleiben historisch.

@@ -7,6 +7,9 @@ internal static class GroundTrafficTests
 {
     public static void Register(Action<string,Action> run)
     {
+        run("Attack moves to firing range even when the enemy's adjacent cells are inaccessible",AttackApproach);
+        run("Long free movement follows a world-space straight line at bounded speed",StraightMovement);
+        run("Changing destination and holding first center the unit and preserve saved continuation",RecenterOrders);
         run("Adjacent hexes accommodate two tanks without moving the parked tank",AdjacentTanks);
         run("An open detour leaves a stationary vehicle at its original position",StationaryDetour);
         run("A mid-edge mover returns to a free route instead of displacing a newly parked tank",MidEdgeDetour);
@@ -28,6 +31,60 @@ internal static class GroundTrafficTests
         run("Occupied transport exits retain the actual embarked troop until a legal place is free",Unloading);
     }
     private static void Check(bool value,string message){if(!value)throw new Exception(message);}
+    private static void StraightMovement()
+    {
+        var sim=Fixture();var u=Add(sim,18,18);Move(sim,u,25,24);
+        var start=GameSimulation.GroundUnitPosition(u);var end=HexGrid.ToWorld(25,24);var previous=start;
+        for(int i=0;i<500;i++)
+        {
+            StepSafe(sim);var at=GameSimulation.GroundUnitPosition(u);
+            Check(GameSimulation.GroundPointSegmentDistance(at,start,end)<.000001,"Free route zigzags between hex centers");
+            Check(Separation(previous,at)<=Definitions.Get(u.Kind).Speed*Definitions.TickSeconds+.000001,"Shortcut changed speed or teleported");previous=at;
+            if(i%20==0)SaveCodec.Validate(sim.State);
+        }
+        Check(u.Order==UnitOrder.Hold&&Separation(previous,end)<.000001,"Straight route did not finish");
+    }
+    private static void RecenterOrders()
+    {
+        foreach(bool hold in new[]{false,true})
+        {
+            var sim=Fixture();var u=Add(sim,18,18);Move(sim,u,25,24);StepSafe(sim);StepSafe(sim);
+            var cell=HexGrid.CellAt(u.X,u.Y);var center=HexGrid.ToWorld(cell.X,cell.Y);var from=GameSimulation.GroundUnitPosition(u);
+            sim.Enqueue(new SimCommand{Id=sim.NextCommandId(),PlanetId=1,ActorId=u.Id,Kind=hold?CommandKind.HoldPosition:CommandKind.MoveUnit,X=26,Y=18});
+            StepSafe(sim);Check(GameSimulation.GroundPointSegmentDistance(GameSimulation.GroundUnitPosition(u),from,center)<.000001,"New order skipped recentering");
+            var restored=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(sim.State)));
+            bool centered=Separation(GameSimulation.GroundUnitPosition(u),center)<.000001;
+            for(int i=0;i<500;i++){StepSafe(sim);StepSafe(restored);centered|=Separation(GameSimulation.GroundUnitPosition(u),center)<.000001;}
+            Check(centered&&!u.RecenterToCell&&u.Order==UnitOrder.Hold,"Recenter or final arrival did not finish");
+            Check(hold?Separation(GameSimulation.GroundUnitPosition(u),center)<.000001:HexGrid.Distance(u.X,u.Y,26,18)<.000001,"Wrong final destination after recentering");
+            Check(SaveCodec.ToJson(sim.State)==SaveCodec.ToJson(restored.State),"Saved recentering diverged");
+        }
+        var blocked=Fixture();var mover=Add(blocked,18,18);Move(blocked,mover,25,24);StepSafe(blocked);StepSafe(blocked);
+        var current=HexGrid.CellAt(mover.X,mover.Y);blocked.FindPlanet(1).Terrain[24*blocked.FindPlanet(1).Width+25]=1;
+        for(int i=0;i<40;i++)StepSafe(blocked);
+        Check(mover.X==current.X&&mover.Y==current.Y,"A newly blocked waypoint left the vehicle between cells");
+        blocked.FindPlanet(1).Terrain[24*blocked.FindPlanet(1).Width+25]=0;
+        for(int i=0;i<500;i++)StepSafe(blocked);
+        Check(mover.X==25&&mover.Y==24&&mover.Order==UnitOrder.Hold,"Reopened destination did not resume the retained order");
+    }
+    private static void AttackApproach()
+    {
+        var sim=Fixture();var p=sim.FindPlanet(1);var attacker=Add(sim,18,20);var enemy=Add(sim,26,20,2);
+        sim.State.Relations.Find(r=>r.FirstId==1&&r.SecondId==2||r.FirstId==2&&r.SecondId==1).Relation=RelationKind.War;
+        // Water blocks driving but not sight or shells. A spotter keeps the enemy visible.
+        foreach(var n in HexGrid.LandingCells(26,20))if(n.X!=26||n.Y!=20)p.Terrain[n.Y*p.Width+n.X]=4;
+        var scout=Add(sim,26,23,1,UnitKind.Engineer);enemy.Ammunition=0;
+        Check(sim.CanSeeEntity(p,1,enemy.Id),"Approach target is not visible to the spotter");
+        var cmd=new SimCommand{Id=sim.NextCommandId(),PlanetId=1,ActorId=attacker.Id,TargetId=enemy.Id,Kind=CommandKind.AttackTarget};
+        Check(sim.Enqueue(cmd),"Attack intent rejected");int ammo=attacker.Ammunition;
+        for(int i=0;i<800&&attacker.Ammunition==ammo;i++)StepSafe(sim);
+        Check(sim.State.CommandResults.Find(r=>r.CommandId==cmd.Id).Success,"Visible attack rejected");
+        Check(HexGrid.Distance(18,20,attacker.X,attacker.Y)>1,"Attacker queued the order without approaching");
+        Check(attacker.Ammunition<ammo&&enemy.Health<Definitions.Get(enemy.Kind).Health,"Attacker never reached a firing position");
+        Check(HexGrid.Distance(attacker.X,attacker.Y,enemy.X,enemy.Y)<=Definitions.Get(attacker.Kind).Range,"Attack fired outside range");
+        Check(sim.HasLineOfSight(p,attacker.X,attacker.Y,enemy.X,enemy.Y),"Direct weapon fired without sight");
+        SaveCodec.Validate(sim.State);
+    }
     private static void AdjacentTanks()
     {
         var sim=Fixture();var parked=Add(sim,22,20);var moving=Add(sim,18,20);

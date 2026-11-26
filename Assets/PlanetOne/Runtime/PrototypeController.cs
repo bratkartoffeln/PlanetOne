@@ -436,16 +436,33 @@ namespace PlanetOne.Runtime
         private void UpdateSurface()
         {
             PlanetState planet = simulation.FindPlanet(openPlanetId);
+            RefreshRoadVisuals(planet);
+            for(int i=0;i<planet.Roads.Length;i++)
+            {
+                if(!planet.Roads[i]||AtmosphereSurface)
+                {if(roadViews[i]!=null)Destroy(roadViews[i].gameObject);roadViews[i]=null;continue;}
+                if(roadViews[i]==null)roadViews[i]=BuildCurvedRoad(i%planet.Width,i/planet.Width,planet);
+            }
             obsoleteBuildings.Clear();
             foreach (long id in buildingViews.Keys) obsoleteBuildings.Add(id);
             foreach (BuildingState building in planet.Buildings)
             {
                 obsoleteBuildings.Remove(building.Id);
                 Transform view;
+                if(IsFortification(building.Kind)&&buildingViews.TryGetValue(building.Id,out view))
+                {
+                    int shape=WallShape(planet,building.X,building.Y,GameSimulation.BuildingOwner(planet,building)),old;
+                    if(!wallShapes.TryGetValue(building.Id,out old)||old!=shape)
+                    {
+                        var collider=view.GetComponent<Collider>();if(collider!=null)buildingPickIds.Remove(collider.GetInstanceID());
+                        view.gameObject.SetActive(false);Destroy(view.gameObject);buildingViews.Remove(building.Id);buildingIndicators.Remove(building.Id);
+                    }
+                }
                 if (!buildingViews.TryGetValue(building.Id, out view))
                 {
                     view = BuildBuilding(building);
                     buildingViews[building.Id] = view;
+                    if(IsFortification(building.Kind))wallShapes[building.Id]=WallShape(planet,building.X,building.Y,GameSimulation.BuildingOwner(planet,building));
                 }
                 UpdateConstructionVisual(view,building);
                 view.gameObject.SetActive(simulation.IsCellVisible(planet,PlayerFactionId,building.X,building.Y) || GameSimulation.BuildingOwner(planet,building)==PlayerFactionId);
@@ -502,7 +519,7 @@ namespace PlanetOne.Runtime
             float ground=root.localPosition.y;
             for(int i=0;i<6;i++){Vector3 corner=root.position+HexCorner(i,0.89f);ground=Mathf.Max(ground,ReliefHeight(corner.x,corner.z));}
             root.localPosition=new Vector3(root.localPosition.x,ground+0.015f,root.localPosition.z);
-            for(int i=0;i<6;i++)
+            for(int i=0;i<6&&!IsFortification(building.Kind);i++)
             {Vector3 foot=HexCorner(i,0.79f),world=root.position+foot;float depth=root.position.y-ReliefHeight(world.x,world.z);if(depth>0.05f)Rod(root,"Fundamentstütze",foot-Vector3.up*depth,foot+Vector3.up*0.04f,0.1f,Steel);}
             BoxCollider pickCollider = root.gameObject.AddComponent<BoxCollider>();
             pickCollider.center = new Vector3(0, 0.55f, 0);
@@ -512,7 +529,8 @@ namespace PlanetOne.Runtime
             Transform status = MakePrimitive(PrimitiveType.Cube, "Betriebsanzeige", root, new Vector3(0, 0.17f, -0.39f), new Vector3(0.36f, 0.055f, 0.055f), Cyan);
             buildingIndicators[building.Id] = status.GetComponent<Renderer>();
             if(AtmosphereSurface)BuildFloatingPlatform(root);
-            PopulateBuildingModel(root,building.Kind);
+            if(IsFortification(building.Kind))BuildConnectedWall(root,building.Kind,building.X,building.Y,GameSimulation.BuildingOwner(simulation.FindPlanet(openPlanetId),building));
+            else PopulateBuildingModel(root,building.Kind);
             AttachConstructionVisual(root,building);
             return root;
         }
@@ -864,6 +882,7 @@ namespace PlanetOne.Runtime
                 return true;
             }
             selectedBuildingId = 0;
+            if(id==0){selectedUnits.Clear();militaryTargetMode=null;selectionStart=null;contextOpen=false;}
             return id == 0;
         }
 

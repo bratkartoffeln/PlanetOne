@@ -108,7 +108,7 @@ namespace PlanetOne.Runtime
 
         private void HandleSelectionEvents()
         {
-            if (openPlanetId == 0 || placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue) return;
+            if (openPlanetId == 0 || placement.HasValue || placingRoad || removingRoad || planningSupply || militaryTargetMode.HasValue) return;
             var e = Event.current;
             if (e.button != 0) return;
             // Read queued mouse-event positions instead of the frame's final pointer position.

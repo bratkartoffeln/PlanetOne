@@ -83,7 +83,7 @@ namespace PlanetOne.Runtime
             if(e.type!=EventType.MouseUp || e.button!=0 || !shipSelectionStart.HasValue) return;
             var start=shipSelectionStart.Value; shipSelectionStart=null;
             if(!IsWorldPoint(point))return;
-            bool drag=Vector2.Distance(start,point)>8; if(!drag && PickAsteroid(point))return; if(!e.shift) selectedShips.Clear();
+            bool drag=Vector2.Distance(start,point)>8; if(!e.shift) selectedShips.Clear(); if(!drag && PickAsteroid(point))return;
             var box=Rect.MinMaxRect(Mathf.Min(start.x,point.x)-8,Mathf.Min(start.y,point.y)-8,Mathf.Max(start.x,point.x)+8,Mathf.Max(start.y,point.y)+8);
             foreach(var ship in simulation.State.Ships)
             {

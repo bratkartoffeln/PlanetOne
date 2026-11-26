@@ -316,7 +316,7 @@ namespace PlanetOne.Runtime
             Require(planet.Roads[5 * planet.Width + 4], "Restored pending repair rebuilds the road");
             Require(!planet.Shipments.Exists(s => s.Id == trackedId && s.Amount > 0), "Previously blocked cargo is delivered after road repair");
             yield return null;
-            Require(!controller.IsRoadRendered(4, 5), "Repaired supply connection has no permanent asphalt surface");
+            Require(controller.IsRoadRendered(4, 5), "Repaired supply connection renders its narrow road again");
 
             // Exercise cancellation and real salvage through the inspector's own command adapter.
             QueueBuild(1, BuildingKind.Warehouse, 7, 5);

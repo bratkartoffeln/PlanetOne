@@ -59,13 +59,18 @@ namespace PlanetOne.Core
                 {
                     var c = u.Path[i];
                     Require(c.X >= 0 && c.Y >= 0 && c.X < p.Width && c.Y < p.Height, "Bodenweg außerhalb der Karte.");
-                    if (i > 0) Require(HexGrid.Adjacent(c, u.Path[i - 1]), "Bodenweg überspringt Felder.");
+                    if (i > 0) Require(u.DirectPath?c.X!=u.Path[i-1].X||c.Y!=u.Path[i-1].Y:HexGrid.Adjacent(c, u.Path[i - 1]), "Ungültige Bodenwegpunkte.");
                 }
                 if (u.Path.Count > 0 && (u.Traffic==null||!u.Traffic.Yielding))
                 {
                     int i = Math.Min((int)u.PathDistance, u.Path.Count - 1);
                     var a = u.Path[i]; var b = u.Path[Math.Min(i + 1, u.Path.Count - 1)]; double t = u.PathDistance - i;
-                    Require(Math.Abs(u.X - (a.X + (b.X - a.X) * t)) < 0.000001 &&
+                    if(u.DirectPath)
+                    {
+                        var from=HexGrid.ToWorld(a.X,a.Y);var to=HexGrid.ToWorld(b.X,b.Y);var at=HexGrid.ToWorld(u.X,u.Y);
+                        Require(Math.Abs(at.X-(from.X+(to.X-from.X)*t))<.000001&&Math.Abs(at.Y-(from.Y+(to.Y-from.Y)*t))<.000001,"Direkter Bodenweg und Position widersprechen sich.");
+                    }
+                    else Require(Math.Abs(u.X - (a.X + (b.X - a.X) * t)) < 0.000001 &&
                         Math.Abs(u.Y - (a.Y + (b.Y - a.Y) * t)) < 0.000001, "Bodenweg und Einheitenposition widersprechen sich.");
                 }
                 ValidateGroundTraffic(state,p,u.Traffic);

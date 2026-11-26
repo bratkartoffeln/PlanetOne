@@ -413,3 +413,13 @@ Aktuelle Laufdaten und verbleibende Integrationsprüfungen stehen in [GUI_BEWEGU
 - Freier Endpunkt bleibt bebaubar. Material und Baufahrzeug fahren tatsächlich zum bezahlten Bau; keine Waren werden durch Planung erzeugt. Gequeue-te Verbindung speichern/laden und exakt fortsetzen.
 - Normale Ansicht enthält keine Asphaltmeshes; Logistikansicht und Auswahl verändern keine Simulation. L, sichtbarer Schalter, zwei Endpunkte, ungültiges Ziel, Esc und Ansichtswechsel prüfen. Aktive Lieferungen und Vorschau im wirklichen Player aufnehmen.
 - Große Fahrzeugmodelle samt Dreh-/Kran-/Hanghülle bleiben getrennt; echte geladene und leere Rückfahrten unterscheiden sich. Früherer TEST-040 zur schmalen sichtbaren Fahrbahn ist durch dieses Konzept ersetzt, die Gegenverkehrs-/Kollisionsprüfungen bleiben bestehen.
+
+## TEST-042: Verbindungen, Angriffsanfahrt und Befestigungen
+
+- Schmale Straßen zeigen das geplante Netz dauerhaft; größere Modelle und Gegenverkehr bleiben erhalten, Gaswelten bleiben ohne Straßen.
+- Ein sichtbarer, feindlicher Gegner außerhalb der Waffenreichweite wird durch tatsächliche Anfahrt in Reichweite bekämpft. Auch wenn seine unmittelbaren Nachbarfelder unerreichbar sind, genügt eine erreichbare Schussposition. Keine Schüsse außerhalb der Reichweite oder ohne die erforderliche Schusslinie.
+- Der rote Zielbogen bleibt während der Anfahrt bestehen und verschwindet beim tatsächlichen Schuss. Beide Bogenfarben sind transparenter und nur für ausgewählte Akteure sichtbar; Abwahl löscht keine Befehle, Wiederwahl zeigt aktive Bögen wieder.
+- Ein sechsteiliger Mauerring mit Tor verbindet seine Nachbarn. Entfernen eines Segments aktualisiert die Anschlüsse; die Bauvorschau zeigt die benachbarten Anschlüsse. Mauern sind schmal und besitzen kein breites Gebäudefundament.
+
+- Freie Fahrt über mehrere Waben bleibt auf einer geraden Weltstrecke bei unveränderter Geschwindigkeit. Hindernisse erfordern weiter einen befahrbaren Korridor. Bei Zielwechsel/Halt wird die aktuelle Wabenmitte ohne Teleportation erreicht; Save/Load setzt denselben Verlauf fort.
+- Linksklick auf Landschaft hebt Einheitenauswahl und sichtbare Bögen auf, ohne einen Haltbefehl zu erfinden; Auswahl eines anderen Objekts wechselt die Markierung.

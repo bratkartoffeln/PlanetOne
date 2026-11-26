@@ -72,6 +72,11 @@ namespace PlanetOne.Core
             var queue = new Queue<int>(); queue.Enqueue(start); previous[start] = start;
             int finish = -1;
             int arrivalRadius=adjacent?1:0;
+            bool firingPosition=adjacent&&(u.Order==UnitOrder.Attack||u.Order==UnitOrder.Bombard);
+            double targetX=x,targetY=y;int targetOwner;TargetLayer targetLayer;
+            if(firingPosition&&u.Order==UnitOrder.Attack&&
+                (!Target(p,u.TargetId,out targetX,out targetY,out targetOwner,out targetLayer)||!CanSeeEntity(p,u.OwnerId,u.TargetId)))return null;
+            var weapon=Definitions.Get(u.Kind);
             if(avoidTraffic&&!adjacent)foreach(var other in p.Units)
                 if(other.Id!=u.Id&&!other.Destroyed&&other.Layer==TargetLayer.Ground&&other.Order==UnitOrder.Hold&&(other.OwnerId==u.OwnerId||CanSeeEntity(p,u.OwnerId,other.Id))&&HexGrid.Distance(other.X,other.Y,x,y)<GroundUnitRadius(u.Kind)+GroundUnitRadius(other.Kind))
                     arrivalRadius=Math.Max(arrivalRadius,(int)Math.Ceiling(GroundUnitRadius(u.Kind)+GroundUnitRadius(other.Kind)));
@@ -79,7 +84,10 @@ namespace PlanetOne.Core
             while (queue.Count > 0)
             {
                 int cell = queue.Dequeue(), cx = cell % p.Width, cy = cell / p.Width;
-                if (HexGrid.Steps(cx,cy,x,y)<=arrivalRadius && (!avoidTraffic||GroundKnownCellFree(p,u,cx,cy)))
+                bool arrived=firingPosition?
+                    HexGrid.Distance(cx,cy,targetX,targetY)<=weapon.Range&&(weapon.Indirect||HasLineOfSight(p,cx,cy,targetX,targetY)):
+                    HexGrid.Steps(cx,cy,x,y)<=arrivalRadius;
+                if (arrived && (!avoidTraffic||GroundKnownCellFree(p,u,cx,cy)))
                 { finish = cell; break; }
                 for (int d = 0; d < 6; d++)
                 {
@@ -170,6 +178,7 @@ namespace PlanetOne.Core
             { Report(c, false, "InvalidPosition", "Ziel liegt außerhalb der Oberfläche."); return; }
             if(u.Traffic!=null&&u.Traffic.Yielding){u.Traffic.Yielding=false;u.Traffic.YieldForId=0;u.Traffic.Progress=0;}
             u.Path.Clear(); u.PathDistance = 0; u.Order = order; u.TargetId = c.TargetId;
+            var currentCell=HexGrid.CellAt(u.X,u.Y);u.RecenterToCell=HexGrid.Distance(u.X,u.Y,currentCell.X,currentCell.Y)>.000001;
             u.GoalX = x; u.GoalY = y; u.Status = "Befehl übernommen";
             Report(c, true, "UnitOrderAccepted", "Einheitenbefehl übernommen.");
         }
@@ -256,6 +265,7 @@ namespace PlanetOne.Core
         private void TickUnit(PlanetState p, UnitState u)
         {
             if(TickGroundYield(p,UnitAgent(u)))return;
+            if(u.RecenterToCell&&!CenterGroundUnit(p,u))return;
             var d = Definitions.Get(u.Kind);
             if(EvacuatingUnit(p,u)){if(u.Order==UnitOrder.Move||u.Order==UnitOrder.Retreat)MoveGround(p,u,false);return;}
             if (u.Order == UnitOrder.Attack)
@@ -319,20 +329,29 @@ namespace PlanetOne.Core
                 double offset = HexGrid.Distance(u.X, u.Y, cx, cy);
                 if (offset > 0.000001)
                 {
-                    double step = Math.Min(offset, Definitions.Get(u.Kind).Speed * Definitions.TickSeconds);
-                    double nx=u.X+(cx-u.X)*step/offset,ny=u.Y+(cy-u.Y)*step/offset;
-                    if(MoveGroundTraffic(p,u,HexGrid.ToWorld(nx,ny))){u.X=nx;u.Y=ny;}
+                    CenterGroundUnit(p,u);
                     return;
                 }
-                u.Path = GroundPath(p, u, u.GoalX, u.GoalY, adjacent) ?? new List<GridCell>(); u.PathDistance = 0;
+                u.Path = StraightenGroundPath(p,u,GroundPath(p, u, u.GoalX, u.GoalY, adjacent)) ?? new List<GridCell>(); u.PathDistance = 0;u.DirectPath=true;
                 if (u.Path.Count == 0) { u.Status = "Weg blockiert; Durchbruch oder andere Route nötig"; return; }
                 if (u.Path.Count == 1)
                 { if (u.Order == UnitOrder.Move || u.Order == UnitOrder.Retreat) u.Order = UnitOrder.Hold; u.Status = "Ziel erreicht"; return; }
             }
             int index = Math.Min((int)u.PathDistance, u.Path.Count - 2); var next = u.Path[index + 1];
             if (!CanTraverse(p, u.OwnerId, u.Kind, next.X, next.Y,u.Id))
-            { if (u.PathDistance == index) { u.Path.Clear(); u.PathDistance = 0; } u.Status = "Weg blockiert"; return; }
+            { if (u.DirectPath || u.PathDistance == index) { u.RecenterToCell=u.DirectPath;u.Path.Clear(); u.PathDistance = 0; } u.Status = "Weg blockiert"; return; }
             double speed = Definitions.Get(u.Kind).Speed;
+            if(u.DirectPath)
+            {
+                var previousCell=u.Path[index];var from=HexGrid.ToWorld(previousCell.X,previousCell.Y);var to=HexGrid.ToWorld(next.X,next.Y);
+                if(!GroundSegmentClear(p,u,GroundUnitPosition(u),to,false)){u.Path.Clear();u.PathDistance=0;u.RecenterToCell=true;u.Status="Weg geändert; zentriert sich";return;}
+                double distance=Distance(from.X,from.Y,to.X,to.Y);
+                double progress=Math.Min(index+1,u.PathDistance+speed*Definitions.TickSeconds/Math.Max(.000001,distance));
+                var position=GroundLerp(from,to,progress-index);
+                if(MoveGroundTraffic(p,u,position))
+                {u.PathDistance=progress;SetGroundUnitPosition(u,position);if(progress==index+1){u.X=next.X;u.Y=next.Y;}u.Status="Unterwegs";}
+                return;
+            }
             // Stop at each cell to revalidate obstacles before crossing another segment.
             double nextDistance=Math.Min(index+1,u.PathDistance+speed*Definitions.TickSeconds);
             double fraction=nextDistance-index;var previous=u.Path[index];

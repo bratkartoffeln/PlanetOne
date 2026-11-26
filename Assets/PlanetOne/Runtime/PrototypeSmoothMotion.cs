@@ -24,23 +24,7 @@ namespace PlanetOne.Runtime
             if(directions.Count==1)AddCurvedRibbon(vertices,indices,directions[0],center,center,(float)GameSimulation.RoadHalfWidth);
             else for(int a=0;a<directions.Count;a++)for(int b=a+1;b<directions.Count;b++)AddCurvedRibbon(vertices,indices,directions[a],center,directions[b],(float)GameSimulation.RoadHalfWidth);
             var mesh=new Mesh{name="Runde Straßenkurven"};mesh.SetVertices(vertices);mesh.SetTriangles(indices,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
-            MeshPart("Fahrbahn",root,mesh,Vector3.zero,Vector3.one,new Color(.29f,.31f,.32f));root.gameObject.AddComponent<OwnedSurfaceMesh>().Mesh=mesh;
-            // Junction interiors stay unmarked; two-arm curves share the courier centreline.
-            if(directions.Count<=2)
-            {
-                var marks=new List<Vector3>();var triangles=new List<int>();
-                var a=directions[0];var b=directions.Count==2?directions[1]:center;
-                for(int dash=0;dash<3;dash++)
-                {
-                    float t0=(dash+.12f)/3,t1=(dash+.64f)/3;
-                    var start=RoadBend(a,center,b,t0);var end=RoadBend(a,center,b,t1);
-                    AddCurvedRibbon(marks,triangles,start,(start+end)*.5f,end,.004f);
-                }
-                for(int i=0;i<marks.Count;i++)marks[i]+=Vector3.up*.008f;
-                var marking=new Mesh{name="Zweispurige Straße · Mittellinie"};marking.SetVertices(marks);marking.SetTriangles(triangles,0);marking.RecalculateNormals();
-                var marker=MeshPart("Fahrspurtrennung",root,marking,Vector3.zero,Vector3.one,new Color(.78f,.76f,.58f));
-                marker.gameObject.AddComponent<OwnedSurfaceMesh>().Mesh=marking;
-            }
+            MeshPart("Fahrbahn",root,mesh,Vector3.zero,Vector3.one,new Color(.27f,.25f,.22f));root.gameObject.AddComponent<OwnedSurfaceMesh>().Mesh=mesh;
             return root;
         }
         private void AddCurvedRibbon(List<Vector3> vertices,List<int> indices,Vector3 a,Vector3 center,Vector3 b,float width)

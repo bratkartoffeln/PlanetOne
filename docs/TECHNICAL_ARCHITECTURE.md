@@ -246,3 +246,5 @@ Die Bodenpfadsuche prüft sichtbare Fahrzeughüllen entlang ganzer Nachbarsegmen
 ## ARCH-018 Bedarfsabhängige Versorgungsdarstellung
 
 Das boolesche Verbindungsraster bleibt im Core als gemeinsames Transportnetz erhalten. ConnectSupply plant eine vollständige Hexroute zwischen eigener Quelle und Ziel, validiert erneut bei Ausführung und verändert erst danach die Zwischenzellen atomar. Endpunkte bleiben Gebäude oder freie Bauplätze. Die Runtime baut keine dauerhaften Straßenmeshes mehr. PrototypeSupplyNetwork zeichnet eigene Verbindungen, reale Warenfahrten und Transferfortschritt bei Bedarf; Auswahl und Logistikansicht verändern keine Simulation. Fahrkorridorversatz und Körperradius bleiben Core-Daten. Geladene Behälter werden nur bei tatsächlicher Fracht dargestellt.
+
+ARCH-018 wird durch T-078–081 ergänzt: Das interne Versorgungsnetz erhält schmale Straßenmarkierungen. Freie Bodenwege speichern Weltsegment-Fortschritt mit `DirectPath` und eine ausstehende Zellzentrierung mit `RecenterToCell`; Simulation und Speicherprüfung verwenden dieselbe Weltinterpolation. Verbundene Befestigungen, Vorschauen und auswahlabhängige Bögen bleiben ausschließlich Darstellung.

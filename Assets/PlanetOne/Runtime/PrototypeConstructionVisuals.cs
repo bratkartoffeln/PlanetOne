@@ -53,7 +53,9 @@ namespace PlanetOne.Runtime
             int shape=0;var planet=simulation.FindPlanet(openPlanetId);
             if(kind<0)for(int i=0;i<6;i++)
             {var cell=HexGrid.Neighbor(x,y,i);if(cell.X>=0&&cell.Y>=0&&cell.X<planet.Width&&cell.Y<planet.Height&&planet.Roads[cell.Y*planet.Width+cell.X])shape|=1<<i;}
-            bool rebuild=placementModel==null || placementModelKind!=kind || kind<0&&(placementModelX!=x||placementModelY!=y||placementRoadShape!=shape);
+            bool wall=kind>=0&&IsFortification((BuildingKind)kind);
+            if(wall)shape=WallShape(planet,x,y,PlayerFactionId);
+            bool rebuild=placementModel==null || placementModelKind!=kind || (kind<0||wall)&&(placementModelX!=x||placementModelY!=y||placementRoadShape!=shape);
             if(rebuild)
             {
                 if(placementModel!=null){placementModel.gameObject.SetActive(false);Destroy(placementModel.gameObject);}
@@ -61,7 +63,8 @@ namespace PlanetOne.Runtime
                 {
                     placementModel=new GameObject("Gebäudevorschau").transform;placementModel.SetParent(ghost,false);
                     if(AtmosphereSurface)BuildFloatingPlatform(placementModel);
-                    PopulateBuildingModel(placementModel,(BuildingKind)kind);
+                    if(wall)BuildConnectedWall(placementModel,(BuildingKind)kind,x,y,PlayerFactionId);
+                    else PopulateBuildingModel(placementModel,(BuildingKind)kind);
                 }
                 else {placementModel=BuildPreviewRoadMesh(x,y);placementModel.SetParent(ghost,false);}
                 foreach(var collider in placementModel.GetComponentsInChildren<Collider>()){collider.enabled=false;Destroy(collider);}

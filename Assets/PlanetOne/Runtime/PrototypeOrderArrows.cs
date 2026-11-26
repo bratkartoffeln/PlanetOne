@@ -16,6 +16,7 @@ namespace PlanetOne.Runtime
         private readonly List<long> expiredOrderArrows=new List<long>();
         private GameSimulation arrowSimulation;
         public int ActiveOrderArrowCount {get{return orderArrows.Count;}}
+        internal int VisibleOrderArrowCount {get;private set;}
 
         private void TrackOrderArrow(SimCommand command)
         {
@@ -32,6 +33,7 @@ namespace PlanetOne.Runtime
 
         private void DrawOrderArrows(float scale)
         {
+            VisibleOrderArrowCount=0;
             if(arrowSimulation!=simulation){orderArrows.Clear();arrowSimulation=simulation;return;}
             expiredOrderArrows.Clear();
             foreach(var entry in orderArrows)
@@ -76,9 +78,11 @@ namespace PlanetOne.Runtime
                 // Keep the immediate click feedback while its validated command is queued.
                 if(!active&&simulation.State.Tick>arrow.Tick){expiredOrderArrows.Add(entry.Key);continue;}
                 if(!visible||arrow.Space!=(openPlanetId==0)||!arrow.Space&&command.PlanetId!=openPlanetId)continue;
+                if(!(arrow.Space?selectedShips:selectedUnits).Contains(entry.Key))continue;
+                VisibleOrderArrowCount++;
                 Transform view;
                 if((arrow.Space?shipViews:unitViews).TryGetValue(entry.Key,out view)&&view!=null)start=view.position+Vector3.up*.15f;
-                DrawBallisticOrderArrow(start,end,arrow.Attack?new Color(1,.16f,.12f,.55f):new Color(.2f,1,.38f,.5f),scale);
+                DrawBallisticOrderArrow(start,end,arrow.Attack?new Color(1,.16f,.12f,.3f):new Color(.2f,1,.38f,.28f),scale);
             }
             foreach(long id in expiredOrderArrows)orderArrows.Remove(id);
         }

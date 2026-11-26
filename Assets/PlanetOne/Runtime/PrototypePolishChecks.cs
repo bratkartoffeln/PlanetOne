@@ -11,6 +11,7 @@ namespace PlanetOne.Runtime
         private IEnumerator RunPolishChecks()
         {
             var network=RunSupplyNetworkChecks();while(network.MoveNext())yield return network.Current;
+            var walls=RunWallChecks();while(walls.MoveNext())yield return walls.Current;
             controller.ConfigurePresentationTestPath(Path.Combine(outputDirectory,"polish-settings.json"));
             controller.StartReferenceScenario();controller.SetSimulationPaused(true);
             string state=SaveCodec.ToJson(controller.Simulation.State);
