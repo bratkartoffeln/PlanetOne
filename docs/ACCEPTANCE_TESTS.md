@@ -1,16 +1,58 @@
 # Abnahmeszenarien für PlanetOne
 
+## TEST-037 Direkte Rechtsklickbefehle und sichtbare Ziele
+
+- **Grundlage:** GUI-012/019, ARCH-002/003/015, D-042, T-066, P06/P08/P20.
+- **Ablauf:** In ausdrücklicher Militär-/Invasionsprüfkarte vorhandenen Tank und bewaffnetes Schiff auswählen. Rechtsklick auf freien Boden/Raum sowie sichtbaren Kriegsgegner ausführen; Auswahlrahmen und Cursor im echten Render prüfen. Danach Strg + Rechtsklick, Diplomatieaktion, Rechtsziehen, neutralen und verdeckten Gegner prüfen. Keine globalen Mausereignisse einspeisen.
+- **Erwartung:** Ein kurzer Rechtsklick reiht genau einen passenden Auftrag je ausgewähltem geeignetem Akteur ein, der im Core akzeptiert wird. Strg-Rechtsklick öffnet nur das Menü, Ziehen erteilt nichts. Auswahlrahmen umfasst das echte Modell; rotes Fadenkreuz erscheint nur am zulässigen sichtbaren Angriffsziel. Neutralität und verdeckte Ziele lösen weder Angriff noch Krieg aus. Menü/Diplomatie erzeugt keine impliziten Befehle.
+- **Stand:** Aktuelle Core- und gezielte 720p-Playernachweise bestanden. Zahlen, Bildherkunft und abschließender Gesamtlauf stehen im [GUI-/Verkehrsnachweis](GUI_BEWEGUNG_BAU_NACHWEIS.md).
+
+## TEST-038 Physischer Verkehr und kooperatives Platzmachen
+
+- **Grundlage:** SURFACE-010, SPACE-012, LOG-014, ARCH-001/003/014/017, D-043, T-067/069, P05/P06/P08/P19.
+- **Ablauf:** Gegenverkehr, Kreuzungen, gemeinsame Ankunftsziele, eigene Einschließung mit einer freien Ausweichfläche und eine wirklich geschlossene fremde Blockade prüfen. Mehrgliedrige Boden-Ausweichkette, Kurier-/Baufahrzeugverkehr, blockierte Rekrutierungs-/Entlade-/Schiffsstartplätze und später belegten Raum-Ankunftsslot ergänzen. Reale Hafenfracht abwickeln, während des Ausweichens speichern/laden und denselben Ablauf fortsetzen. Straßenunterbrechung in einer Kurve muss die tatsächliche Position erhalten.
+- **Erwartung:** Körper und vollständige Tickstrecken bleiben getrennt; keine Teleportation, keine fremden Platzmachbefehle und kein vorgetäuschter Abschluss. Lösbare eigene Blockaden öffnen eine Lücke, begrenzte unlösbare Räume dürfen warten. Ursprüngliche Aufträge, Besatzung, Ladung, Reservierungen und bereits bezahlte Produktion bleiben erhalten. Ein freier Ausgang setzt genau den vorhandenen Auftrag fort. Spieler und KI verwenden dieselbe Dockregel und erlaubte Sicht. Schema 13 setzt Warte-/Ausweichzustände identisch fort.
+- **Stand:** Aktuelle Core- und gezielte 720p-Playernachweise bestanden. Zahlen, Bildherkunft und abschließender Gesamtlauf stehen im [GUI-/Verkehrsnachweis](GUI_BEWEGUNG_BAU_NACHWEIS.md).
+
+## TEST-039 Planetenfokus und nahtfreie Kugeltexturen
+
+- **Grundlage:** GUI-020/021, SPACE-006/009, ARCH-002/004, D-044, T-068, P20.
+- **Ablauf:** Seitenlistenwahl aus System und Oberfläche ausführen, Zwischenpositionen und Zielansicht prüfen. Einen Planeten zentrieren und seine fortlaufende Keplerbewegung beobachten; mit Pan, Rotation, Zoom und Pos1 lösen. Jeden Planetentyp mit dem Texturmeridian frontal rendern, angrenzende Pixel und erhaltenen Oberflächenkontrast vergleichen.
+- **Erwartung:** Sanfte Systemfahrt statt Sprung; danach bleibt der bewegte Planet im Viewportzentrum. Oberflächenauswahl führt erst animiert ins System, ohne die andere Oberfläche automatisch zu öffnen. Manuelle Kameraaktion beendet die Verfolgung. Keine Änderung an Simulation, Umlaufparametern oder Pausenzustand. Rotation zeigt keine harte Meridian-/Mip-Kante und erhält sichtbare Texturdetails.
+- **Stand:** Aktuelle Core- und gezielte 720p-Playernachweise bestanden. Zahlen, Bildherkunft und abschließender Gesamtlauf stehen im [GUI-/Verkehrsnachweis](GUI_BEWEGUNG_BAU_NACHWEIS.md).
+
+## TEST-034 Lesbare Menüs, Modelle und Ansichtsübergang
+
+- **Grundlage:** P20/P22, GUI-001 bis GUI-007, GUI-015/018, D-038/039, T-059/061/062.
+- **Ablauf:** Alle drei Layouts in System und Oberfläche bei 1440×900 sowie 1280×720 prüfen. Schrift unabhängig von der UI-Größe auf 90, 100 und 140 Prozent setzen, speichern und erneut laden. Start-, Pause-, Speichern/Laden-, Bau-, Militär-, Flotten-, Forschungs-, Logistik- und Diplomatieansichten öffnen; lange Listen und Bestätigungen bedienen. Gültige/ungültige Gebäudemodelle als Vorschau, Bauphasen und natürliche Oberflächen mehrerer Welttypen prüfen. System-/Oberflächenfahrt in beide Richtungen ausführen, auch bei bereits pausierter Partie.
+- **Erwartung:** Funktionen bleiben erreichbar, Beschriftungen und Auswahlzustände lesbar, Inhalt über Scrollbereiche zugänglich. Navigation erzeugt keine Spielbefehle, keine Eingabe fällt durch einen Dialog. Schriftwechsel verändert keine Spielregeln. Neue reguläre Karten haben 40 × 32 Waben und unregelmäßige, vom Seed bestimmte Waldflächen. Vorschau und tatsächliches Modell entsprechen sich; Bauphasen folgen den realen Daten. Die Kamerafahrt umfasst 1,8 Sekunden Animation zuzüglich variabler Oberflächenvorbereitung unter der Atmosphärenblende. Der auf Frames verteilte Aufbau wird mit Gesamtdauer und längstem einzelnen Aufbauabschnitt gemessen. Die Fahrt verändert weder Schiffspositionen noch Waren oder den Pausenzustand; die Systemrückfahrt erhält den vorherigen Ausschnitt.
+- **Prüfstand 1.0.18:** Windows-Build und vollständiger 1440×900-Lauf `20261125-204115` mit 849 Einzelbedingungen bestanden. Nach der Sitzungs-Weltauswahlkorrektur besteht `20261125-210425` mit 75 Bedingungen; nach abschließender Rahmenkorrektur besteht die 1280×720-Prüfung `20261125-211108` mit 302 Bedingungen. Der vollständige Lauf wurde nach diesen letzten Korrekturen nicht erneut ausgeführt. Der spätere Aufbau erreicht 22,626 ms maximal je Abschnitt und 252,300 ms gesamte Vorbereitungszeit unter der Blende. [Bilder, Laufreihenfolge und Messprofil](GUI_BEWEGUNG_BAU_NACHWEIS.md#prüfstand).
+
+## TEST-035 Physischer Bau mit gemeinsamem Fahrzeugpool
+
+- **Grundlage:** P04/P05/P19, SURFACE-005/006/007, ECO-002, LOG-004/008, ARCH-001/014, D-040, T-063/064.
+- **Ablauf:** Regulär bezahlen und Material liefern lassen; danach Anfahrt, Arbeit und Rückkehr verfolgen. Alle vier Kuriere zunächst belegen; mehrere gelieferte Baustellen unterschiedlicher Priorität freigeben. Straße während Anfahrt, vor Ort und auf Rückfahrt unterbrechen und wiederherstellen. Vor Ankunft und nach Arbeitsbeginn abbrechen, Baustelle militärisch zerstören und Besitz wechseln. In unterbrochener Anfahrt und Rückgewinnung speichern/laden und exakt fortsetzen. Manipulierte Fahrzeugladung und doppelte Baustellenbesetzung ablehnen.
+- **Erwartung:** Ohne freies, tatsächlich angekommenes Fahrzeug kein Fortschritt; maximal zwei Baueinsätze einschließlich Rückkehr aus vier Kurierkapazitäten. Material wird einmalig vor Ort verbraucht. Bauzeit folgt der verdoppelten Definition und Produktivität. Warten erhält Position und Kapazität, ein Abbruch teleportiert weder Fahrzeug noch Rückfracht. Unbegonnener Bau erhält Material vollständig; nach Beginn gilt die bestehende 50-Prozent-Rückgewinnung, militärische Zerstörung erstattet Baukosten nicht. IDs, Warenbilanzen und gespeicherte Fortsetzung stimmen.
+- **Prüfstand 1.0.18:** Neun dedizierte Core-Tests und bestehende Logistik-/Integritätsprüfungen bestanden. Fahrzeug-/Bauphasen sind in den isolierten Darstellungsprüfungen und den ausgewählten [Bauaufnahmen](GUI_BEWEGUNG_BAU_NACHWEIS.md#ausgewählte-renderbilder) dokumentiert; die zeitliche Gültigkeit der vollständigen und späteren gezielten Läufe ist dort getrennt ausgewiesen.
+
+## TEST-036 Geglättete Fahrt und ehrliche Kampfvisualisierung
+
+- **Grundlage:** P06/P07/P08/P11/P20, GUI-005/010/016/017, SPACE-001/005, ARCH-001/002/004, T-060.
+- **Ablauf:** Kurier, Baufahrzeug, Bodenverband und Schiff bei 1×/2×/4× sowie Pause bewegen; Rechts-/Linkskurven, Gebäudeeinfahrten, Stillstand, Kameradrehung und Ansichtswechsel vergleichen. Fahrbahn und Kurierweg überlagern. Raumansicht zoomen und Bahnlinienbreite messen, größere Asteroiden wählen. Einen echten Boden-/Raumschuss und eine Zerstörung auslösen; danach dieselben Fälle ohne Sicht sowie ohne Munition prüfen. Turm bei abweichender Fahrzeugrichtung beobachten. Kampf speichern/laden.
+- **Erwartung:** Zwischenbilder sind geglättet, Simulationsweg und Zeit bleiben autoritativ; Kurierdarstellung folgt der gezeichneten Straße. Türme richten sich unabhängig aus. Orbitlinien bleiben nominal 1,25 Bildschirm-Pixel breit. Sichtbare Effekte entstehen aus tatsächlich ausgegebenen Kampfereignissen, verursachen keinen zusätzlichen Schaden und verraten keine verdeckten Ziele. Der begrenzte Ereignisstrom wird nicht gespeichert oder nach Laden wieder abgespielt.
+- **Prüfstand 1.0.18:** Drei Core-Tests für echte Ausgaben, Sichtgrenzen und den begrenzten transienten Strom bestanden. Render-/Bewegungsprüfungen sind Teil der dokumentierten vollständigen und gezielten Player-Läufe. Diese prüfen die bisherige Bewegungsdarstellung; die anschließend beauftragte Kollisions-/Platzmachlogik benötigt eigene Nachweise. [Läufe und Bilder](GUI_BEWEGUNG_BAU_NACHWEIS.md#prüfstand).
+
 ## TEST-033 Startmenü und getrennte Spielstände
 
 - **Grundlage:** M9/P22, GUI-013/014, ARCH-014/015, D-037, T-057/058.
-- **Ablauf:** Startmenü ohne laufende Partie prüfen; alle drei regulären Szenarien mit festem Seed starten und den vollständigen Zustand mit der jeweiligen Szenariofabrik vergleichen. Ungültigen Seed, abgebrochenen Partiewechsel und Navigation durch die Starthilfe prüfen. Verschiedene Partien in getrennten Plätzen speichern; belegtes Ziel zunächst abbrechen, anschließend bestätigen. Hauptdatei beschädigen, ausdrücklich Sicherung laden, erneut speichern. Alte Einzeldatei laden und in einen neuen Platz speichern. Alle Plätze füllen. Zwischen regulärer Partie und Prüfkarte zurückwechseln.
+- **Ablauf:** Startmenü ohne laufende Partie prüfen; alle drei regulären Szenarien mit festem Seed starten und den vollständigen Zustand mit der jeweiligen Szenariofabrik vergleichen. Ungültigen Seed, abgebrochenen Partiewechsel und Navigation durch die Starthilfe prüfen. Verschiedene Partien in getrennten Plätzen speichern; belegtes Ziel zunächst abbrechen, anschließend bestätigen. Hauptdatei beschädigen, ausdrücklich Sicherung laden, erneut speichern. Eine unterstützte Einzeldatei laden und in einen neuen Platz speichern; nicht unterstützte Formate verständlich ablehnen, ohne die Datei zu verändern. Alle Plätze füllen. Zwischen regulärer Partie und Prüfkarte zurückwechseln.
 - **Erwartung:** Exakte Zustände und Sicherungen, keine zusätzlichen Bestände, keine Änderung anderer Plätze oder alter Dateien. Fehler und Abbruch erhalten Simulation und Speicherziel. Volle Plätze bewirken keinen automatischen Ersatz. F9 bestätigt vor dem Laden. Menüs sperren Welteingaben; Spielzeit steht still, ein zuvor pausiertes Spiel bleibt nach dem Schließen pausiert. Start- und Speicheransichten bleiben in allen drei Layouts bei 1440×900 und 1280×720 erreichbar.
 - **Prüfarten:** Dateiverhalten in unabhängigen Core-/Plattformtests; Controllerpfade und gerenderte GUI im isolierten Windows-Player. Physische Bedienung und subjektive Verständlichkeit sind keine automatisch bestandenen Kriterien. [Nachweis](M9_NACHWEIS.md).
 
 ## TEST-032 Objektbefehle und Kontextmenüs
 
 - **Grundlage:** GUI-012, D-036, T-055/056, P20.
-- **Ablauf:** In allen drei Layouts ein eigenes Gebäude/eine Einheit wählen, Menü am unteren Bildschirmrand öffnen, Priorität/Betrieb über die tatsächlichen Befehle ändern. Mit gewähltem Schiff eine Welt rechts anklicken und ausdrücklich den Flug auslösen. Menüs per Escape/Außenklick schließen; während eines offenen Menüs Besitz wechseln, Ansicht wechseln und einen modalen Dialog öffnen. Mit ausgewählter Truppe am Gelände rechts ziehen.
+- **Ablauf:** In allen drei Layouts ein eigenes Gebäude/eine Einheit wählen, Menü am unteren Bildschirmrand öffnen, Priorität/Betrieb über die tatsächlichen Befehle ändern. Seit GUI-019 mit gewähltem Schiff eine Welt per **Strg + Rechtsklick** anklicken und ausdrücklich den Flug auslösen. Menüs per Escape/Außenklick schließen; während eines offenen Menüs Besitz wechseln, Ansicht wechseln und einen modalen Dialog öffnen. Mit ausgewählter Truppe am Gelände rechts ziehen.
 - **Erwartung:** Öffnen/Navigieren verändert keine Simulation. Erst die konkrete Aktion übergibt genau den gewünschten Actor-/Target-/Planet-Bezug. Besitz-/Sicht-/Existenzänderung verhindert veraltete Aktionen. Kein Durchklicken, kein Kamera-/Einheitenbefehl durch Menübedienung, kein Befehl durch Ziehen. Rückbau benötigt Bestätigung und erreicht danach den echten Gebäudelifecycle. Menü bleibt bei 1280×720, 1440×900 und großer Skalierung erreichbar. Spezialbefehle sind an die passenden Einheitentypen gebunden.
 - **Nachweis:** Isolierter Windows-Player, echte GUI-Bilder und gemeinsame Eingabeadapter; keine physische manuelle Bedienung behaupten. [Ergebnisse](BEFEHLS_GUI_NACHWEIS.md).
 
@@ -282,7 +324,7 @@ In einer pausierten Partie alle drei Layouts wechseln, Einstellungen erneut lade
 - **Gegeben:** Je ein Zustand während Beladung, Flug, Abstieg, Besetzung, Vertragskündigung und Toraktivierung.
 - **Wenn:** Gespeichert, geladen und derselbe Befehlsablauf fortgesetzt wird.
 - **Dann:** Mengen, IDs, Eigentum, Fristen, Wissensstand, Zusagen und Fortschritt bleiben korrekt. Keine duplizierte Fracht oder verlängerte Frist. Ergebnisse entsprechen dem Vergleichslauf ohne Laden auf derselben Testlaufzeit.
-- **Zusatz:** Inkompatible oder beschädigte Speicherstände werden verständlich abgewiesen; der vorherige gültige Stand bleibt erhalten.
+- **Zusatz:** Inkompatible oder beschädigte Speicherstände werden verständlich abgewiesen; der vorherige gültige Stand bleibt erhalten. D-041 hebt während der Entwicklung die Pflicht auf, sämtliche älteren Formate weiterhin laden zu können; unveränderte Dateien und die Integrität des unterstützten aktuellen Formats bleiben erforderlich.
 
 ## TEST-021 Bedienung und Plattformnachweis
 
@@ -349,3 +391,35 @@ Störungen werden getrennt in ausgewiesenen Fixtures geprüft: Nahrungsknappheit
 ## Lokaler M7-Nachweis vom 24. November 2026
 
 P16–P18 sind in Version 1.0.8 lokal implementiert. Tests/Core/DiplomacyTests.cs ergänzt 30 Verhaltensszenarien (insgesamt 126 Core-Tests) für TEST-014 bis TEST-019 und den M7-Anteil von TEST-020: Rechte/Zustimmungen/Krieg, physischer Handel und Verlust, Koalitionssicht, exklusive Beiträge, reale gemeinsame Invasion mit festgelegtem Eigentümer, Räumungsfrist, bezahlter Torbau, friedlicher/gemeinsamer/gleichzeitiger Sieg, Änderungen im letzten Tick, Wiederaufbau und einmaliges Ausscheiden. KI-KI-Verhandlung sowie tatsächliche Handels-/Eskortausführung und begründete Kündigung sind unabhängig von Spielerbefehlen geprüft. Der unveränderte V5-Spielstand und M7-Save/Load-Fortsetzung bleiben Regressionen. Windows-Build und 131 fensterlose Player-Prüfungen bestehen; 18 Weltbilder werden erzeugt. [M7_NACHWEIS](M7_NACHWEIS.md) nennt Bestände, Zeitfenster und Grenzen. IMGUI/manuelle Bedienung und M8-Gesamtszenario sind ausdrücklich nicht dadurch abgenommen.
+
+## TEST-040: Zweispuriger Verkehr und zielgebundene Befehlsanzeige
+
+Bezug: LOG-015, SURFACE-011, GUI-022, D-045–047.
+
+- Gegenläufige Transporter erreichen auf getrennten Richtungsfahrspuren ihre Depots ohne kooperatives Ausweichen; Körper und Bewegungssegmente überlagern sich nie.
+- Mehrere echte Materiallieferungen und Baufahrzeuge passieren Verzweigungen, schließen bezahlte Baustellen ab und erhalten alle Ressourcen. Gegenverkehr gilt auch an getrennten Depotzugängen; Rückfahrt, Straßenreparatur und Save/Load erhalten die tatsächlichen Positionen.
+- Zwei Panzer erreichen benachbarte Hexfelder. Ein stehender Panzer bleibt bei freier Umfahrung unverändert, auch wenn ein Hindernis während einer bereits begonnenen Bewegung auftaucht. Eingeschlossene Einheiten dürfen weiterhin tatsächlich nötige Hilfe anfordern.
+- Ein arbeitendes Baufahrzeug behält Identität und Arbeitsposition, während ein Panzer einen freien Umweg nimmt. Erst Abschluss oder Abbruch erlaubt die Rückfahrt.
+- Im isolierten Player erscheinen grüne bzw. rote Bögen aus tatsächlichen Mausbefehlen. Sie verschwinden nach realer Ankunft oder einem tatsächlichen Schuss. Bildkontrolle und aktive Anzeigenelemente werden getrennt geprüft; kein Screenreader, Computer-Use oder Arbeitsdesktopwechsel.
+
+Aktuelle Laufdaten und verbleibende Integrationsprüfungen stehen in [GUI_BEWEGUNG_BAU_NACHWEIS](GUI_BEWEGUNG_BAU_NACHWEIS.md).
+
+**Ergänzung TEST-040:** Auf der früheren Fahrbahnbreite müssen entgegengesetzte Kuriere gleichzeitig starten und auf gerader sowie gekrümmter Strecke ohne Ausweichen ankommen. Tatsächliche Modellhüllen einschließlich Drehung und Kran müssen in ihre Spur passen; eine Nahaufnahme zeigt beide Modelle nebeneinander. Luftfracht behält ihre bisherige Größe.
+
+## TEST-041 Versorgungsnetz ohne permanente Asphaltflächen
+
+- Grundlage: LOG-016, D-048, T-075–077, P04/P05/P19/P20.
+- Start-/Zielverbindung um Fels und Gebäude planen; vollständige Vorschau und atomare Ausführung müssen denselben Pfad prüfen. Eigentumswechsel, fremde Quelle, ungültiges Ziel, unpassierbare Barriere und Gaswelt ablehnen, ohne Teilstrecken anzulegen.
+- Freier Endpunkt bleibt bebaubar. Material und Baufahrzeug fahren tatsächlich zum bezahlten Bau; keine Waren werden durch Planung erzeugt. Gequeue-te Verbindung speichern/laden und exakt fortsetzen.
+- Normale Ansicht enthält keine Asphaltmeshes; Logistikansicht und Auswahl verändern keine Simulation. L, sichtbarer Schalter, zwei Endpunkte, ungültiges Ziel, Esc und Ansichtswechsel prüfen. Aktive Lieferungen und Vorschau im wirklichen Player aufnehmen.
+- Große Fahrzeugmodelle samt Dreh-/Kran-/Hanghülle bleiben getrennt; echte geladene und leere Rückfahrten unterscheiden sich. Früherer TEST-040 zur schmalen sichtbaren Fahrbahn ist durch dieses Konzept ersetzt, die Gegenverkehrs-/Kollisionsprüfungen bleiben bestehen.
+
+## TEST-042: Verbindungen, Angriffsanfahrt und Befestigungen
+
+- Schmale Straßen zeigen das geplante Netz dauerhaft; größere Modelle und Gegenverkehr bleiben erhalten, Gaswelten bleiben ohne Straßen.
+- Ein sichtbarer, feindlicher Gegner außerhalb der Waffenreichweite wird durch tatsächliche Anfahrt in Reichweite bekämpft. Auch wenn seine unmittelbaren Nachbarfelder unerreichbar sind, genügt eine erreichbare Schussposition. Keine Schüsse außerhalb der Reichweite oder ohne die erforderliche Schusslinie.
+- Der rote Zielbogen bleibt während der Anfahrt bestehen und verschwindet beim tatsächlichen Schuss. Beide Bogenfarben sind transparenter und nur für ausgewählte Akteure sichtbar; Abwahl löscht keine Befehle, Wiederwahl zeigt aktive Bögen wieder.
+- Ein sechsteiliger Mauerring mit Tor verbindet seine Nachbarn. Entfernen eines Segments aktualisiert die Anschlüsse; die Bauvorschau zeigt die benachbarten Anschlüsse. Mauern sind schmal und besitzen kein breites Gebäudefundament.
+
+- Freie Fahrt über mehrere Waben bleibt auf einer geraden Weltstrecke bei unveränderter Geschwindigkeit. Hindernisse erfordern weiter einen befahrbaren Korridor. Bei Zielwechsel/Halt wird die aktuelle Wabenmitte ohne Teleportation erreicht; Save/Load setzt denselben Verlauf fort.
+- Linksklick auf Landschaft hebt Einheitenauswahl und sichtbare Bögen auf, ohne einen Haltbefehl zu erfinden; Auswahl eines anderen Objekts wechselt die Markierung.

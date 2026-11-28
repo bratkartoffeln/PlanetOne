@@ -26,7 +26,7 @@ namespace PlanetOne.Core
                 {
                     asteroid.ReservedOre+=amount;port.ReservedIncoming[(int)ResourceKind.Ore]+=amount;
                     ship.Mining=new MiningJob {AsteroidId=asteroid.Id,PortId=port.Id,Amount=amount};
-                    ship.Order=ShipOrder.Mine;ship.AutoSupply=false;
+                    ResetSpaceDestination(ship);ship.Order=ShipOrder.Mine;ship.AutoSupply=false;
                     foreach(var route in State.Routes)if(route.ShipId==ship.Id)route.Enabled=false;
                     ship.Status="Flug zum Asteroiden";
                 }
@@ -46,7 +46,7 @@ namespace PlanetOne.Core
             asteroid.RemainingOre--;asteroid.ReservedOre--;ship.Cargo[(int)ResourceKind.Ore]++;State.SpaceMinedOre++;
             if(job.Extracted<job.Amount)return;
             ship.Freight=new FreightJob {TargetId=port.Id,Resource=ResourceKind.Ore,Amount=job.Amount,Phase=FreightPhase.Deliver};
-            ship.Mining=null;ship.Order=ShipOrder.Freight;ship.Status="Erz wird zum Hafen gebracht";
+            ResetSpaceDestination(ship);ship.Mining=null;ship.Order=ShipOrder.Freight;ship.Status="Erz wird zum Hafen gebracht";
         }
         private void CancelMining(ShipState ship)
         {

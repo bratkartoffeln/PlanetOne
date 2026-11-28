@@ -29,28 +29,25 @@ namespace PlanetOne.Core
             }
             double availablePower = p.EnergyProduced + p.EnergyStored / Definitions.TickSeconds;
             var ordered = new List<BuildingState>(p.Buildings);
-            int constructionSlotsUsed = 0;
             ordered.Sort((a, b) => a.Priority != b.Priority ? b.Priority.CompareTo(a.Priority) : a.Id.CompareTo(b.Id));
             foreach (var b in ordered)
             {
                 b.Operational = false;
                 if (b.Deconstructing)
-                { SetStatus(p, b, "RecoveringMaterials", connected.Contains(b.Id) ? "Rückbau: Material wird abgeholt" : "Rückbau: Straßenanschluss fehlt"); continue; }
+                { SetStatus(p, b, "RecoveringMaterials", connected.Contains(b.Id) ? "Rückbau: Material wird abgeholt" : "Rückbau: Versorgungsanschluss fehlt"); continue; }
                 if (!connected.Contains(b.Id))
                 {
                     var isolated = Definitions.Get(b.Kind);
                     if (b.Built && b.Enabled && Definitions.IsTower(b.Kind) && b.EnergyStored >= isolated.EnergyUse * Definitions.TickSeconds)
                     { b.EnergyStored = Math.Max(0, b.EnergyStored - isolated.EnergyUse * Definitions.TickSeconds); b.Operational = true;
                         SetStatus(p, b, "LocalReserve", "Versorgungsweg unterbrochen; örtlicher Energiepuffer"); }
-                    else SetStatus(p, b, "NoRoad", "Kein Straßenanschluss");
+                    else SetStatus(p, b, "NoRoad", "Kein Versorgungsanschluss");
                     continue;
                 }
                 var definition = Definitions.Get(b.Kind);
                 if (!b.Built)
                 {
-                    if (constructionSlotsUsed >= Definitions.ConstructionSlotsPerColony)
-                        SetStatus(p, b, "NoConstructionSlot", "Wartet auf freie Baukapazität");
-                    else if (TickConstruction(p, b, definition)) constructionSlotsUsed++;
+                    TickConstruction(p, b, definition);
                     continue;
                 }
                 if (!b.Enabled) { SetStatus(p, b, "Disabled", "Betrieb angehalten"); continue; }
@@ -134,6 +131,26 @@ namespace PlanetOne.Core
                 for (int r = 0; r < 6; r++)
                     if (b.Inventory[r] < definition.Cost[r])
                     { SetStatus(p, b, "AwaitingConstructionMaterial", "Wartet auf Baumaterial"); return false; }
+            }
+            var builder = p.Shipments.Find(s => s.TargetId == b.Id &&
+                (s.Phase == ShipmentPhase.BuilderOutbound || s.Phase == ShipmentPhase.Building));
+            if (builder == null)
+            {
+                if (p.Shipments.Count >= Definitions.CouriersPerColony ||
+                    p.Shipments.FindAll(IsConstructionVehicle).Count >= Definitions.ConstructionSlotsPerColony)
+                { SetStatus(p, b, "AwaitingBuilder", "Wartet auf freies Baufahrzeug"); return false; }
+                var headquarters = p.Buildings.Find(h => h.Kind == BuildingKind.Headquarters && h.Built &&
+                    !h.Deconstructing && !h.Destroyed && BuildingOwner(p, h) == BuildingOwner(p, b));
+                var path = FindPath(p, headquarters, b);
+                if (path == null) { SetStatus(p, b, "BuilderRouteBlocked", "Baufahrzeug: Anfahrt unterbrochen"); return false; }
+                builder = new ShipmentState { Id = State.NextEntityId++, SourceId = headquarters.Id,
+                    TargetId = b.Id, Path = path, Airborne=PlanetEnvironment.Airborne(p), Phase = ShipmentPhase.BuilderOutbound,Traffic=new GroundTrafficState{Docked=true} };
+                p.Shipments.Add(builder);
+            }
+            if (builder.Phase != ShipmentPhase.Building || builder.RouteBlocked || builder.Traffic!=null&&builder.Traffic.Yielding || !AtRouteEnd(builder))
+            { SetStatus(p, b, "BuilderEnRoute", "Baufahrzeug unterwegs"); return false; }
+            if (!b.ConstructionStarted)
+            {
                 for (int r = 0; r < 6; r++)
                 { b.Inventory[r] -= definition.Cost[r]; p.ConsumedTotals[r] += definition.Cost[r]; }
                 b.ConstructionStarted = true;
@@ -142,10 +159,11 @@ namespace PlanetOne.Core
             if (b.BuildProgress + 0.000000001 >= definition.BuildSeconds)
             {
                 b.Built = true;
+                ReturnConstructionVehicle(builder);
                 SetStatus(p, b, "BuildingCompleted", "Bereit");
                 if(BuildingOwner(p,b)==State.PlayerFactionId) State.LastMessage = definition.Name + " auf " + p.Name + " fertiggestellt.";
             }
-            else SetStatus(p, b, "UnderConstruction", "Wird errichtet");
+            else SetStatus(p, b, "UnderConstruction", "Baufahrzeug errichtet Gebäude");
             return true;
         }
 
@@ -243,6 +261,12 @@ namespace PlanetOne.Core
             for (int i = p.Shipments.Count - 1; i >= 0; i--)
             {
                 var shipment = p.Shipments[i];
+                if (IsConstructionVehicle(shipment))
+                {
+                    if (shipment.TargetId == building.Id || shipment.SourceId == building.Id)
+                        ReturnConstructionVehicle(shipment);
+                    continue;
+                }
                 if (shipment.TargetId != building.Id || shipment.Phase == ShipmentPhase.Returning || shipment.Phase == ShipmentPhase.Recovering) continue;
                 building.ReservedIncoming[(int)shipment.Resource] -= shipment.Amount;
                 if (shipment.Phase == ShipmentPhase.Loading)

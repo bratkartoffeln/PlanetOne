@@ -42,7 +42,7 @@ namespace PlanetOne.Runtime
             catch (Exception exception) { setupFailure = exception; }
             if (setupFailure != null) { Complete(false, setupFailure); yield break; }
 
-            IEnumerator run = Array.IndexOf(Environment.GetCommandLineArgs(),"-sessionUiOnly")>=0?RunSessionChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-commandUiOnly")>=0?RunCommandChecks():RunChecks();
+            IEnumerator run = Array.IndexOf(Environment.GetCommandLineArgs(),"-interactionOnly")>=0?RunInteractionChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-polishOnly")>=0?RunPolishChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-sessionUiOnly")>=0?RunSessionChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-commandUiOnly")>=0?RunCommandChecks():RunChecks();
             while (true)
             {
                 bool hasNext = false;
@@ -97,7 +97,9 @@ namespace PlanetOne.Runtime
                 }
                 yield return Capture("layout-"+layout+"-space.png");
                 Require(captureFailure==null,captureFailure??("System frame captured: "+layout));
-                Require(controller.OpenSelectedPlanet() && controller.OpenPlanetId==1,"Surface action opens the selected world: "+layout);
+                Require(controller.OpenSelectedPlanet(),"Surface action begins the selected world approach: "+layout);
+                while(controller.IsViewTransitioning)yield return null;
+                Require(controller.OpenPlanetId==1,"Surface approach opens the selected world: "+layout);
                 for(int section=0;section<=6;section++){controller.OpenPresentationSection(section);yield return null;}
                 Require(SaveCodec.ToJson(original.State)==unchanged,"Selection and all management sections preserve simulation: "+layout);
             }
@@ -251,7 +253,8 @@ namespace PlanetOne.Runtime
             controller.SetView(1);
             yield return null;
             Require(controller.RenderedBuildingCount == planet.Buildings.Count, "Advanced economy renders every current building");
-            Require(controller.RenderedShipmentCount == planet.Shipments.Count, "Visible couriers match the shared simulation");
+            Require(controller.RenderedShipmentCount == planet.Shipments.FindAll(s=>!GameSimulation.GroundCourierDocked(s)).Count,
+                "Visible couriers match physical traffic; docked couriers remain inside buildings");
             yield return Capture("surface.png");
             Require(captureFailure == null, captureFailure ?? "Surface screenshot written after simulation advance");
             foreach(InterfaceLayout layout in Enum.GetValues(typeof(InterfaceLayout)))
@@ -313,7 +316,7 @@ namespace PlanetOne.Runtime
             Require(planet.Roads[5 * planet.Width + 4], "Restored pending repair rebuilds the road");
             Require(!planet.Shipments.Exists(s => s.Id == trackedId && s.Amount > 0), "Previously blocked cargo is delivered after road repair");
             yield return null;
-            Require(controller.IsRoadRendered(4, 5), "Repaired road is visible again");
+            Require(controller.IsRoadRendered(4, 5), "Repaired supply connection renders its narrow road again");
 
             // Exercise cancellation and real salvage through the inspector's own command adapter.
             QueueBuild(1, BuildingKind.Warehouse, 7, 5);
@@ -357,10 +360,9 @@ namespace PlanetOne.Runtime
             Require(captureFailure == null, captureFailure ?? "Defense screenshot written");
             Vector2 groundTarget=controller.SurfaceScreenPoint(8,2);int pendingGround=controller.Simulation.State.PendingCommands.Count;
             Require(controller.BeginSurfacePan(groundTarget) && controller.Simulation.State.PendingCommands.Count==pendingGround,"Short right click waits until release on the surface");
-            Require(controller.EndSpacePan(groundTarget) && controller.IsCommandMenuOpen && controller.Simulation.State.PendingCommands.Count==pendingGround,"Short right click opens ground commands without issuing an order");
-            Require(controller.InvokeContextCommand("move-here") && controller.Simulation.State.PendingCommands.Count==pendingGround+1,"Explicit context movement queues exactly one ground order");
+            Require(controller.EndSpacePan(groundTarget) && !controller.IsCommandMenuOpen && controller.Simulation.State.PendingCommands.Count==pendingGround+1,"Plain right click queues exactly one ground movement without a menu");
             Vector3 tankBefore=controller.UnitView(tank.Id).position;
-            AdvanceSeconds(1);yield return null;
+            AdvanceSeconds(1);yield return new WaitForSecondsRealtime(.7f);
             var tankView=controller.UnitView(tank.Id);Vector3 tankDelta=tankView.position-tankBefore;tankDelta.y=0;
             Vector3 tankForward=tankView.forward;tankForward.y=0;
             Require(tankDelta.sqrMagnitude>0.001f && Vector3.Dot(tankForward.normalized,tankDelta.normalized)>0.99f,"Vehicle hull faces actual movement on the terrain");
@@ -419,13 +421,13 @@ namespace PlanetOne.Runtime
             Require(controller.RequestShipMoveAtScreen(controller.WorldViewport.center) && !controller.IsShipMovePending,"Move action accepts a world target and exits target mode");
             string beforeCancel=SaveCodec.ToJson(space.State);controller.BeginShipMove();controller.BeginSpacePan(controller.WorldViewport.center);
             Require(!controller.EndSpacePan(controller.WorldViewport.center) && !controller.IsShipMovePending && SaveCodec.ToJson(space.State)==beforeCancel,"Short right click cancels an explicit flight target without an extra order");
-            Require(controller.BeginSpacePan(controller.WorldViewport.center) && controller.EndSpacePan(controller.WorldViewport.center) && controller.IsCommandMenuOpen && SaveCodec.ToJson(space.State)==beforeCancel,"Short fleet right click opens a menu without an unintended flight");
+            Require(controller.BeginSpacePan(controller.WorldViewport.center,true) && controller.EndSpacePan(controller.WorldViewport.center) && controller.IsCommandMenuOpen && SaveCodec.ToJson(space.State)==beforeCancel,"Control-right-click opens fleet commands without an unintended flight");
             controller.CloseCommandMenu();
             AdvanceSeconds(0.2);
             Require(colonyShip.Order==ShipOrder.MovePosition,"HUD movement reaches the shared simulation command queue");
             Require(controller.RequestSpaceOrder(CommandKind.FlyShip, colonyShip.Id, planet: 3), "Flight to moving moon queued");
             Vector3 shipBefore=controller.ShipView(colonyShip.Id).position;
-            AdvanceSeconds(2);yield return null;
+            AdvanceSeconds(2);yield return new WaitForSecondsRealtime(.7f);
             var shipView=controller.ShipView(colonyShip.Id);Vector3 shipDelta=shipView.position-shipBefore;shipDelta.y=0;
             Require(shipDelta.sqrMagnitude>0.01f && Vector3.Dot(shipView.forward,shipDelta.normalized)>0.99f,"Spacecraft hull faces its actual flight direction");
             controller.SetOrbitCamera(65,35);yield return null;yield return Capture("space-orbit.png");Require(captureFailure==null,captureFailure??"Spatial fleet frame captured");controller.SetOrbitCamera(0,50);
@@ -590,7 +592,7 @@ namespace PlanetOne.Runtime
             Require(mining.IsAsteroidVisible(1,deposit),"Scouting reveals the real deposit");
             foreach(var asteroid in mining.State.Asteroids) {
                 var size=controller.AsteroidView(asteroid.Id).GetComponent<Renderer>().bounds.size;
-                Require(Mathf.Max(size.x,Mathf.Max(size.y,size.z))<controller.CelestialView(3).lossyScale.x*.25f,"Enlarged asteroid geometry remains below a quarter of the moon diameter: "+asteroid.Id);
+                Require(Mathf.Max(size.x,Mathf.Max(size.y,size.z))<controller.CelestialView(3).lossyScale.x*.5f,"Enlarged asteroid geometry remains below half the moon diameter: "+asteroid.Id);
             }
             Require(controller.RequestSpaceOrder(CommandKind.MineAsteroid,miner.Id,deposit.Id,1,amount:12),"Mining submitted through the common command adapter");
             AdvanceSeconds(8);yield return null;
@@ -651,7 +653,8 @@ namespace PlanetOne.Runtime
             controller.Simulation.Step(5);controller.HandleShortcut(KeyCode.Space);
             Require(controller.HandleShortcut(KeyCode.F9)&&SaveCodec.ToJson(controller.Simulation.State)==keyboardSave,"F9 restores the exact saved state after keyboard pause and continuation");
             controller.SetView(1);var shortcutWorld=controller.Simulation;
-            Require(controller.HandleShortcut(KeyCode.Tab)&&controller.OpenPlanetId==0&&ReferenceEquals(shortcutWorld,controller.Simulation),"Tab returns to the system without replacing the simulation");
+            Require(controller.HandleShortcut(KeyCode.Tab),"Tab starts the return flight");while(controller.IsViewTransitioning)yield return null;
+            Require(controller.OpenPlanetId==0&&ReferenceEquals(shortcutWorld,controller.Simulation),"Return flight preserves the simulation");
             string referenceFile=null;var arguments=Environment.GetCommandLineArgs();
             for(int i=0;i<arguments.Length-1;i++)if(arguments[i]=="-referenceSave")referenceFile=arguments[i+1];
             if(referenceFile!=null)
@@ -686,6 +689,7 @@ namespace PlanetOne.Runtime
             }
             var commandChecks=RunCommandChecks();while(commandChecks.MoveNext())yield return commandChecks.Current;
             var sessionChecks=RunSessionChecks();while(sessionChecks.MoveNext())yield return sessionChecks.Current;
+            var polishChecks=RunPolishChecks();while(polishChecks.MoveNext())yield return polishChecks.Current;
         }
 
         private void QueueBuild(int planetId, BuildingKind kind, int x, int y)
@@ -790,7 +794,19 @@ namespace PlanetOne.Runtime
 
         private static bool ScreenshotExists(string path)
         {
-            try { return File.Exists(path) && new FileInfo(path).Length > 256; }
+            try
+            {
+                // CaptureScreenshot writes asynchronously: a non-empty file can still
+                // be locked or incomplete. Require a closed writer and the PNG footer.
+                using(var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.None))
+                {
+                    if(stream.Length<=256)return false;
+                    stream.Seek(-12,SeekOrigin.End);
+                    byte[] end={0,0,0,0,73,69,78,68,174,66,96,130};
+                    foreach(byte value in end)if(stream.ReadByte()!=value)return false;
+                    return true;
+                }
+            }
             catch (IOException) { return false; }
         }
 

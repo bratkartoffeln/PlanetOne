@@ -110,7 +110,7 @@ namespace PlanetOne.Core
                 int amount = Math.Min(Definitions.CourierCapacity, order.Amount);
                 p.Shipments.Add(new ShipmentState { Id = State.NextEntityId++, SourceId = source.Id,
                     TargetId = target.Id, Resource = order.Resource, Amount = amount, Path = path,
-                    Phase = ShipmentPhase.Loading });
+                    Phase = ShipmentPhase.Loading, Airborne=PlanetEnvironment.Airborne(p), Traffic=new GroundTrafficState{Docked=true} });
                 order.Amount -= amount;
                 if (order.Amount == 0) { p.Deliveries.RemoveAt(i); i--; }
             }
@@ -125,11 +125,32 @@ namespace PlanetOne.Core
 
         private void TickShipments(PlanetState p)
         {
+            // Older admitted jobs enter a newly cleared crossing before fresh short trips.
+            // Reverse iteration still permits removal; descending storage order gives oldest first.
+            p.Shipments.Sort((a,b)=>b.Id.CompareTo(a.Id));
             for (int i = p.Shipments.Count - 1; i >= 0; i--)
             {
                 var shipment = p.Shipments[i];
                 var source = p.Buildings.Find(b => b.Id == shipment.SourceId);
                 var target = p.Buildings.Find(b => b.Id == shipment.TargetId);
+                if(IsConstructionVehicle(shipment)&&(target.Built||target.Deconstructing||target.Destroyed||source.Deconstructing||
+                    source.Destroyed||BuildingOwner(p,source)!=BuildingOwner(p,target)))ReturnConstructionVehicle(shipment);
+                if(TickGroundYield(p,CourierAgent(p,shipment)))continue;
+                if (IsConstructionVehicle(shipment))
+                {
+                    if(shipment.BuilderTurnPending&&FindPath(p,target,source)==null)
+                    {shipment.RouteBlocked=true;continue;}
+                    var depot = shipment.Phase == ShipmentPhase.BuilderReturning&&!shipment.BuilderTurnPending ? source : target;
+                    if (!EnsureShipmentRoute(p, shipment, depot)) continue;
+                    if (shipment.Phase == ShipmentPhase.Building) continue;
+                    MoveShipment(p,shipment);
+                    if (!AtRouteEnd(shipment)) continue;
+                    if(shipment.BuilderTurnPending)
+                    {shipment.Path.Reverse();shipment.DistanceTravelled=0;shipment.RoadEntryCentered=false;shipment.BuilderTurnPending=false;shipment.Traffic.Docked=true;shipment.RouteBlocked=true;}
+                    else if (shipment.Phase == ShipmentPhase.BuilderReturning) p.Shipments.RemoveAt(i);
+                    else shipment.Phase = ShipmentPhase.Building;
+                    continue;
+                }
                 int resource = (int)shipment.Resource;
                 if (shipment.Phase == ShipmentPhase.Recovering && !shipment.RecoveryReserved && FreeSpace(source) >= shipment.Amount)
                 { source.ReservedIncoming[resource] += shipment.Amount; shipment.RecoveryReserved = true; }
@@ -146,8 +167,8 @@ namespace PlanetOne.Core
                         shipment.Phase = ShipmentPhase.InTransit; shipment.PhaseProgress = 0;
                         break;
                     case ShipmentPhase.InTransit:
-                        MoveShipment(shipment);
-                        if (AtRouteEnd(shipment)) { shipment.Phase = ShipmentPhase.Unloading; shipment.PhaseProgress = 0; }
+                        MoveShipment(p,shipment);
+                        if (AtRouteEnd(shipment)) { shipment.Phase = ShipmentPhase.Unloading; shipment.PhaseProgress = 0; shipment.Traffic.Docked=true; }
                         break;
                     case ShipmentPhase.Unloading:
                         shipment.PhaseProgress += Definitions.TickSeconds;
@@ -157,13 +178,18 @@ namespace PlanetOne.Core
                         source.ReservedReturnSpace -= shipment.Amount;
                         shipment.Amount = 0; shipment.Phase = ShipmentPhase.Returning;
                         shipment.Path.Reverse(); shipment.DistanceTravelled = 0; shipment.PhaseProgress = 0;
+                        shipment.RoadEntryCentered=false;
+                        // A give-way maneuver may have joined the outbound route halfway along.
+                        // The reversed suffix need not end at the original source depot.
+                        shipment.RouteBlocked = true;
                         break;
                     case ShipmentPhase.Returning:
-                        MoveShipment(shipment);
+                        MoveShipment(p,shipment);
                         if (AtRouteEnd(shipment)) p.Shipments.RemoveAt(i);
                         break;
                     case ShipmentPhase.Recovering:
-                        MoveShipment(shipment);
+                        MoveShipment(p,shipment);
+                        if(AtRouteEnd(shipment)){if(shipment.Traffic==null)shipment.Traffic=new GroundTrafficState();shipment.Traffic.Docked=true;}
                         if (!AtRouteEnd(shipment) || !shipment.RecoveryReserved) break;
                         shipment.PhaseProgress += Definitions.TickSeconds;
                         if (shipment.PhaseProgress + 0.000000001 < Definitions.TransferSeconds) break;
@@ -175,11 +201,45 @@ namespace PlanetOne.Core
             }
         }
 
-        private static void MoveShipment(ShipmentState shipment)
-        { shipment.DistanceTravelled = Math.Min(shipment.Path.Count - 1, shipment.DistanceTravelled + Definitions.CourierSpeed * Definitions.TickSeconds); }
+        private void MoveShipment(PlanetState planet,ShipmentState shipment)
+        {
+            if(shipment.Traffic==null)shipment.Traffic=new GroundTrafficState();
+            if(!shipment.Airborne&&shipment.Traffic.Docked&&!RoadDepartureFree(planet,shipment))return;
+            double next=Math.Min(ShipmentArrivalDistance(shipment),shipment.DistanceTravelled+Definitions.CourierSpeed*Definitions.TickSeconds);
+            var mover=CourierAgent(planet,shipment);var target=CourierPathPosition(shipment,next);GroundAgent blocker;
+            double budget=Definitions.CourierSpeed*Definitions.TickSeconds;
+            if(Distance(mover.Position.X,mover.Position.Y,target.X,target.Y)>budget)
+            {
+                double low=shipment.DistanceTravelled,high=next;
+                for(int i=0;i<18;i++){double middle=(low+high)*.5;var point=CourierPathPosition(shipment,middle);if(Distance(mover.Position.X,mover.Position.Y,point.X,point.Y)>budget)high=middle;else low=middle;}
+                next=low;target=CourierPathPosition(shipment,next);
+            }
+            if(!GroundMoveFree(planet,mover,target,out blocker))
+            {
+                if(!shipment.Airborne&&blocker!=null&&blocker.Shipment!=null)
+                    shipment.Traffic.WaitTicks++;
+                else GroundWait(planet,mover,blocker);
+                return;
+            }
+            RecordGroundMove(planet,mover,target);shipment.Traffic.Docked=false;shipment.DistanceTravelled=next;
+        }
 
         private static bool AtRouteEnd(ShipmentState shipment)
-        { return shipment.DistanceTravelled + 0.000000001 >= shipment.Path.Count - 1; }
+        { return shipment.DistanceTravelled + 0.000000001 >= ShipmentArrivalDistance(shipment); }
+
+        public static bool IsConstructionVehicle(ShipmentState shipment)
+        { return shipment.Phase == ShipmentPhase.BuilderOutbound || shipment.Phase == ShipmentPhase.Building || shipment.Phase == ShipmentPhase.BuilderReturning; }
+
+        private static void ReturnConstructionVehicle(ShipmentState shipment)
+        {
+            if (shipment.Phase == ShipmentPhase.BuilderReturning) return;
+            // Finish the approach into the site before turning onto the return lane.
+            // Reversing the lane offset at the work position would teleport across the road.
+            shipment.BuilderTurnPending=true;
+            shipment.Phase = ShipmentPhase.BuilderReturning;
+            shipment.PhaseProgress = 0;
+            shipment.RouteBlocked = true;
+        }
 
         private bool EnsureShipmentRoute(PlanetState planet, ShipmentState shipment, BuildingState destination)
         {
@@ -191,42 +251,52 @@ namespace PlanetOne.Core
                 if (!PlanetEnvironment.Airborne(planet) && !planet.Roads[shipment.Path[i].Y * planet.Width + shipment.Path[i].X]) routeValid = false;
             if (!routeValid)
             {
-                // Preserve the exact point on the currently traversed segment when replacing its remainder.
+                // Curved movement also depends on the next/previous segment. Preserve the exact world
+                // position and physically rejoin a reachable cell before using the replacement curve.
+                var originalPosition=GroundCourierPosition(shipment);
+                bool insideDepot=GroundCourierDocked(shipment);
                 double fraction = shipment.DistanceTravelled - currentIndex;
                 var a = shipment.Path[currentIndex];
                 var b = shipment.Path[Math.Min(currentIndex + 1, shipment.Path.Count - 1)];
                 List<GridCell> replacement;
-                double distance;
-                if (fraction < 0.000000001)
+                GridCell anchor=a;
+                if (fraction < 0.000000001 || IsConstructionVehicle(shipment)&&shipment.Phase!=ShipmentPhase.BuilderReturning&&b.X==destination.X&&b.Y==destination.Y)
                 {
                     replacement = FindPath(planet, new BuildingState { X = a.X, Y = a.Y }, destination);
-                    distance = 0;
                 }
                 else
                 {
                     replacement = FindPath(planet, new BuildingState { X = b.X, Y = b.Y }, destination);
-                    distance = fraction;
-                    if (replacement != null) replacement.Insert(0, a);
+                    if (replacement != null) anchor=b;
                     else
                     {
                         replacement = FindPath(planet, new BuildingState { X = a.X, Y = a.Y }, destination);
-                        distance = 1 - fraction;
-                        if (replacement != null) replacement.Insert(0, b);
                     }
                 }
                 if (replacement == null)
                 {
                     if (!shipment.RouteBlocked)
-                        Emit(planet.OwnerId, planet.Id, shipment.Id, "DeliveryBlocked", "Lieferweg unterbrochen. Ladung bleibt im Transporter.");
+                        Emit(planet.OwnerId, planet.Id, shipment.Id, "DeliveryBlocked", IsConstructionVehicle(shipment) ?
+                            "Baufahrzeug wartet auf eine befahrbare Verbindung." : "Lieferweg unterbrochen. Ladung bleibt im Transporter.");
                     shipment.RouteBlocked = true;
                     return false;
                 }
-                shipment.Path = replacement; shipment.DistanceTravelled = distance;
+                shipment.Path = replacement; shipment.DistanceTravelled = 0;
+                shipment.RoadEntryCentered=!insideDepot;
+                var anchorPosition=HexGrid.ToWorld(anchor.X,anchor.Y);
+                if(!insideDepot&&Distance(originalPosition.X,originalPosition.Y,anchorPosition.X,anchorPosition.Y)>GroundTrafficTolerance)
+                {
+                    if(shipment.Traffic==null)shipment.Traffic=new GroundTrafficState();
+                    shipment.Traffic.Yielding=true;shipment.Traffic.Docked=false;shipment.Traffic.YieldForId=shipment.Id;
+                    shipment.Traffic.YieldSinceTick=State.Tick;shipment.Traffic.StartX=originalPosition.X;shipment.Traffic.StartY=originalPosition.Y;
+                    shipment.Traffic.GoalX=anchor.X;shipment.Traffic.GoalY=anchor.Y;shipment.Traffic.Progress=0;
+                    if(shipment.Phase==ShipmentPhase.Building)shipment.Phase=ShipmentPhase.BuilderOutbound;
+                }
             }
             if (shipment.RouteBlocked)
                 Emit(planet.OwnerId, planet.Id, shipment.Id, "DeliveryResumed", "Lieferweg wieder verfügbar.");
             shipment.RouteBlocked = false;
-            return true;
+            return shipment.Traffic==null||!shipment.Traffic.Yielding;
         }
     }
 }

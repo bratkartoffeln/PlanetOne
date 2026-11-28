@@ -60,8 +60,11 @@ namespace PlanetOne.Core
         }
         public static ShipState AddShip(GameSimulation s,int planet,int owner,ShipKind kind)
         {
-            var pos=s.GetOrbitPosition(planet);var d=Definitions.Ships[(int)kind];var w=Definitions.SpaceWeapons[(int)kind];
-            var ship=new ShipState {Id=s.State.NextEntityId++,OwnerId=owner,Kind=kind,X=pos.X,Y=pos.Y,TargetPlanetId=planet,Order=ShipOrder.Guard,Crew=d.Crew,Health=w.Health,Ammunition=w.Ammo};
+            var anchor=s.GetOrbitPosition(planet);SimPoint pos;
+            if(!s.TrySpaceSpawn(kind,owner,anchor,out pos))throw new InvalidOperationException("Prüfkarte: Orbitalbereich besitzt keinen freien Schiffstandort.");
+            var d=Definitions.Ships[(int)kind];var w=Definitions.SpaceWeapons[(int)kind];
+            var ship=new ShipState {Id=s.State.NextEntityId++,OwnerId=owner,Kind=kind,X=pos.X,Y=pos.Y,TargetPlanetId=planet,Order=ShipOrder.Guard,Crew=d.Crew,Health=w.Health,Ammunition=w.Ammo,
+                TrafficGoalSet=true,TrafficAnchorX=anchor.X,TrafficAnchorY=anchor.Y,TrafficOffsetX=pos.X-anchor.X,TrafficOffsetY=pos.Y-anchor.Y};
             s.State.Ships.Add(ship);return ship;
         }
     }

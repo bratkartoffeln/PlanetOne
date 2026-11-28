@@ -34,7 +34,9 @@ function Build-SourceAssembly {
 
 $baseReferences = @($frameworkReferences.FullName)
 Build-SourceAssembly -Name 'PlanetOne.Core' -Folder 'Assets\PlanetOne\Core' -References $baseReferences -Defines @()
-$runtimeReferences = $baseReferences + @($engineReferences.FullName) + @(Join-Path $outputDirectory 'PlanetOne.Core.dll')
+$platformReferences = $baseReferences + @(Join-Path $outputDirectory 'PlanetOne.Core.dll')
+Build-SourceAssembly -Name 'PlanetOne.Platform' -Folder 'Assets\PlanetOne\Platform' -References $platformReferences -Defines @()
+$runtimeReferences = $platformReferences + @($engineReferences.FullName) + @(Join-Path $outputDirectory 'PlanetOne.Platform.dll')
 Build-SourceAssembly -Name 'PlanetOne.Runtime' -Folder 'Assets\PlanetOne\Runtime' -References $runtimeReferences -Defines @('UNITY_STANDALONE_WIN')
 $editorReferences = $runtimeReferences + @(Join-Path $outputDirectory 'PlanetOne.Runtime.dll')
 $editorReferences += @(Get-ChildItem -LiteralPath (Join-Path $editorData 'Managed\UnityEngine') -Filter 'UnityEditor*.dll' -File | ForEach-Object { $_.FullName })

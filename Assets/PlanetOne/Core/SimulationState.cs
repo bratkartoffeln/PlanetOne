@@ -10,8 +10,9 @@ namespace PlanetOne.Core
     public enum CommandKind { PlaceBuilding, PlaceRoad, RemoveRoad, CancelConstruction, DemolishBuilding,
         SetBuildingEnabled, SetBuildingPriority, SetPaused, SetTimeScale,
         RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget, BuildShip, FlyShip, GuardPlanet, EscortShip, Colonize, StartResearch, SetSupplyPolicy, AssignFreight, CancelFreight, SetAutoSupply, SetTradeRoute, MoveShipPosition,
-        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters, ProposeTreaty, AcceptTreaty, RejectTreaty, WithdrawTreaty, TerminateTreaty, BreachTreaty, DeclareWar, DispatchTrade, PledgeShip, StartJointOperation, CancelJointOperation, ActivateGate, Surrender, MineAsteroid }
-    public enum ShipmentPhase { Loading, InTransit, Unloading, Returning, Recovering }
+        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters, ProposeTreaty, AcceptTreaty, RejectTreaty, WithdrawTreaty, TerminateTreaty, BreachTreaty, DeclareWar, DispatchTrade, PledgeShip, StartJointOperation, CancelJointOperation, ActivateGate, Surrender, MineAsteroid, ConnectSupply }
+    public enum ShipmentPhase { Loading, InTransit, Unloading, Returning, Recovering,
+        BuilderOutbound, Building, BuilderReturning }
     public enum RelationKind { Peace, War }
 
     [DataContract, Serializable]
@@ -91,7 +92,7 @@ namespace PlanetOne.Core
     [DataContract, Serializable]
     public sealed class GameState
     {
-        [DataMember] public int Version = 11;
+        [DataMember] public int Version = SaveCodec.CurrentVersion;
         [DataMember] public List<AsteroidBelt> AsteroidBelts = new List<AsteroidBelt>();
         [DataMember] public List<AsteroidState> Asteroids = new List<AsteroidState>();
         [DataMember] public int SpaceMinedOre;
@@ -127,7 +128,7 @@ namespace PlanetOne.Core
         [DataMember] public List<PlanetState> Planets = new List<PlanetState>();
         [DataMember] public List<SimCommand> PendingCommands = new List<SimCommand>();
         [DataMember] public List<long> ProcessedCommandIds = new List<long>();
-        [DataMember] public string LastMessage = "Kolonie bereit. Baue Straßen, Energie und eine Erzverarbeitung.";
+        [DataMember] public string LastMessage = "Kolonie bereit. Plane Versorgungsverbindungen und baue Energieversorgung und Erzverarbeitung.";
     }
 
     [DataContract, Serializable]
@@ -246,5 +247,9 @@ namespace PlanetOne.Core
         [DataMember] public double PhaseProgress;
         [DataMember] public bool RecoveryReserved;
         [DataMember] public bool RouteBlocked;
+        [DataMember] public GroundTrafficState Traffic;
+        [DataMember] public bool Airborne;
+        [DataMember] public bool BuilderTurnPending;
+        [DataMember] public bool RoadEntryCentered;
     }
 }

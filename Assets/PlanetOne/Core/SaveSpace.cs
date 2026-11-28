@@ -41,7 +41,7 @@ namespace PlanetOne.Core
                 buildings.Add(b.Id, b);
                 Require(b.ShipBuildKind >= -1 && b.ShipBuildKind < Definitions.Ships.Length && Finite(b.ShipBuildProgress) && b.ShipBuildProgress >= 0, "Ungültiger Schiffsbau.");
                 Require(b.ShipBuildKind < 0 ? !b.ShipBuildPaid && b.ShipBuildProgress == 0 : b.Kind == BuildingKind.Spaceport && b.Built && !b.Deconstructing, "Schiffsbau ohne Raumhafen.");
-                if (b.ShipBuildKind >= 0) Require(b.ShipBuildProgress < Definitions.Ships[b.ShipBuildKind].Seconds && (b.ShipBuildProgress == 0 || b.ShipBuildPaid), "Ungültiger bezahlter Baufortschritt.");
+                if (b.ShipBuildKind >= 0) Require(b.ShipBuildProgress <= Definitions.Ships[b.ShipBuildKind].Seconds && (b.ShipBuildProgress == 0 || b.ShipBuildPaid), "Ungültiger bezahlter Baufortschritt.");
                 Require(b.Supply != null, "Versorgungsregeln fehlen."); Goods(b.Supply.Minimum); Goods(b.Supply.Target); Goods(b.Supply.ExportReserve); Goods(b.Supply.Priority);
                 Require(b.Supply.Replenishing != null && b.Supply.Replenishing.Length == 6, "Nachfüllzustand fehlt.");
                 for (int r = 0; r < 6; r++) Require(b.Supply.Minimum[r] <= b.Supply.Target[r] && b.Supply.Target[r] <= 200 && b.Supply.ExportReserve[r] <= 200 && b.Supply.Priority[r] <= 2, "Ungültige Versorgungsregel.");
@@ -66,6 +66,13 @@ namespace PlanetOne.Core
                 Require(ship != null && ship.Id > 0 && entities.Add(ship.Id) && factions.Contains(ship.OwnerId) && Enum.IsDefined(typeof(ShipKind), ship.Kind) && Enum.IsDefined(typeof(ShipOrder), ship.Order), "Ungültige Schiffskennung.");
                 Require(Finite(ship.X) && Finite(ship.Y) && Math.Abs(ship.X) <= 10000 && Math.Abs(ship.Y) <= 10000 && ship.Crew >= 0, "Ungültiger Schiffsstandort."); Goods(ship.Cargo);
                 Require(Finite(ship.GoalX) && Finite(ship.GoalY) && Math.Abs(ship.GoalX) <= 200 && Math.Abs(ship.GoalY) <= 200 && ship.Crew <= Definitions.Ships[(int)ship.Kind].Crew, "Ungültiges Flugziel oder Besatzung.");
+                Require(Finite(ship.TrafficAnchorX) && Finite(ship.TrafficAnchorY) && Finite(ship.TrafficOffsetX) && Finite(ship.TrafficOffsetY) &&
+                    Finite(ship.TrafficYieldX) && Finite(ship.TrafficYieldY) && ship.TrafficYieldUntil>=0 && ship.TrafficYieldFor>=0 && ship.TrafficWaitTicks>=0,
+                    "Ungültiger Raumverkehrszustand.");
+                Require(Math.Abs(ship.TrafficAnchorX)<=10000 && Math.Abs(ship.TrafficAnchorY)<=10000 &&
+                    Math.Abs(ship.TrafficYieldX)<=10000 && Math.Abs(ship.TrafficYieldY)<=10000 &&
+                    Math.Abs(ship.TrafficOffsetX)<=10000 && Math.Abs(ship.TrafficOffsetY)<=10000,
+                    "Raumverkehrsziel außerhalb des Spielraums.");
                 int total = 0; foreach (int n in ship.Cargo) total += n;
                 Require(total <= Definitions.Ships[(int)ship.Kind].Capacity && !(ship.Destroyed && ship.Consumed), "Überladener oder ungültiger Schiffszustand.");
                 Require(!(ship.Destroyed || ship.Consumed) || total == 0 && ship.Crew == 0 && ship.Freight == null, "Entferntes Schiff besitzt Ladung.");
@@ -80,6 +87,16 @@ namespace PlanetOne.Core
                 }
                 else Require(ship.Order != ShipOrder.Freight, "Frachtbewegung ohne Auftrag.");
                 ships.Add(ship.Id, ship);
+            }
+            for(int i=0;i<state.Ships.Count;i++)
+            {
+                var first=state.Ships[i];if(first.Destroyed || first.Consumed || first.TransportPhase!=TransportPhase.Space)continue;
+                for(int j=i+1;j<state.Ships.Count;j++)
+                {
+                    var second=state.Ships[j];if(second.Destroyed || second.Consumed || second.TransportPhase!=TransportPhase.Space)continue;
+                    double dx=first.X-second.X,dy=first.Y-second.Y,radius=Definitions.ShipRadius(first.Kind)+Definitions.ShipRadius(second.Kind);
+                    Require(dx*dx+dy*dy>=radius*radius-.000001,"Raumschiffkörper überlagern sich.");
+                }
             }
             foreach (var ship in state.Ships) if (ship.Order == ShipOrder.Escort)
             {

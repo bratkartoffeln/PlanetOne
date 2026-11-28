@@ -49,9 +49,19 @@ namespace PlanetOne.Runtime
             bool clicked=GUI.Button(rect,new GUIContent("",tooltip??label),selected?selectedButtonStyle:buttonStyle);
             Color old=GUI.color;GUI.color=selected?Cyan:Ink;
             if(vertical)
-            {GUI.DrawTexture(new Rect(rect.center.x-16,rect.y+7,32,32),HudSymbol(icon));GUI.Label(new Rect(rect.x,rect.yMax-26,rect.width,21),label,centerStyle);}
+            {GUI.DrawTexture(new Rect(rect.center.x-16,rect.y+7,32,32),HudSymbol(icon));GUI.Label(new Rect(rect.x,rect.yMax-FontUnitSize(17)-10,rect.width,FontUnitSize(17)+6),label,centerStyle);}
             else
-            {GUI.DrawTexture(new Rect(string.IsNullOrEmpty(label)?rect.center.x-11:rect.x+9,rect.center.y-11,22,22),HudSymbol(icon));if(!string.IsNullOrEmpty(label))GUI.Label(new Rect(rect.x+39,rect.y+7,rect.width-43,rect.height-10),label,bodyStyle);}
+            {
+                GUI.DrawTexture(new Rect(string.IsNullOrEmpty(label)?rect.center.x-11:rect.x+9,rect.center.y-11,22,22),HudSymbol(icon));
+                if(!string.IsNullOrEmpty(label))
+                {
+                    var textRect=new Rect(rect.x+39,rect.y+4,rect.width-46,rect.height-8);
+                    string caption=CompactHudCaption(label,textRect.width,textRect.height,bodyStyle);
+                    float textHeight=bodyStyle.CalcHeight(new GUIContent(caption),textRect.width);
+                    textRect.y=rect.center.y-Mathf.Min(textHeight,textRect.height)*.5f;
+                    GUI.Label(textRect,caption,bodyStyle);
+                }
+            }
             GUI.color=old;if(selected)Fill(new Rect(rect.x+2,rect.y+6,2,rect.height-12),Cyan);return clicked;
         }
     }

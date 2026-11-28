@@ -28,11 +28,50 @@ internal static class ReferenceTests
     internal static void Wait(GameSimulation s,Func<bool> condition,string stage,int limit=60000)
     {
         Console.WriteLine("  Waiting: "+stage+" tick="+s.State.Tick);
-        for(int i=0;i<limit&&!condition();i++)s.Step();
+        for(int i=0;i<limit&&!condition();i++)
+        {
+            s.Step();
+            if(s.State.Tick%40==0)ManagePlayerIndustry(s);
+        }
         if(!condition())
         {
             Directory.CreateDirectory(Output);SnapshotStore.Save(Path.Combine(Output,"blocked.json"),s.State);
             throw new Exception(stage+" timed out at tick "+s.State.Tick+": "+s.State.LastMessage);
+        }
+    }
+    private static void ManagePlayerIndustry(GameSimulation s)
+    {
+        // The scripted player uses ordinary operating controls just like the AI: a full
+        // parts reserve must not endlessly consume the metal needed by a colony ship.
+        foreach(var planet in s.State.Planets)
+        {
+            if(planet.OwnerId!=1)continue;
+            foreach(var workshop in planet.Buildings)
+            {
+                if(workshop.Kind!=BuildingKind.Workshop || !workshop.Built || workshop.Deconstructing)continue;
+                int parts=workshop.Inventory[3]-workshop.ReservedOutgoing[3];
+                foreach(var storage in planet.Buildings)
+                    if(storage.Built && !storage.Deconstructing && GameSimulation.IsStorage(storage))
+                        parts+=storage.Inventory[3]-storage.ReservedOutgoing[3];
+                // Keep a working reserve, not a second idle shipload of parts while
+                // colony ships and defensive construction are waiting for the same metal.
+                bool enabled=workshop.Enabled?parts<24:parts<12;
+                if(enabled!=workshop.Enabled)
+                    s.Enqueue(new SimCommand {Id=s.NextCommandId(),IssuerId=1,PlanetId=planet.Id,
+                        Kind=CommandKind.SetBuildingEnabled,TargetId=workshop.Id,BoolValue=enabled});
+            }
+            // Full ore stores do not need permanently staffed extraction.
+            // Use the same operating controls a player has, with a genuine local buffer.
+            foreach(var producer in planet.Buildings)
+            {
+                if(!producer.Built||producer.Deconstructing||producer.Kind!=BuildingKind.Mine)continue;
+                int resource=1,stock=0;
+                foreach(var building in planet.Buildings)stock+=building.Inventory[resource];
+                foreach(var shipment in planet.Shipments)if((int)shipment.Resource==resource&&shipment.Phase!=ShipmentPhase.Loading)stock+=shipment.Amount;
+                int maximum=32;
+                bool enabled=producer.Enabled?stock<maximum:stock<maximum/2;
+                if(enabled!=producer.Enabled)s.Enqueue(new SimCommand{Id=s.NextCommandId(),IssuerId=1,PlanetId=planet.Id,Kind=CommandKind.SetBuildingEnabled,TargetId=producer.Id,BoolValue=enabled});
+            }
         }
     }
     internal static void Command(GameSimulation s,SimCommand c)
@@ -50,8 +89,11 @@ internal static class ReferenceTests
     }
     private static void Research(GameSimulation s,BuildingState lab,Technology technology)
     {
+        if(!lab.Enabled)Command(s,new SimCommand{PlanetId=lab.PlanetId,Kind=CommandKind.SetBuildingEnabled,TargetId=lab.Id,BoolValue=true});
         Command(s,new SimCommand {PlanetId=lab.PlanetId,Kind=CommandKind.StartResearch,TargetId=lab.Id,IntValue=(int)technology});
         Wait(s,()=>s.HasTechnology(1,technology),"Research "+technology);
+        // Idle laboratories otherwise keep workers away from the finite metal economy.
+        Command(s,new SimCommand{PlanetId=lab.PlanetId,Kind=CommandKind.SetBuildingEnabled,TargetId=lab.Id,BoolValue=false});
     }
     internal static ShipState Ship(GameSimulation s,BuildingState port,ShipKind kind)
     {
@@ -74,20 +116,24 @@ internal static class ReferenceTests
     private static void Economy()
     {
         Directory.CreateDirectory(Output);prepared=false;var s=GameSimulation.CreateReferenceScenario();
+        // Shorter connections leave the four real couriers available for productive work.
+        foreach(int x in new[]{5,6,7})Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.PlaceRoad,X=x,Y=4});
         Build(s,1,BuildingKind.SolarPlant,10,5);Build(s,1,BuildingKind.Farm,9,7);
         Build(s,1,BuildingKind.Mine,4,4);Build(s,1,BuildingKind.Smelter,6,5);
         Build(s,1,BuildingKind.Workshop,11,5);Build(s,1,BuildingKind.Housing,7,7);
-        Build(s,1,BuildingKind.SolarPlant,12,7);Build(s,1,BuildingKind.Smelter,5,5);Build(s,1,BuildingKind.Smelter,6,7);
-        for(int y=7;y<=8;y++)Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.PlaceRoad,X=13,Y=y});
-        Build(s,1,BuildingKind.Mine,13,9);Build(s,1,BuildingKind.Housing,5,7);Build(s,1,BuildingKind.SolarPlant,11,7);
-        Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.PlaceRoad,X=9,Y=5});
-        Build(s,1,BuildingKind.SolarPlant,12,5);var lab=Build(s,1,BuildingKind.Laboratory,7,5);
-        Build(s,1,BuildingKind.Warehouse,14,5);var port=Build(s,1,BuildingKind.Spaceport,13,5);
-        foreach(var tech in new[]{Technology.Transport,Technology.Colonization,Technology.CrystalMining})Research(s,lab,tech);
+        Build(s,1,BuildingKind.SolarPlant,12,7);Build(s,1,BuildingKind.Smelter,5,5);
+        // Claim the contested moon before optional industrial expansion. The nearer port
+        // and real operating priorities reduce courier trips without adding capacity.
+        var lab=Build(s,1,BuildingKind.Laboratory,7,5);
+        var port=Build(s,1,BuildingKind.Spaceport,9,5);
+        Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.SetBuildingPriority,TargetId=lab.Id,IntValue=2});
+        foreach(var tech in new[]{Technology.Transport,Technology.Colonization})Research(s,lab,tech);
         Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.SetBuildingPriority,TargetId=port.Id,IntValue=2});
-        var colony=Ship(s,port,ShipKind.ColonyShip);var freight=Ship(s,port,ShipKind.Freighter);
+        var colony=Ship(s,port,ShipKind.ColonyShip);
         Command(s,new SimCommand {Kind=CommandKind.ProposeTreaty,Terms=new TreatyTerms {Kind=TreatyKind.Access,Members=new List<int>{1,2},Rights=AccessRight.CivilTransit,DurationTicks=1200000}});
         var access=s.State.Treaties[s.State.Treaties.Count-1];Wait(s,()=>access.Phase==TreatyPhase.Active,"Civil transit agreement");
+        Command(s,new SimCommand {Kind=CommandKind.ProposeTreaty,Terms=new TreatyTerms {Kind=TreatyKind.Access,Members=new List<int>{1,3},Rights=AccessRight.CivilTransit,DurationTicks=1200000}});
+        var secondAccess=s.State.Treaties[s.State.Treaties.Count-1];Wait(s,()=>secondAccess.Phase==TreatyPhase.Active,"Transit through inner system");
         SnapshotStore.Save(Path.Combine(Output,"colony-ready.json"),s.State);
         var point=s.GetOrbitPosition(3);
         Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.MoveShipPosition,ActorId=colony.Id,X=(int)Math.Round(point.X),Y=(int)Math.Round(point.Y)});
@@ -96,10 +142,14 @@ internal static class ReferenceTests
         Wait(s,()=>{var p=s.GetOrbitPosition(3);return Math.Abs(colony.X-p.X)+Math.Abs(colony.Y-p.Y)<.2;},"Colony arrival");
         Check(s.FindPlanet(3).OwnerId==0,"Moon already settled at tick "+s.State.Tick);
         Command(s,new SimCommand {PlanetId=3,Kind=CommandKind.Colonize,ActorId=colony.Id});
-        Command(s,new SimCommand {Kind=CommandKind.ProposeTreaty,Terms=new TreatyTerms {Kind=TreatyKind.Access,Members=new List<int>{1,3},Rights=AccessRight.CivilTransit,DurationTicks=1200000}});
-        var secondAccess=s.State.Treaties[s.State.Treaties.Count-1];Wait(s,()=>secondAccess.Phase==TreatyPhase.Active,"Transit through inner system");
-
-        Build(s,3,BuildingKind.Farm,9,7);Build(s,3,BuildingKind.SolarPlant,10,5);var source=Build(s,3,BuildingKind.Spaceport,11,5);
+        Build(s,3,BuildingKind.Farm,9,7);Build(s,3,BuildingKind.SolarPlant,10,5);
+        for(int y=7;y<=8;y++)Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.PlaceRoad,X=13,Y=y});
+        Build(s,1,BuildingKind.Mine,13,9);Build(s,1,BuildingKind.Housing,5,7);
+        Build(s,1,BuildingKind.SolarPlant,11,7);Build(s,1,BuildingKind.SolarPlant,12,5);
+        Build(s,1,BuildingKind.Smelter,6,7);Build(s,1,BuildingKind.Warehouse,14,5);
+        Research(s,lab,Technology.CrystalMining);
+        var freight=Ship(s,port,ShipKind.Freighter);
+        var source=Build(s,3,BuildingKind.Spaceport,11,5);
         for(int y=7;y<=8;y++)Command(s,new SimCommand {PlanetId=3,Kind=CommandKind.PlaceRoad,X=13,Y=y});
         Build(s,3,BuildingKind.CrystalMine,13,9);Policy(s,source,4,32);Policy(s,port,4,24,12);
         Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.SetAutoSupply,ActorId=freight.Id,BoolValue=true});
@@ -109,8 +159,9 @@ internal static class ReferenceTests
         Research(s,lab,Technology.Electronics);Build(s,1,BuildingKind.ElectronicsFactory,15,5);
         Research(s,lab,Technology.Sensors);
         SnapshotStore.Save(Path.Combine(Output,"military-ready.json"),s.State);prepared=true;
-        ReferenceCombat.Defend(s);
-        var gate=PrepareGate(s);
+        BuildingState gate=null;
+        ReferenceCombat.Defend(s,()=>gate=PrepareGate(s,false));
+        Wait(s,()=>gate.Operational&&Enough(gate.Inventory,Definitions.GateComponents),"Gate material delivery");
         Check(s.State.ComputerFactions.Count==2 && s.FindPlanet(2).ProducedTotals[2]>0 && s.FindPlanet(4).ProducedTotals[2]>0,"Opponents did not sustain independent economies");
         Check(s.State.Treaties.Exists(t=>t.Terms.Members.Contains(2)&&t.Terms.Members.Contains(3)&&t.StartTick>0),"No AI to AI agreement in the recorded history");
         SnapshotStore.Save(Path.Combine(Output,"gate-ready.json"),s.State);
@@ -121,7 +172,7 @@ internal static class ReferenceTests
         VerifyIndustrialLedger(s);
         Console.WriteLine("  F05 seed="+s.State.Seed+" victory tick="+s.State.Tick+" player metal="+s.FindPlanet(1).ProducedTotals[2]+" parts="+s.FindPlanet(1).ProducedTotals[3]);
     }
-    private static BuildingState PrepareGate(GameSimulation s)
+    private static BuildingState PrepareGate(GameSimulation s,bool waitForMaterials=true)
     {
         var port=s.FindPlanet(1).Buildings.Find(b=>b.Kind==BuildingKind.Spaceport);
         Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.SetBuildingPriority,TargetId=port.Id,IntValue=0});
@@ -132,7 +183,7 @@ internal static class ReferenceTests
         Build(s,1,s.FindPlanet(1).HousingCapacity<52?BuildingKind.Housing:BuildingKind.Farm,3,7);
         var gate=Build(s,1,BuildingKind.JumpGate,14,7);
         Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.SetBuildingEnabled,TargetId=electronics.Id,BoolValue=true});
-        Wait(s,()=>gate.Operational&&Enough(gate.Inventory,Definitions.GateComponents),"Gate material delivery");
+        if(waitForMaterials)Wait(s,()=>gate.Operational&&Enough(gate.Inventory,Definitions.GateComponents),"Gate material delivery");
         return gate;
     }
     private static bool Enough(int[] actual,int[] needed){for(int r=0;r<6;r++)if(actual[r]<needed[r])return false;return true;}

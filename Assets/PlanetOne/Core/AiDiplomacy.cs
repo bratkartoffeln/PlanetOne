@@ -46,6 +46,13 @@ namespace PlanetOne.Core
                     if(remaining>0&&ship!=null)return Order("Handel erfüllen","Realen freien Frachter für vereinbarte Lieferung einsetzen",new SimCommand{Kind=CommandKind.DispatchTrade,TargetId=t.Id,ActorId=ship.Id});
                     var finishing=v.World.Ships.Find(s=>s.Id==v.World.TradeFreighterId&&s.AutoSupply);
                     if(remaining>0&&finishing!=null)return Order("Frachter für Vertrag freistellen","Laufende Fracht abschließen; anschließend zugesagte Gegenleistung liefern",new SimCommand {Kind=CommandKind.SetAutoSupply,ActorId=finishing.Id,PlanetId=finishing.TargetPlanetId,BoolValue=false});
+                    if(remaining>0&&!v.World.Ships.Exists(s=>s.OwnerId==own&&s.Kind==ShipKind.Freighter)&&v.World.Research.Completed.Contains(Technology.Transport))
+                        foreach(var world in v.World.Worlds)if(world.OwnerId==own)
+                        {
+                            var port=world.Buildings.Find(b=>Own(b,v.World)&&b.Kind==BuildingKind.Spaceport&&b.Built&&b.ShipBuildKind<0);
+                            if(port!=null&&world.Population>=Definitions.Ships[(int)ShipKind.Freighter].Crew+4)
+                                return Order("Vertragsfracht beschaffen","Auch eine einzelne Kolonie benötigt einen bezahlten Frachter für zugesagte Lieferungen",new SimCommand{Kind=CommandKind.BuildShip,PlanetId=world.Id,TargetId=port.Id,IntValue=(int)ShipKind.Freighter});
+                        }
                 }
                 if(t.Terms.Kind==TreatyKind.JointOperation&&t.OperationPhase<OperationPhase.Executing)
                 {

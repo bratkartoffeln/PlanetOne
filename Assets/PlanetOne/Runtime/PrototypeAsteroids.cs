@@ -11,6 +11,7 @@ namespace PlanetOne.Runtime
         private long selectedAsteroidId;
         private int asteroidPage;
         private bool miningPanel;
+        public bool IsMiningPanelOpen {get{return miningPanel && panelOpen && showingSpacePanel && spacePanelTab==0 && fleetTask==3;}}
         public void StartAsteroidFixture()
         {
             if(!simulation.State.SpaceTestFixture)priorSession=simulation;
@@ -70,8 +71,8 @@ namespace PlanetOne.Runtime
             asteroidViews.Clear();selectedAsteroidId=0;asteroidPage=0;miningPanel=false;
             foreach(var a in simulation.State.Asteroids)
             {
-                // Three times larger on request; still smaller than a quarter of the moon.
-                float size=.012f+(float)a.DiameterKm*.0048f;
+                // Larger individual rocks remain well below the smallest moon's diameter.
+                float size=Mathf.Min(.11f,(.012f+(float)a.DiameterKm*.0048f)*1.8f);
                 var view=Rock(spaceRoot,Vector3.zero,new Vector3(size,size*.7f,size*.9f),(int)a.Id);
                 view.name="Asteroid "+a.Id;view.GetComponent<Renderer>().sharedMaterial=ArtMaterial("Fels",new Color(.43f,.39f,.34f),false);
                 asteroidViews[a.Id]=view;
@@ -108,35 +109,43 @@ namespace PlanetOne.Runtime
                 var pos=new Vector2(point.x/scale,(Screen.height-point.y)/scale);bool selected=a.Id==selectedAsteroidId;
                 float radius=Mathf.Max(4,AsteroidScreenRadius(a.Id)/scale+2);
                 if(selected || spaceZoom<50)DrawTargetBrackets(new Rect(pos.x-radius,pos.y-radius,radius*2,radius*2),selected?Amber:new Color(.42f,.36f,.24f,.6f));
-                if(selected)GUI.Label(new Rect(pos.x+radius+6,pos.y-8,190,20),"Asteroid #"+a.Id+(simulation.IsAsteroidVisible(PlayerFactionId,a)?" · "+a.RemainingOre+" Erz":" · unerkundet"),smallStyle);
+                if(selected)
+                {
+                    string label="Asteroid #"+a.Id+(simulation.IsAsteroidVisible(PlayerFactionId,a)?" · "+a.RemainingOre+" Erz":" · unerkundet");
+                    Vector2 size=smallStyle.CalcSize(new GUIContent(label));
+                    GUI.Label(new Rect(pos.x+radius+6,pos.y-size.y*.5f,size.x+6,size.y+4),label,smallStyle);
+                }
             }
         }
         private void DrawMiningPanel()
         {
-            if(!GUILayout.Toggle(miningPanel,"ASTEROIDENABBAU",buttonStyle)){miningPanel=false;return;}miningPanel=true;
+            miningPanel=true;
+            WorkspaceHeading("Asteroidenabbau","Vorkommen auswählen, erkunden und einen Frachter mit Heimathafen beauftragen.");
             if(simulation.State.Asteroids.Count==0){GUILayout.Label("In diesem Sternsystem ist kein abbaubarer Gürtel kartiert.",smallStyle);return;}
             foreach(var belt in simulation.State.AsteroidBelts)GUILayout.Label("Gürtel · "+(belt.InnerRadius/10).ToString("0.0")+"–"+(belt.OuterRadius/10).ToString("0.0")+" AE",smallStyle);
             int pages=(simulation.State.Asteroids.Count+3)/4;
-            GUILayout.BeginHorizontal();if(GUILayout.Button("‹",buttonStyle))asteroidPage=(asteroidPage+pages-1)%pages;
-            GUILayout.Label((asteroidPage+1)+" / "+pages,smallStyle);if(GUILayout.Button("›",buttonStyle))asteroidPage=(asteroidPage+1)%pages;GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();if(WorkspaceButton("‹ Zurück"))asteroidPage=(asteroidPage+pages-1)%pages;
+            GUILayout.Label((asteroidPage+1)+" / "+pages,smallStyle);if(WorkspaceButton("Weiter ›"))asteroidPage=(asteroidPage+1)%pages;GUILayout.EndHorizontal();
             for(int i=asteroidPage*4;i<Mathf.Min(asteroidPage*4+4,simulation.State.Asteroids.Count);i++)
             {
                 var a=simulation.State.Asteroids[i];bool known=simulation.IsAsteroidVisible(PlayerFactionId,a);
-                if(GUILayout.Button("#"+a.Id+" · "+(known?a.RemainingOre+" Erz":"erkunden"),selectedAsteroidId==a.Id?selectedButtonStyle:buttonStyle))selectedAsteroidId=a.Id;
+                if(WorkspaceButton("#"+a.Id+" · "+(known?a.RemainingOre+" Erz":"erkunden"),selectedAsteroidId==a.Id))selectedAsteroidId=a.Id;
             }
-            var selected=simulation.State.Asteroids.Find(a=>a.Id==selectedAsteroidId);if(selected==null)return;
+            var selected=simulation.State.Asteroids.Find(a=>a.Id==selectedAsteroidId);if(selected==null){GUILayout.Label("Wähle ein Vorkommen aus der Liste.",smallStyle);return;}
             GUILayout.Label("Asteroid #"+selected.Id+" · "+selected.DiameterKm.ToString("0.0")+" km",smallStyle);
-            if(GUILayout.Button("Vorkommen ansehen",buttonStyle))FocusAsteroid(selected.Id);
-            if(GUILayout.Button("Brocken aus der Nähe",buttonStyle))InspectAsteroid(selected.Id);
-            if(GUILayout.Button("Ausgewählte Schiffe hinschicken",buttonStyle))foreach(long id in selectedShips)RequestAsteroidApproach(id,selected.Id);
+            if(WorkspaceButton("Vorkommen ansehen"))FocusAsteroid(selected.Id);
+            if(WorkspaceButton("Brocken aus der Nähe"))InspectAsteroid(selected.Id);
+            bool canExplore=GUI.enabled;GUI.enabled=canExplore && selectedShips.Count>0;
+            if(WorkspaceButton("Ausgewählte Schiffe hinschicken"))foreach(long id in selectedShips)RequestAsteroidApproach(id,selected.Id);
+            GUI.enabled=canExplore;
             bool visible=simulation.IsAsteroidVisible(PlayerFactionId,selected);
             GUILayout.Label(visible?"Verfügbar: "+(selected.RemainingOre-selected.ReservedOre)+" Erz":"Für Bestandsdaten zunächst erkunden.",smallStyle);
             var port=ChoosePort();bool before=GUI.enabled;
             GUI.enabled=before && visible && port!=null && selectedShips.Exists(id=>simulation.State.Ships.Exists(s=>s.Id==id && s.Kind==ShipKind.Freighter && s.Mining==null && s.Freight==null));
-            if(GUILayout.Button("Erz abbauen und heimbringen",buttonStyle))foreach(long id in selectedShips)
+            if(WorkspaceButton("Erz abbauen und heimbringen"))foreach(long id in selectedShips)
                 if(simulation.State.Ships.Exists(s=>s.Id==id && s.Kind==ShipKind.Freighter))RequestSpaceOrder(CommandKind.MineAsteroid,id,selected.Id,port.PlanetId,amount:40,destination:port.Id);
             GUI.enabled=before;
-            if(GUILayout.Button("Abbau / Fracht abbrechen",buttonStyle))foreach(long id in selectedShips)RequestSpaceOrder(CommandKind.CancelFreight,id);
+            if(WorkspaceButton("Abbau / Fracht abbrechen"))foreach(long id in selectedShips)RequestSpaceOrder(CommandKind.CancelFreight,id);
             GUILayout.Label("Frachter mit Bergbaudrohnen · 40 Erz pro Flug · endliches Vorkommen. Rückflug und Hafenentladung sind Teil des Auftrags.",smallStyle);
         }
     }

@@ -57,8 +57,10 @@ internal static class PlanetEnvironmentTests
         Check(Cmd(s,CommandKind.PlaceBuilding),"Unconnected air site rejected");s.Step(12);
         Check(p.Shipments.Any(v=>v.Phase==ShipmentPhase.InTransit && v.Amount>0) && !p.Buildings[1].Built,"Delivery teleported");
         Check(p.Shipments.Count<=Definitions.CouriersPerColony && p.Shipments.All(v=>v.Amount<=Definitions.CourierCapacity),"Capacity exceeded");
-        var loaded=p.Shipments.First(v=>v.Phase==ShipmentPhase.InTransit);var before=s.GetShipmentPosition(loaded);s.Step();var after=s.GetShipmentPosition(loaded);
-        Check(HexGrid.Distance(before.X,before.Y,after.X,after.Y)>0,"Air cargo does not move");
+        var loaded=p.Shipments.First(v=>v.Phase==ShipmentPhase.InTransit);var before=s.GetShipmentPosition(loaded);var after=before;int departureTicks=0;
+        // Several paid loads share the dock; a body must wait for a physically free exit.
+        while(after.X==before.X&&after.Y==before.Y&&departureTicks++<200){s.Step();after=s.GetShipmentPosition(loaded);}
+        Check(after.X!=before.X||after.Y!=before.Y,"Air cargo never leaves its shared dock");
         var copy=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(s.State)));s.Step(1800);copy.Step(1800);
         Check(SaveCodec.ToJson(s.State)==SaveCodec.ToJson(copy.State),"Air continuation changed");
         Check(p.Buildings[1].Built && p.Roads.All(r=>!r),"Air site not completed");var cost=Definitions.Get(BuildingKind.Warehouse).Cost;

@@ -6,6 +6,8 @@ namespace PlanetOne.Core
     {
         private static double SpaceDistance(ShipState s,AiWorld w)
         {double x=s.X-w.X,y=s.Y-w.Y;return Math.Sqrt(x*x+y*y);}
+        private static bool AtKnownDock(ShipState s,AiWorld w)
+        {return w.Current && GameSimulation.AtSpaceDock(s,new SimPoint(w.X,w.Y));}
         private static bool HasShip(AiObservation v,ShipKind kind)
         {return v.Ships.Exists(s=>s.OwnerId==v.FactionId&&s.Kind==kind);}
         private static AiIntent Expand(AiObservation v,AiState ai)
@@ -59,7 +61,7 @@ namespace PlanetOne.Core
                 if(s.Kind==ShipKind.ColonyShip)
                 {
                     var target=v.Worlds.Find(w=>w.OwnerId==0);if(target==null)continue;
-                    if(target.Current&&SpaceDistance(s,target)<=Definitions.DockDistance)return Order("Standort erschließen","Neutraler aufgeklärter Standort; tatsächliche Kolonieladung übertragen",new SimCommand {Kind=CommandKind.Colonize,ActorId=s.Id,PlanetId=target.Id});
+                    if(AtKnownDock(s,target))return Order("Standort erschließen","Neutraler aufgeklärter Standort; tatsächliche Kolonieladung übertragen",new SimCommand {Kind=CommandKind.Colonize,ActorId=s.Id,PlanetId=target.Id});
                     if(s.Order!=ShipOrder.Fly||s.TargetPlanetId!=target.Id)return Order("Kolonisierung vorbereiten","Bekannter neutraler Standort als friedliche Alternative",new SimCommand {Kind=CommandKind.FlyShip,ActorId=s.Id,PlanetId=target.Id});
                 }
                 if(s.Kind==ShipKind.Scout && (v.Tick/Definitions.AiPlanTicks)%5==0 && (s.Order!=ShipOrder.MovePosition||Math.Abs(s.X-s.GoalX)+Math.Abs(s.Y-s.GoalY)<1))

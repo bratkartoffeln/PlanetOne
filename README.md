@@ -4,6 +4,20 @@ PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, ph
 
 Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung verbindet klare Geometrie mit texturierten Oberflächen und dunklem Weltraum. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
 
+## GUI, Bewegung und Fahrzeugbau in 1.0.18
+
+Die drei Layouts **Kommandozentrale**, **Orbitale Brücke** und **Freier Weltraum** erhalten größere Texte, klar getrennte Aufgabenbereiche und überarbeitete Spiel-, Speicher-, Flotten-, Militär- und Diplomatiemenüs. Unter **Einstellungen → Schrift und Größe** lässt sich die Schrift unabhängig von der Oberflächengröße auf **90–140 %** einstellen. Die vorhandene Konzepttafel bleibt die gestalterische Referenz.
+
+Neue reguläre Oberflächen umfassen **40 × 32 Waben**. Detailliertere Gebäudemodelle, typabhängiger Bewuchs mit unregelmäßigen, vom Startwert bestimmten Waldflächen, eine transparente Modellvorschau und sichtbare Bauphasen ergänzen das Gelände. Fahrzeuge folgen gerundeten Transportkorridoren; bewegte Modelle richten sich weich aus. Echte Schüsse lösen Geschosse, Mündungs- und Trefferbilder aus, Geschütztürme drehen unabhängig vom Fahrzeug. System und Oberfläche verbindet eine Kamerafahrt mit **1,8 Sekunden Animationszeit** zuzüglich kurzer, variabler Oberflächenvorbereitung unter der Atmosphärenblende. Bahnlinien behalten ihre Bildschirmbreite, Asteroiden erscheinen größer.
+
+Gebäude werden jetzt von tatsächlich zugewiesenen Baufahrzeugen errichtet: erst Material liefern, dann anfahren, bauen und zurückkehren. Höchstens **zwei der vier vorhandenen Kuriere** sind dafür gebunden; auf Gaswelten übernehmen Frachtdrohnen diese Aufgabe. Reine Gebäude-Bauzeiten sind verdoppelt. Eine fehlende Verbindung oder ein fehlendes Fahrzeug stoppt den Bau. Kantenstraßen nach Catan wurden abgewogen, sind aber nicht umgesetzt.
+
+Neu implementiert: **Rechtsklick bewegt ausgewählte Einheiten oder greift einen sichtbaren Kriegsgegner an; Strg + Rechtsklick öffnet das Kontextmenü.** Rechtsziehen verschiebt weiterhin die Kamera. Auswahlrahmen umfassen die tatsächlichen Modelle, ein rotes Fadenkreuz kennzeichnet Angriffsziele. Boden-, Kurier- und Raumverkehr berücksichtigen Körperabstände und machen eigenen blockierten Einheiten vorübergehend Platz. Planetentexturen erhalten eine nahtfreie Meridianabtastung. **Planet zentrieren** folgt dem bewegten Planeten bis zur nächsten manuellen Kameraaktion; die Seitenliste fliegt sanft zum ausgewählten Planeten im System. Das Speicherformat ist jetzt **13**. Freie Einheiten fahren über längere Abschnitte geradlinig und zentrieren sich bei Halt oder Zielwechsel zunächst in ihrer aktuellen Wabe. Angreifer fahren bis zu einer erreichbaren Schussposition. Transparente Zielbögen sind nur bei ausgewählten Einheiten sichtbar; Linksklick auf die Landschaft hebt die Auswahl auf. Mauern und Tore verbinden sich zu schmalen zusammenhängenden Anlagen.
+
+**Übersichtliches Versorgungsnetz:** Schmale, gerundete Straßen kennzeichnen die Transportverbindungen; die Transporter bleiben gut sichtbar größer. „Verbindung planen“ verbindet ein Startgebäude mit einem Zielgebäude oder einem künftigen Bauplatz; einzelne Straßenfelder müssen nicht mehr gesetzt werden. Die Auswahl eines Gebäudes zeigt dessen Lieferungen. **L / Logistikansicht** blendet das gesamte Netz mit Fahrtrichtungen, Fracht und Wartezuständen ein. Ladebehälter zeigen tatsächlich transportierte Ware, kurze Symbole die Be-/Entladung. Gegenverkehr, physische Fracht und das während der Arbeit unbewegte Baufahrzeug bleiben erhalten. Gaswelten verwenden weiterhin Frachtdrohnen.
+
+**Lokaler Prüfstand:** 218 vollständige Core-/Plattformtests und anschließend 45 gezielte Bewegungsprüfungen bestanden. Der vollständige isolierte 1440×900-Playerlauf bestand 1104 Einzelbedingungen plus Gesamt-PASS mit 196 PNGs; der letzte Interaktionslauf nach der Wegpunkt-Nachkorrektur 245 Bedingungen mit 31 PNGs. Unity-Windows-Build und Leistungsbudgets bestehen. Paketquelle, genaue Laufreihenfolge und GitHub-Integration stehen im [Nachweis](docs/GUI_BEWEGUNG_BAU_NACHWEIS.md).
+
 ## M9: Startmenü und Spielstände in 1.0.17
 
 **Neue Partie → Drei Kolonien** startet das vollständige Szenario. Zwei weitere reguläre Partien, ein optionaler Startwert und eine vierseitige **Starthilfe** stehen im Menü bereit. Prüfkarten sind separat erreichbar. Menü und Einstellungen halten die Spielzeit an; die Leertastenpause bleibt dabei erhalten.
@@ -12,7 +26,7 @@ Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung
 
 ## Objektbefehle und Kontextmenüs in 1.0.16
 
-**Linksklick wählt aus, kurzer Rechtsklick öffnet passende Befehle, Rechtsziehen verschiebt die Kamera.** Die untere Leiste zeigt die wichtigsten Aktionen zur Auswahl; **Alle Befehle …** macht das Kontextmenü auch ohne Rechtsklick erreichbar. Gebäude bieten Betrieb, Priorität, Produktion und Details. Die Flottenverwaltung trennt Schiffe, Aufträge, Schiffbau und Abbau. Rückbau erfordert eine Bestätigung mit Rückgewinnung; Escape oder ein verbrauchter Klick daneben schließt ein Menü. [Recherche, Bedienung und Prüfstand](docs/BEFEHLS_GUI_NACHWEIS.md).
+**Seit 1.0.18:** Linksklick wählt aus, kurzer Rechtsklick erteilt den direkten Bewegungs-/Angriffsbefehl, **Strg + Rechtsklick** öffnet passende Befehle und Rechtsziehen verschiebt die Kamera. Die untere Leiste zeigt die wichtigsten Aktionen zur Auswahl; **Alle Befehle …** macht das Kontextmenü auch ohne Rechtsklick erreichbar. Gebäude bieten Betrieb, Priorität, Produktion und Details. Die Flottenverwaltung trennt Schiffe, Aufträge, Schiffbau und Abbau. Rückbau erfordert eine Bestätigung mit Rückgewinnung; Escape oder ein verbrauchter Klick daneben schließt ein Menü. [Recherche und historischer Prüfstand 1.0.16](docs/BEFEHLS_GUI_NACHWEIS.md).
 
 ## M8: Referenzpartie und sichere Speicherstände in 1.0.15
 
@@ -26,13 +40,13 @@ Neue diplomatische und KI-Partien erzeugen einen zufälligen System-Seed. Manche
 
 ## Planetentypen, Landschaften und Luftfracht in 1.0.13
 
-Sechs Welttypen verbinden passende Planetenkugeln mit Fels-, Wüsten-, Pflanzen-, Insel-, Eis- und Gaslandschaften. Neue Karten bieten **28 × 22 Waben** statt 18 × 14. Der Boden ist wieder sichtbar texturiert; Ebenen, Dünen, Höhenzüge und Küsten ersetzen die einheitliche Talform. **Rechte Maustaste halten und ziehen** verschiebt jetzt auch die Oberfläche. Seit 1.0.16 öffnet ein kurzer Rechtsklick die passenden Objekt- und Zielbefehle.
+Sechs Welttypen verbinden passende Planetenkugeln mit Fels-, Wüsten-, Pflanzen-, Insel-, Eis- und Gaslandschaften. Neue Karten bieten **28 × 22 Waben** statt 18 × 14. Der Boden ist wieder sichtbar texturiert; Ebenen, Dünen, Höhenzüge und Küsten ersetzen die einheitliche Talform. **Rechte Maustaste halten und ziehen** verschiebt jetzt auch die Oberfläche. Seit 1.0.18 öffnet Strg + Rechtsklick die passenden Objekt- und Zielbefehle; der kurze Rechtsklick erteilt direkt Bewegung oder Angriff.
 
 Gasriesen besitzen schwebende Plattformen und vier Frachtdrohnen mit je acht Waren Kapazität. Es gibt dort keine Straßen, Räder oder Bodenminen; Rohstoffe kommen über Raumfracht. Planetenabstände, Größen und Klimarichtwerte folgen einem dokumentierten Modell für einen sonnenähnlichen Stern, Eigenrotation ist deutlicher sichtbar. Unter **Spielmenü → Testszenarien → Planetentypen / Luftfracht** lassen sich alle Umgebungen sofort in einer ausdrücklich gekennzeichneten Prüfkarte ansehen. Alte Spielstände behalten Karten und Bestände. [Recherche, Regeln und Nachweis](docs/PLANETENTYPEN_NACHWEIS.md).
 
 ## Freie Systemkamera und Keplerbahnen in 1.0.12
 
-**Rechte Maustaste halten und ziehen** verschiebt die Systemansicht frei; ein kurzer Rechtsklick öffnet seit 1.0.16 das Objekt-/Zielmenü. **WASD/Pfeiltasten** verschieben ebenfalls, **Q/E** und die mittlere Maustaste drehen, **Pos1** zentriert wieder auf den Stern. Räumlich verteilte Sterne zeigen entfernungsabhängige Parallaxe, der Nebel dreht mit der Blickrichtung. Planeten drehen sich sehr langsam und umlaufen den Stern auf wesentlich langsameren Keplerbahnen. Mauszeiger-Popups sind entfernt, Namensschilder passen sich knapp an ihren Text an. [Bedienung, Umlaufzeiten und Nachweise](docs/KAMERA_ORBIT_NACHWEIS.md).
+**Rechte Maustaste halten und ziehen** verschiebt die Systemansicht frei; Strg + Rechtsklick öffnet seit 1.0.18 das Objekt-/Zielmenü. **WASD/Pfeiltasten** verschieben ebenfalls, **Q/E** und die mittlere Maustaste drehen, **Pos1** zentriert wieder auf den Stern. Räumlich verteilte Sterne zeigen entfernungsabhängige Parallaxe, der Nebel dreht mit der Blickrichtung. Planeten drehen sich sehr langsam und umlaufen den Stern auf wesentlich langsameren Keplerbahnen. Mauszeiger-Popups sind entfernt, Namensschilder passen sich knapp an ihren Text an. [Bedienung, Umlaufzeiten und Nachweise](docs/KAMERA_ORBIT_NACHWEIS.md).
 
 ## GUI und Weltraumansicht in 1.0.11
 
@@ -180,7 +194,7 @@ Der projektspezifische [Commit-/PR-Skill](.agents/skills/commit-pr/SKILL.md) wir
 
 1. In der Systemansicht einen eigenen Planeten anklicken oder über die Seitenleiste öffnen.
 2. Im Reiter **Bauen** zuerst **Hydroponik** und **Solaranlage** neben dem vorhandenen Straßennetz errichten. Damit werden Nahrung und Energie gesichert. Neue Bauplätze bei Bedarf zuerst mit Straßen anschließen.
-3. Eine **Erzmine** auf das bereits angeschlossene Erzfeld setzen, anschließend **Schmelze** und **Werkstatt** an Straßen bauen. Kuriere liefern Baumaterial und Rohstoffe; daraus entstehen Metall und Bauteile. Diese Grundkette benötigt zehn der anfänglich zwölf Arbeitskräfte.
+3. Eine **Erzmine** auf das bereits angeschlossene Erzfeld setzen, anschließend **Schmelze** und **Werkstatt** an Straßen bauen. Kuriere liefern Baumaterial; nach vollständiger Anlieferung fährt ein freies Baufahrzeug zur Baustelle. Fertige Betriebe erhalten Rohstoffe und erzeugen Metall beziehungsweise Bauteile. Diese Grundkette benötigt zehn der anfänglich zwölf Arbeitskräfte.
 4. Ein **Wohnhabitat** schafft zusätzlichen Wohnraum. Bei ausreichender Nahrung wächst die Bevölkerung; damit werden weitere Arbeitskräfte verfügbar. Die Kolonieanzeige zeigt Wohnraum, Nahrungserzeugung und Bedarf sowie Energie und Arbeit. Auch die zweite Kolonie benötigt ihre eigene Versorgung.
 5. Gebäude anklicken: Der Reiter **Auswahl** zeigt Engpässe, Bestand, ankommende Ware und Lagerkapazität. Bei vollen Produktionslagern zusätzliche **Lager** bauen; fehlende Energie mit Solaranlagen ergänzen. **Betrieb pausieren / fortsetzen** und die Prioritäten **Niedrig / Normal / Hoch** steuern Betrieb und Versorgung.
 6. Im Reiter **Bauen** mit **Entfernen** neben **Straße bauen** einen Straßenabschnitt entfernen; mit **Straße bauen** die Verbindung reparieren. Unterbrochene Transporte behalten ihre Fracht und warten oder nutzen einen vorhandenen Umweg.
@@ -189,8 +203,9 @@ In **Auswahl** lassen sich unvollständige Bauaufträge abbrechen und fertige Ge
 
 | Eingabe | Funktion |
 |---|---|
-| Linksklick | Planet öffnen, Bauauftrag erteilen oder Gebäude auswählen |
-| Kurzer Rechtsklick | Objekt-/Zielmenü öffnen; aktiven Platzierungs-/Zielmodus abbrechen |
+| Linksklick | Planet auswählen, Bauauftrag erteilen oder Gebäude auswählen; Doppelklick/Oberflächenaktion startet die Kamerafahrt |
+| Kurzer Rechtsklick | Auswahl bewegen oder sichtbaren Kriegsgegner angreifen; aktiven Platzierungs-/Zielmodus abbrechen |
+| Strg + Rechtsklick | Objekt-/Zielmenü öffnen; keine automatische Aktion |
 | Rechts ziehen | Kamera verschieben, ohne einen Befehl auszulösen |
 | Escape | Menü schließen oder aktiven Werkzeugmodus abbrechen |
 | Leertaste | Gemeinsame Simulation pausieren oder fortsetzen |
@@ -200,14 +215,14 @@ In **Auswahl** lassen sich unvollständige Bauaufträge abbrechen und fertige Ge
 | F5 / F9 | Speichern / Laden |
 | Reiter Bauen / Auswahl | Zwischen Bauwerkzeugen und Gebäudeinformationen wechseln |
 
-Die obere Leiste bietet zusätzlich Pause, Spieltempo **1× / 2×**, Speichern und Laden. Während Pause können Bau-, Wege- und Betriebsaufträge vorgemerkt werden; sie werden nach Fortsetzen ausgeführt. Beide Kolonien arbeiten unabhängig von der geöffneten Ansicht weiter.
+Die obere Leiste bietet zusätzlich Pause, Spieltempo **1× / 2× / 4×**, Speichern und Laden. Während Pause können Bau-, Wege- und Betriebsaufträge vorgemerkt werden; sie werden nach Fortsetzen ausgeführt. Alle Kolonien arbeiten unabhängig von der geöffneten Ansicht weiter.
 
 ## Aktueller Stand
 
 - **M0 abgeschlossen:** Unity importiert das Projekt; Vorbereitung und Windows-Mono-Build enden erfolgreich.
-- **126 Core-Tests bestanden:** Wirtschaft, Hexraster, M3–M7 einschließlich Rechte, Vertragsfracht, gemeinsame Operationen, Sieg und Speicherformat 8 mit Migration aus V1–V7.
-- **Grafischer Integrationstest bestanden:** 131 Einzelprüfungen und 18 erzeugte Renderbilder; neue M7-Weltansichten kontrolliert. Frühere native Bediennachweise für M3/M4 bleiben historisch; manuelle M7-IMGUI-Abnahme offen. Aktuelle Tests ohne Eingriffe in den Arbeitsdesktop: [M7-Nachweis](docs/M7_NACHWEIS.md).
+- **Früherer 1.0.18-Stand:** 177 Core-Tests bestanden einschließlich Baufahrzeugen, Kampfereignissen, F05 und Kooperationssieg. Danach sind 7 neue Bodenverkehrstests sowie 11 neue und 11 bestehende Raumtests bestanden; aktuelles Speicherformat 13. Der erneute vollständige Core-Lauf steht aus.
+- **Lokale Grafikprüfung bestanden:** Windows-Build, vollständiger 1440×900-Lauf und spätere gezielte 1280×720-Läufe sind [chronologisch dokumentiert](docs/GUI_BEWEGUNG_BAU_NACHWEIS.md#prüfstand). Alle liefen auf dem isolierten Windows-Desktop ohne Screenreader oder Computer-Use. Die neuesten Verkehrs-, Direktbefehls-, Fokus- und Texturänderungen sind noch nicht durch einen erneuten Unity-Lauf belegt; Installer und Git-Abschluss stehen aus.
 - **Versionswerkzeuge geprüft:** 12 Tests mit 19 isolierten Fixtures, einschließlich Rücknahme eines fehlgeschlagenen Schreibvorgangs. Produktversion, Playeranzeige und Versionsbranch sind synchron.
-- **Vorläufiges Testszenario:** zwei eigene Kolonien und ein neutraler Mond; je Oberfläche 18 × 14 Felder und vier Kuriere pro Kolonie.
-- **Funktionsstand:** M1/M2 technisch abgenommen nach [T-006](docs/DECISIONS.md); M3 und M4 einschließlich gezielter echter Bedienprüfung abgeschlossen. Die vollständige ältere Wirtschaftsbedienungsabnahme bleibt separat offen. M5 ist implementiert und über PR #5 integriert. M6 (1.0.7) und M7 (1.0.8) sind lokal umgesetzt und automatisiert geprüft. Erneute manuelle Abnahme und Git-Integration bleiben offen; M8 folgt danach.
+- **Reguläre Referenzpartie:** drei gleiche endliche Startkolonien, zwei umkämpfte Monde und zwei wirtschaftlich eigenständige KI; neu erzeugte reguläre Oberflächen mit 40 × 32 Waben. Vier Kuriere je Kolonie, davon höchstens zwei gleichzeitig im Baueinsatz. Prüfkarten bleiben getrennt.
+- **Funktionsstand:** M0–M9 und ihre historischen Nachweise bleiben dokumentiert. 1.0.18 erweitert Darstellung und Konstruktion innerhalb dieser Pakete; der neue [Nachweis](docs/GUI_BEWEGUNG_BAU_NACHWEIS.md) führt offene Abnahme- und Integrationsschritte. Alte Spielstände müssen während dieser Entwicklung laut aktueller Nutzervorgabe nicht kompatibel bleiben; vorhandene Dateien werden nicht gelöscht.
 - **Plattformstatus:** Windows-Player und programmatische Eingabeadapter sind geprüft. Weitere Desktop-, Web-, Mobil- und Konsolenexporte sowie eine vollständige manuelle Bedienungsabnahme sind ungeprüft. Der kleine Prototyp liefert noch keine Performancegarantie für das vollständige Spiel.

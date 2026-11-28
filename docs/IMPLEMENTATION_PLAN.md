@@ -2,7 +2,18 @@
 
 Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0 bis M4 sind umgesetzt und abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen vollständigen zusätzlichen Maustest. M3 ist mit Core-Tests, Windows-Build, Grafiklauf und gezielten tatsächlichen Maus-/Tastatureingaben geprüft; siehe [M3_NACHWEIS](M3_NACHWEIS.md). P08–P10 sind in Version 1.0.3 abgeschlossen; Nachweise und konkrete Grenzen stehen in [M4_NACHWEIS](M4_NACHWEIS.md).
 
-## Aktueller Meilenstein M9 (1.0.17)
+## Aktueller Ergänzungsauftrag 1.0.18
+
+**GUI, Bewegung, fahrzeuggebundener Bau und Verkehr** erweitern die bestehenden Pakete P04/P05, P06/P07, P08, P11, P19–P22; kein zusätzliches Sternsystem oder neuer Meilenstein wird vorgezogen. Verbindlich sind D-038 bis D-047, T-059 bis T-074, GUI-015 bis GUI-021, SURFACE-005/006/007/010, SPACE-012, LOG-014, ARCH-017 und TEST-034 bis TEST-039.
+
+- **Im Code umgesetzt:** drei überarbeitete Layouts und Menübereiche, separate Schriftgröße 90–140 Prozent, 40 × 32 Waben für neue reguläre Karten, Modell-/Bauvorschau-Erweiterungen und unregelmäßige Waldflächen aus dem System-Seed. Geländehöhen werden zwischengespeichert; der Oberflächenaufbau verteilt sich während der Atmosphärenblende auf mehrere Frames. Die Kamerafahrt umfasst 1,8 Sekunden Animation plus kurze variable Vorbereitung. Hinzu kommen geglättete Bewegung und gerundete Straßen, unabhängige Türme, echte sichtgefilterte Kampfereignisse, konstante Orbitlinienbreite und größere Asteroiden. Reale Baufahrzeuge verwenden höchstens zwei von vier vorhandenen Kurierkapazitäten; Gebäude-Arbeitszeiten sind verdoppelt. Die Bauphasen wurden mit Schema 12 eingeführt; aktuelles Format ist Schema 13.
+- **Historisch geprüft, vor der Verkehrsüberarbeitung:** 177 unabhängige Core-Tests erneut nach der Waldänderung bestanden, einschließlich neun neuer Bauprüfungen, drei Kampfereignisprüfungen, bezahltem F05-Gesamtdurchlauf und Kooperationssieg. Windows-Build und vollständiger isolierter 1440×900-Lauf mit 849 Einzelbedingungen bestanden. Danach folgten die Sitzungs-Auswahlkorrektur mit 75 bestandenen Bedingungen und die Rahmen-/Typografieprüfung mit 302 Bedingungen bei 1280×720. Der vollständige Lauf liegt vor diesen letzten beiden Korrekturen. Der Referenzablauf verwendet normale Prioritäten, frühe Kolonisierung und bedarfsgerechten Werkstattbetrieb ohne zusätzliche Güter oder KI-Ausnahmen.
+- **Zusätzlich implementiert:** direkte Rechtsklick-Bewegung/Angriff, Strg-Kontextmenü, tatsächliche Auswahlrahmen und Angriffsfadenkreuz; Körperabstände, dynamische Boden-/Raumbelegung, getrennte Ankunftsplätze und kooperatives Platzmachen bei erhaltenem Auftrag und Bestand. Nahtfreie Shader-Abtastung der vorhandenen Planetenatlanten sowie persistenter Planetenfokus und sanfte Seitenlistenfahrt. Aktuelles Speicherformat ist **13**, einschließlich Verkehrsfortsetzung.
+- **Aktuell geprüft:** 212 vollständige Core-/Plattformtests einschließlich beider regulärer F05-Siege bestanden. 45 gezielte Verkehrs-/Bau-/KI-Tests bestanden; der Baufahrzeugfall prüft zusätzlich eine enge Passage ohne Ausweichroute. Interaktion bei 720p: 194 Bedingungen; Gestaltung bei 720p: 488 Bedingungen. Der aktuelle Unity-Windows-Build ist erfolgreich.
+- **Noch offen:** beauftragter PR-Abschluss. Installer/ZIP, vollständiger installierter Playerlauf und Deinstallation bestanden. Der abschließende vollständige 1440×900-Playerlauf bestand 1053 Einzelbedingungen plus Gesamt-PASS. Laufreihenfolge, Bildherkunft und Leistungswerte stehen in [GUI_BEWEGUNG_BAU_NACHWEIS](GUI_BEWEGUNG_BAU_NACHWEIS.md).
+- **Abgrenzung:** Referenzabgleich und Videoquellen sind im Nachweis beschrieben. Eine Pflicht zur Altspeicher-Kompatibilität und ein Wechsel auf Catan-Kantenstraßen sind nicht Teil des Auftrags. Physische Maus-/Tastaturabnahme und andere Plattformen bleiben getrennte Kriterien.
+
+## Vorheriger Meilenstein M9 (1.0.17)
 
 Der Fortsetzungsauftrag ergänzt **P22: Spieleinstieg und lokale Partien**. Der bisherige Plan endete bei M8; D-037 hält die konkrete Arbeitsannahme fest. Umfang, Prüfungen und Git-Stand stehen in [M9_NACHWEIS](M9_NACHWEIS.md). M8 und die Befehlsoberfläche 1.0.16 sind inzwischen über PR #15/#16 in `main` integriert; deren übrige Abnahmegrenzen bleiben erhalten.
 
@@ -22,7 +33,7 @@ Nutzerauftrag vom 24. November 2026: Waben statt Schachbrett. Betrifft P03/P04/P
 - [KI, Diplomatie und Sieg](./AI_DIPLOMACY.md): Anforderungen der Gruppen AI, DIP und WIN.
 - [Technische Architektur](./TECHNICAL_ARCHITECTURE.md): Modulgrenzen, Zuständigkeiten, Daten und Schnittstellen.
 - [Entscheidungen](./DECISIONS.md): offene beziehungsweise getroffene technische Entscheidungen und ihre Begründungen.
-- [Abnahmeszenarien](./ACCEPTANCE_TESTS.md): wiederholbare Szenarien TEST-001 bis TEST-022 mit Regel- und Paketzuordnung.
+- [Abnahmeszenarien](./ACCEPTANCE_TESTS.md): wiederholbare Szenarien TEST-001 bis TEST-039 mit Regel- und Paketzuordnung.
 
 Die Spezifikationen bestimmen das Verhalten. Der Plan bestimmt die Reihenfolge und den Umfang einer Lieferung. Ein Verweis auf eine Anforderung bedeutet nicht, dass sie bereits umgesetzt oder getestet wurde.
 
@@ -351,7 +362,7 @@ Ergänzung **1.0.16**: recherchierte Objektbefehle, Rechtsklickmenüs und aufget
 - **Module:** Runtime-Sitzungsführung und Menüs, Plattform-Dateiadapter, Integrationsprüfungen. Regeln GUI-013/014, ARCH-014/015 und TEST-033.
 - **Umfang:** Startmenü, drei vorhandene reguläre Szenarien mit frei wählbarem Startwert, getrennte Prüfkarten, acht Speicherplätze mit Sicherungen und alten Einzeldateien, Bestätigungen bei Zustandsersatz, vierseitige Starthilfe mit Navigation. Menüs halten die laufende Einzelspielersimulation an.
 - **Nicht enthalten:** Neue Spielregeln, zusätzliche Systeme, Kampagne, automatische Ressourcenhilfen, Cloudspeicher oder automatische Veröffentlichung.
-- **Abnahme:** Gültige Starts entsprechen exakt der Szenariofabrik. Getrennte Speicherziele, Backup-Wiederherstellung, alte Dateien, voller Katalog und Abbruch erhalten ihre ausgewiesenen Zustände. Sichtbare Fehlermeldungen, Layouts, Tastaturkurzbefehle und der bisherige Spielablauf sind geprüft. Starthilfe gibt keine versteckten Spielaufträge.
+- **Abnahme:** Gültige Starts entsprechen exakt der Szenariofabrik. Getrennte Speicherziele, Backup-Wiederherstellung, unterstützte Einzeldateien, voller Katalog und Abbruch erhalten ihre ausgewiesenen Zustände. Nicht unterstützte Formate werden nach D-041 verständlich abgelehnt und nicht verändert; dauerhafte Altformatkompatibilität ist während der Entwicklung keine Pflicht. Sichtbare Fehlermeldungen, Layouts, Tastaturkurzbefehle und der bisherige Spielablauf sind geprüft. Starthilfe gibt keine versteckten Spielaufträge.
 - **Prüfung:** Echte Dateisnapshots, Controller-/Eingabeprüfungen und Renderkontrolle in zwei Auflösungen auf dem isolierten Windows-Desktop. Physische Eingabe bleibt entsprechend dem beauftragten Testverfahren gesondert ausgewiesen.
 
 ## Definition of Done für ein Arbeitspaket
@@ -396,3 +407,21 @@ Automatisierte Prüfungen sichern Bestandsänderungen, Berechtigungen, Sichtgren
 Manuelle Prüfungen beurteilen Bedienbarkeit, Warnungen, räumliche Lesbarkeit, sinnvolle Reaktionszeit und taktische Wahlmöglichkeiten. Ein erfolgreicher automatisierter Test ersetzt keine sichtbare Prüfung eines neuen Spielablaufs.
 
 Leistungsmessungen verwenden ein festgehaltenes Szenario und Hardwareprofil. Ein schneller leerer Prototyp beweist keine ausreichende Leistung bei mehreren Kolonien, KI und gleichzeitigen Gefechten. Umfang und Grenzwerte werden vor der jeweiligen Messung festgelegt.
+
+## Ergänzung 1.0.18: Zweispurige Straßen und Priorität stehender Einheiten
+
+- **Umfang:** D-045–047 / LOG-015, SURFACE-011, GUI-022 und TEST-040; Core-Fahrspurpositionen, Vorfahrt, Bau-Rückfahrt, freie Umwege, passende Fahrzeughüllen sowie rein darstellende Zielpfeile.
+- **Betroffene Module:** `SimulationGroundTraffic`, `SimulationLogistics`, `SimulationMilitary`, `SimulationSpaceTraffic`, Speicherprüfung; `PrototypeSmoothMotion`, `PrototypeVehicleSizing`, `PrototypeOrderArrows` und deren Integrationsprüfungen.
+- **Status:** Implementiert; gezielte Verhaltenstests und isolierte Zielpfeil-/Modellprüfung bestanden. Beide vollständigen Referenzpartien und abschließende Leistungsmessung bestanden. Auch Paket und installierter Playerlauf bestanden. Git-Integration wird im Gesamtnachweis nachgeführt; noch kein integrierter Abschluss behauptet.
+
+### Korrektur: schmale zweispurige Straßen
+
+LOG-015 / TEST-040 / T-070: frühere Breite wiederherstellen, beide Richtungsfahrspuren erhalten, Straßenkuriere und Baufahrzeuge samt Modell und Kollisionskörper verkleinern. 45 gezielte Prüfungen und 212 vollständige Coretests einschließlich beider F05-Siege bestanden. Aktueller isolierter Modellnachweis und Paket werden im Gesamtnachweis dokumentiert.
+
+### Versorgungsnetz – bestätigter Folgeauftrag
+
+LOG-016 / TEST-041 / D-048 / T-075–077 ersetzen die sichtbaren Straßen durch bedarfsabhängige Lieferlinien und eine Logistikansicht. Größere Fahrzeuge, atomare Endpunktverbindungen, echte Warenfahrten und Be-/Entladung sind implementiert. 215 vollständige Coretests und 1076 Bedingungen im vollständigen isolierten Playerlauf bestehen. Aktuelle Darstellungsnachkorrektur und Paketnachweis stehen im GUI-Nachweis; GitHub-Pflichtchecks und Merge bleiben separat auszuweisen.
+
+### Folgeauftrag: Verbindungsstraßen, Befestigungen und direkte Fahrt
+
+D-049–053 / T-078–081 / LOG-017 / GUI-023 / SURFACE-012 / TEST-042 ergänzen das bestätigte Versorgungsnetz. Schmale Straßen, verbundene schmale Mauern/Tore samt Vorschau, Angriffsanfahrt bis zur Schussposition, transparente auswahlabhängige Bögen, direkte freie Bodenfahrt und Zentrieren bei Auftragswechsel sind implementiert. Die Belegungsplanung nutzt die aktuelle Fahrzeugwabe; tatsächliche Körperabstände bleiben geprüft. Landschaftsklick hebt die Einheitenauswahl auf. Aktuelle Test- und Paketnachweise folgen im GUI-Nachweis; ältere dortige Ergebnisse bleiben historisch.

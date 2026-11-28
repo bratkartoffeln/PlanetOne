@@ -25,7 +25,7 @@ $testFiles = @(Get-ChildItem -LiteralPath (Join-Path $projectRoot 'Tests\Core') 
 if ($coreFiles.Count -eq 0 -or $testFiles.Count -eq 0) { throw 'Simulationsquellen oder Kernpruefungen fehlen.' }
 $testExecutable = Join-Path $outputDirectory 'PlanetOne.Core.Tests.exe'
 $compilerArguments = @(
-    '/nologo', '/langversion:7.3', '/target:exe', '/platform:anycpu', '/warn:4', '/warnaserror+',
+    '/nologo', '/langversion:7.3', '/target:exe', '/platform:anycpu', '/optimize+', '/warn:4', '/warnaserror+',
     '/reference:System.Runtime.Serialization.dll', '/reference:System.Xml.dll',
     ('/out:' + $testExecutable)
 ) + @($coreFiles.FullName) + @($platformFiles.FullName) + @($testFiles.FullName)

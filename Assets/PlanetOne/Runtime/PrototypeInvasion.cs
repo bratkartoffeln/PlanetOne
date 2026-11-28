@@ -7,6 +7,8 @@ namespace PlanetOne.Runtime
     public sealed partial class PrototypeController
     {
         private string landingX="4", landingY="9";
+        private int invasionTask;
+        public int InvasionWorkspace {get{return invasionTask;}}
         private readonly Dictionary<long,Transform> invasionViews=new Dictionary<long,Transform>();
         private readonly Dictionary<int,LineRenderer> dangerRings=new Dictionary<int,LineRenderer>();
         private readonly Dictionary<long,LineRenderer> shieldRings=new Dictionary<long,LineRenderer>();
@@ -21,48 +23,82 @@ namespace PlanetOne.Runtime
         { return SubmitIntent(new SimCommand {Kind=kind,ActorId=actor,TargetId=target,PlanetId=planet,X=x,Y=y,IntValue=value,Amount=amount}); }
         private void DrawInvasionPanel()
         {
+            int next=DrawWorkspaceTabs(invasionTask,new[]{"Manöver","Raumkampf","Landung"});
+            if(next!=invasionTask){invasionTask=next;sidebarScroll=Vector2.zero;}
             if(simulation.State.InvasionTestFixture)
             {
                 GUILayout.Label("M5 PRÜFKARTE · endliche Testbestände",smallStyle);
                 if(priorSession!=null && GUILayout.Button("Zur laufenden Kolonie zurück",buttonStyle)) {RestorePreviousSession();return;}
             }
-            GUILayout.Label("RAUMKRIEG UND LANDUNG",headingStyle);
+            WorkspaceHeading("SCHIFF AUSWÄHLEN");
             DrawInvasionNotice();
             foreach(var s in simulation.State.Ships)
-                if(s.OwnerId==PlayerFactionId && !s.Destroyed && !s.Consumed && GUILayout.Button(Definitions.Ships[(int)s.Kind].Name+" #"+s.Id,selectedShips.Contains(s.Id)?selectedButtonStyle:buttonStyle))
+                if(s.OwnerId==PlayerFactionId && !s.Destroyed && !s.Consumed && WorkspaceButton(Definitions.Ships[(int)s.Kind].Name+" #"+s.Id,selectedShips.Contains(s.Id)))
                 { SelectShip(s.Id);spacePanelTab=3;panelOpen=true; }
-            ShipState chosen=selectedShips.Count==0?null:simulation.State.Ships.Find(s=>s.Id==selectedShips[0]);
-            if(chosen==null) {GUILayout.Label("Ein Schiff auswählen.",smallStyle);return;}
+            ShipState chosen=selectedShips.Count==0?null:simulation.State.Ships.Find(s=>s.Id==selectedShips[0] && s.OwnerId==PlayerFactionId && !s.Destroyed && !s.Consumed);
+            if(chosen==null) {GUILayout.Label("Wähle ein eigenes Schiff, um passende Manöver, Kampf- oder Landungsaufträge zu öffnen.",smallStyle);return;}
             GUILayout.Label("Hülle "+chosen.Health.ToString("0")+" · Munition "+chosen.Ammunition+"\n"+chosen.Status,bodyStyle);
-            foreach(var p in simulation.State.Planets) if(simulation.IsPlanetKnown(PlayerFactionId,p.Id) && GUILayout.Button(p.Name,spaceTarget==p.Id?selectedButtonStyle:buttonStyle)) spaceTarget=p.Id;
-            if(GUILayout.Button("Anflug / Sammlung am Ziel",buttonStyle)) RequestSpaceOrder(CommandKind.FlyShip,chosen.Id,planet:spaceTarget);
-            if(GUILayout.Button("Rückzug zur Heimatwelt",buttonStyle)) RequestInvasionOrder(CommandKind.RetreatShip,chosen.Id,planet:1);
-            foreach(var enemy in simulation.State.Ships) if(simulation.IsShipVisible(PlayerFactionId,enemy) && simulation.AtWar(PlayerFactionId,enemy.OwnerId) && GUILayout.Button("Angriff: "+Definitions.Ships[(int)enemy.Kind].Name+" #"+enemy.Id,buttonStyle)) RequestInvasionOrder(CommandKind.AttackShip,chosen.Id,enemy.Id);
-            foreach(var yard in simulation.State.Ships) if(!yard.Destroyed && simulation.HasAccess(PlayerFactionId,yard.OwnerId,yard.TargetPlanetId,AccessRight.Repair) && simulation.IsShipVisible(PlayerFactionId,yard) && yard.Kind==ShipKind.OrbitalYard && yard.Id!=chosen.Id && GUILayout.Button("Reparatur an Werft #"+yard.Id,buttonStyle)) RequestInvasionOrder(CommandKind.RepairShip,chosen.Id,yard.Id);
-            if(chosen.Kind==ShipKind.OrbitalYard)
+            WorkspaceHeading("ZIELWELT");
+            foreach(var p in simulation.State.Planets) if(simulation.IsPlanetKnown(PlayerFactionId,p.Id) && WorkspaceButton(p.Name,spaceTarget==p.Id)) spaceTarget=p.Id;
+            bool targetKnown=simulation.IsPlanetKnown(PlayerFactionId,spaceTarget);
+            bool enabled=GUI.enabled;GUI.enabled=enabled && targetKnown;
+            if(WorkspaceButton("Zieloberfläche ansehen")){SetView(spaceTarget);showingSpacePanel=false;showingMilitary=true;militaryTask=2;}
+            GUI.enabled=enabled;
+            if(invasionTask==0)
             {
-                GUILayout.Label("Werftbestand: "+GoodsText(chosen.Cargo),smallStyle);
-                for(int k=(int)ShipKind.Scout;k<Definitions.Ships.Length;k++)
-                    if(GUILayout.Button(Definitions.Ships[k].Name+" bauen",buttonStyle)) RequestInvasionOrder(CommandKind.BuildWarship,chosen.Id,value:k);
+                WorkspaceHeading("FLUG UND RÜCKZUG");GUI.enabled=enabled && targetKnown;
+                if(WorkspaceButton("Anflug / Sammlung am Ziel",true))RequestSpaceOrder(CommandKind.FlyShip,chosen.Id,planet:spaceTarget);
+                GUI.enabled=enabled;
+                if(WorkspaceButton("Rückzug zur Heimatwelt"))RequestInvasionOrder(CommandKind.RetreatShip,chosen.Id,planet:1);
+                GUILayout.Label("Ringe markieren den nahen Orbitalbereich. Ferne Gegner verhindern keine Landung.",smallStyle);return;
             }
-            GUILayout.Label("Bodenkoordinaten X / Y",smallStyle);GUILayout.BeginHorizontal();landingX=GUILayout.TextField(landingX);landingY=GUILayout.TextField(landingY);GUILayout.EndHorizontal();
-            int x,y;bool valid=int.TryParse(landingX,out x)&&int.TryParse(landingY,out y); int.TryParse(landingY,out y);
-            if(chosen.Kind==ShipKind.TorpedoShip && valid && GUILayout.Button("Orbitalfeuer vorbereiten",buttonStyle)) RequestInvasionOrder(CommandKind.OrbitalBombard,chosen.Id,planet:spaceTarget,x:x,y:y);
-            if(chosen.Kind==ShipKind.LandingTransport)
+            if(invasionTask==1)
             {
-                string phase=chosen.TransportPhase==TransportPhase.Space?"Im Raum":chosen.TransportPhase==TransportPhase.Descending?"Abstieg":chosen.TransportPhase==TransportPhase.Ascending?"Aufstieg":"Gelandet";
-                GUILayout.Label("Transport: "+phase+" · "+chosen.Troops.Count+" / 4 Plätze\n"+GoodsText(chosen.Cargo),smallStyle);
-                if(valid && GUILayout.Button("Abstieg an diesen Koordinaten",buttonStyle)) RequestInvasionOrder(CommandKind.LandTransport,chosen.Id,planet:spaceTarget,x:x,y:y);
-                if(GUILayout.Button("Aufstieg / Evakuierung",buttonStyle)) RequestInvasionOrder(CommandKind.LaunchTransport,chosen.Id,planet:chosen.TargetPlanetId);
-                foreach(var troop in chosen.Troops) if(!troop.Destroyed && GUILayout.Button("Entladen: "+Definitions.Get(troop.Kind).Name+" #"+troop.Id,buttonStyle)) RequestInvasionOrder(CommandKind.UnloadTroop,chosen.Id,troop.Id,chosen.TargetPlanetId);
-                foreach(var p in simulation.State.Planets) foreach(var b in p.Buildings) if(b.Kind==BuildingKind.Spaceport && GameSimulation.BuildingOwner(p,b)==PlayerFactionId)
+                WorkspaceHeading("SICHTBARE GEGNER");bool enemyFound=false;
+                foreach(var enemy in simulation.State.Ships)if(simulation.IsShipVisible(PlayerFactionId,enemy) && simulation.AtWar(PlayerFactionId,enemy.OwnerId))
+                {enemyFound=true;if(WorkspaceButton("Angriff: "+Definitions.Ships[(int)enemy.Kind].Name+" #"+enemy.Id))RequestInvasionOrder(CommandKind.AttackShip,chosen.Id,enemy.Id);}
+                if(!enemyFound)GUILayout.Label("Kein aufgeklärtes feindliches Schiff in Sicht.",smallStyle);
+                WorkspaceHeading("REPARATUR");bool yardFound=false;
+                foreach(var yard in simulation.State.Ships)if(!yard.Destroyed && simulation.HasAccess(PlayerFactionId,yard.OwnerId,yard.TargetPlanetId,AccessRight.Repair) && simulation.IsShipVisible(PlayerFactionId,yard) && yard.Kind==ShipKind.OrbitalYard && yard.Id!=chosen.Id)
+                {yardFound=true;if(WorkspaceButton("Reparatur an Werft #"+yard.Id))RequestInvasionOrder(CommandKind.RepairShip,chosen.Id,yard.Id);}
+                if(!yardFound)GUILayout.Label("Keine sichtbare Werft mit Reparaturzugang.",smallStyle);
+                if(chosen.Kind==ShipKind.OrbitalYard)
                 {
-                    if(GUILayout.Button("Hafen "+p.Name+": 8 Nahrung laden",buttonStyle)) RequestInvasionOrder(CommandKind.LoadShipSupplies,chosen.Id,b.Id,p.Id,value:0,amount:8);
-                    if(GUILayout.Button("Hafen "+p.Name+": 8 Bauteile laden",buttonStyle)) RequestInvasionOrder(CommandKind.LoadShipSupplies,chosen.Id,b.Id,p.Id,value:3,amount:8);
+                    WorkspaceHeading("KRIEGSSCHIFFBAU","Werftbestand: "+GoodsText(chosen.Cargo));
+                    for(int k=(int)ShipKind.Scout;k<Definitions.Ships.Length;k++)if(WorkspaceButton(Definitions.Ships[k].Name+" bauen"))RequestInvasionOrder(CommandKind.BuildWarship,chosen.Id,value:k);
                 }
+                if(chosen.Kind==ShipKind.TorpedoShip)
+                {int x,y;bool valid=DrawLandingCoordinates(out x,out y);GUI.enabled=enabled && targetKnown && valid;if(WorkspaceButton("Orbitalfeuer vorbereiten"))RequestInvasionOrder(CommandKind.OrbitalBombard,chosen.Id,planet:spaceTarget,x:x,y:y);GUI.enabled=enabled;}
+                return;
             }
-            if(GUILayout.Button("Zieloberfläche öffnen",buttonStyle)) {SetView(spaceTarget);showingSpacePanel=false;showingMilitary=true;}
-            GUILayout.Label("Ringe markieren den nahen Orbitalbereich. Ferne Gegner verhindern keine Landung. Flak wirkt während Auf-/Abstieg.",smallStyle);
+            if(chosen.Kind!=ShipKind.LandingTransport){GUILayout.Label("Für Truppentransport und Landung einen Landungstransporter auswählen.",smallStyle);return;}
+            string phase=chosen.TransportPhase==TransportPhase.Space?"Im Raum":chosen.TransportPhase==TransportPhase.Descending?"Abstieg":chosen.TransportPhase==TransportPhase.Ascending?"Aufstieg":"Gelandet";
+            WorkspaceHeading("LANDUNG UND EVAKUIERUNG",phase+" · "+chosen.Troops.Count+" / 4 Truppenplätze");GUILayout.Label("An Bord: "+GoodsText(chosen.Cargo),smallStyle);
+            int landingCellX,landingCellY;bool validLanding=DrawLandingCoordinates(out landingCellX,out landingCellY);
+            GUI.enabled=enabled && targetKnown && validLanding;
+            if(WorkspaceButton("Abstieg an diesen Koordinaten",true))RequestInvasionOrder(CommandKind.LandTransport,chosen.Id,planet:spaceTarget,x:landingCellX,y:landingCellY);
+            GUI.enabled=enabled;
+            if(WorkspaceButton("Aufstieg / Evakuierung"))RequestInvasionOrder(CommandKind.LaunchTransport,chosen.Id,planet:chosen.TargetPlanetId);
+            WorkspaceHeading("TRUPPEN ENTLADEN");
+            foreach(var troop in chosen.Troops)if(!troop.Destroyed && WorkspaceButton(Definitions.Get(troop.Kind).Name+" #"+troop.Id+" entladen"))RequestInvasionOrder(CommandKind.UnloadTroop,chosen.Id,troop.Id,chosen.TargetPlanetId);
+            if(chosen.Troops.Count==0)GUILayout.Label("Keine Truppen an Bord. Eigene Bodentruppen auf einer Oberfläche auswählen und über Landung verladen.",smallStyle);
+            WorkspaceHeading("VORRÄTE LADEN");
+            foreach(var p in simulation.State.Planets)foreach(var b in p.Buildings)if(b.Kind==BuildingKind.Spaceport && !b.Destroyed && GameSimulation.BuildingOwner(p,b)==PlayerFactionId)
+            {
+                GUILayout.Label(p.Name+" · Hafen #"+b.Id,smallStyle);
+                if(WorkspaceButton("8 Nahrung laden"))RequestInvasionOrder(CommandKind.LoadShipSupplies,chosen.Id,b.Id,p.Id,value:0,amount:8);
+                if(WorkspaceButton("8 Bauteile laden"))RequestInvasionOrder(CommandKind.LoadShipSupplies,chosen.Id,b.Id,p.Id,value:3,amount:8);
+            }
+            GUILayout.Label("Flak bedroht Transporter während Auf- und Abstieg.",smallStyle);
+        }
+        private bool DrawLandingCoordinates(out int x,out int y)
+        {
+            WorkspaceHeading("ZIEL AUF DER OBERFLÄCHE","Wabenkoordinaten des Landepunkts oder Orbitalziels.");
+            GUILayout.Label("X-Koordinate",smallStyle);landingX=GUILayout.TextField(landingX,4,GUILayout.MinHeight(UiRowHeight(32)));
+            GUILayout.Label("Y-Koordinate",smallStyle);landingY=GUILayout.TextField(landingY,4,GUILayout.MinHeight(UiRowHeight(32)));
+            bool validX=int.TryParse(landingX,out x),validY=int.TryParse(landingY,out y);bool valid=validX && validY && x>=0 && y>=0;
+            if(!valid)GUILayout.Label("Gültige, nichtnegative Wabenkoordinaten eingeben.",smallStyle);
+            return valid;
         }
         private void DrawGroundInvasionPanel(PlanetState p)
         {
@@ -96,6 +132,7 @@ namespace PlanetOne.Runtime
             foreach(var footprint in landingFootprints.Values) if(footprint!=null) footprint.gameObject.SetActive(false);
             if(openPlanetId==0 || surfaceRoot==null) return;
             var planet=simulation.FindPlanet(openPlanetId);
+            if(planet==null)return; // A replacement session may not contain the previously open world.
             foreach(var b in planet.Buildings) if(b.Kind==BuildingKind.ShieldGenerator && b.Operational && !b.Destroyed && simulation.CanSeeEntity(planet,PlayerFactionId,b.Id))
             {
                 LineRenderer ring;

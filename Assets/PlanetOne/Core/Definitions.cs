@@ -25,7 +25,7 @@ namespace PlanetOne.Core
         {
             Kind = kind; Name = name; Cost = new int[6];
             Cost[(int)ResourceKind.Metal] = metal; Cost[(int)ResourceKind.Parts] = parts;
-            BuildSeconds = buildSeconds; EnergyUse = energyUse; EnergyProduced = energyProduced;
+            BuildSeconds = buildSeconds * Definitions.ConstructionDurationMultiplier; EnergyUse = energyUse; EnergyProduced = energyProduced;
             WorkerUse = workerUse; Capacity = capacity; CycleSeconds = cycleSeconds;
             Inputs = inputs ?? new int[6]; Outputs = outputs ?? new int[6];
             HousingCapacity = housingCapacity; EnergyStorageCapacity = energyStorageCapacity;
@@ -49,6 +49,7 @@ namespace PlanetOne.Core
         public const double DemolitionRefundFraction = 0.5;
         public const int EventHistoryLimit = 128;
         public const int ConstructionSlotsPerColony = 2;
+        public const double ConstructionDurationMultiplier = 2;
         public const double EnergyRestartReserveSeconds = 2;
 
         private static int[] Goods(ResourceKind resource, int amount)

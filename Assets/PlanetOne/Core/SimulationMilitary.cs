@@ -53,7 +53,7 @@ namespace PlanetOne.Core
 
         public bool CanTraverse(PlanetState p, int faction, UnitKind kind, int x, int y, long unitId=0)
         {
-            if (!Inside(p, x, y) || PlanetEnvironment.BlocksGround(p.Terrain[y * p.Width + x])) return false;
+            if (!Inside(p, x, y) || PlanetEnvironment.BlocksGround(p.Terrain[y * p.Width + x]) || LandingBlocksGround(p,x,y)) return false;
             var building = p.Buildings.Find(b => b.X == x && b.Y == y && !b.Destroyed);
             if (building == null) return true;
             if (building.Kind == BuildingKind.Gate && building.Built && !building.Deconstructing)
@@ -63,7 +63,7 @@ namespace PlanetOne.Core
                 building.Kind < BuildingKind.Barracks;
         }
 
-        private List<GridCell> GroundPath(PlanetState p, UnitState u, int x, int y, bool adjacent)
+        private List<GridCell> GroundPath(PlanetState p, UnitState u, int x, int y, bool adjacent,bool avoidTraffic=true,bool allowFallback=true)
         {
             var startCell = HexGrid.CellAt(u.X, u.Y); int sx = startCell.X, sy = startCell.Y;
             if (!Inside(p, sx, sy) || !Inside(p, x, y)) return null;
@@ -71,22 +71,40 @@ namespace PlanetOne.Core
             var previous = new int[p.Terrain.Length]; for (int i = 0; i < previous.Length; i++) previous[i] = -1;
             var queue = new Queue<int>(); queue.Enqueue(start); previous[start] = start;
             int finish = -1;
+            int arrivalRadius=adjacent?1:0;
+            bool firingPosition=adjacent&&(u.Order==UnitOrder.Attack||u.Order==UnitOrder.Bombard);
+            double targetX=x,targetY=y;int targetOwner;TargetLayer targetLayer;
+            if(firingPosition&&u.Order==UnitOrder.Attack&&
+                (!Target(p,u.TargetId,out targetX,out targetY,out targetOwner,out targetLayer)||!CanSeeEntity(p,u.OwnerId,u.TargetId)))return null;
+            var weapon=Definitions.Get(u.Kind);
+            if(avoidTraffic&&!adjacent)foreach(var other in p.Units)
+                if(other.Id!=u.Id&&!other.Destroyed&&other.Layer==TargetLayer.Ground&&other.Order==UnitOrder.Hold&&(other.OwnerId==u.OwnerId||CanSeeEntity(p,u.OwnerId,other.Id))&&HexGrid.Distance(other.X,other.Y,x,y)<GroundUnitRadius(u.Kind)+GroundUnitRadius(other.Kind))
+                    arrivalRadius=Math.Max(arrivalRadius,(int)Math.Ceiling(GroundUnitRadius(u.Kind)+GroundUnitRadius(other.Kind)));
 
             while (queue.Count > 0)
             {
                 int cell = queue.Dequeue(), cx = cell % p.Width, cy = cell / p.Width;
-                if ((!adjacent && cx == x && cy == y) || (adjacent && HexGrid.Steps(cx, cy, x, y) <= 1))
+                bool arrived=firingPosition?
+                    HexGrid.Distance(cx,cy,targetX,targetY)<=weapon.Range&&(weapon.Indirect||HasLineOfSight(p,cx,cy,targetX,targetY)):
+                    HexGrid.Steps(cx,cy,x,y)<=arrivalRadius;
+                if (arrived && (!avoidTraffic||GroundKnownCellFree(p,u,cx,cy)))
                 { finish = cell; break; }
                 for (int d = 0; d < 6; d++)
                 {
                     var neighbor = HexGrid.Neighbor(cx, cy, d); int nx = neighbor.X, ny = neighbor.Y;
                     if (!CanTraverse(p, u.OwnerId, u.Kind, nx, ny,u.Id)) continue;
+                    if(avoidTraffic&&!GroundKnownCellFree(p,u,nx,ny))continue;
+                    if(avoidTraffic)
+                    {
+                        var probe=UnitAgent(u);probe.Position=HexGrid.ToWorld(cx,cy);
+                        if(GroundBlocker(p,probe,HexGrid.ToWorld(nx,ny),true)!=null)continue;
+                    }
                     int next = ny * p.Width + nx;
                     if (previous[next] >= 0) continue;
                     previous[next] = cell; queue.Enqueue(next);
                 }
             }
-            if (finish < 0) return null;
+            if (finish < 0) return avoidTraffic&&allowFallback?GroundPath(p,u,x,y,adjacent,false):null;
             var result = new List<GridCell>();
             for (int cell = finish; ; cell = previous[cell])
             { result.Add(new GridCell(cell % p.Width, cell / p.Width)); if (cell == start) break; }
@@ -158,7 +176,9 @@ namespace PlanetOne.Core
             }
             if (order != UnitOrder.Hold && !Inside(p, x, y))
             { Report(c, false, "InvalidPosition", "Ziel liegt außerhalb der Oberfläche."); return; }
+            if(u.Traffic!=null&&u.Traffic.Yielding){u.Traffic.Yielding=false;u.Traffic.YieldForId=0;u.Traffic.Progress=0;}
             u.Path.Clear(); u.PathDistance = 0; u.Order = order; u.TargetId = c.TargetId;
+            var currentCell=HexGrid.CellAt(u.X,u.Y);u.RecenterToCell=HexGrid.Distance(u.X,u.Y,currentCell.X,currentCell.Y)>.000001;
             u.GoalX = x; u.GoalY = y; u.Status = "Befehl übernommen";
             Report(c, true, "UnitOrderAccepted", "Einheitenbefehl übernommen.");
         }
@@ -233,7 +253,7 @@ namespace PlanetOne.Core
             for (int i = 0; i < 6; i++)
             {
                 var neighbor = HexGrid.Neighbor(b.X, b.Y, i); int x = neighbor.X, y = neighbor.Y;
-                if (!CanTraverse(p, p.OwnerId, kind, x, y) || p.Units.Exists(v => !v.Destroyed && HexGrid.Distance(v.X, v.Y, x, y) < 0.6)) continue;
+                if (!GroundCellAvailable(p,p.OwnerId,kind,x,y)) continue;
                 p.Units.Add(new UnitState { Id = State.NextEntityId++, OwnerId = p.OwnerId, Kind = kind,
                     X = x, Y = y, Health = d.Health, Ammunition = d.Ammo, Food = d.Food, GoalX = x, GoalY = y });
                 b.RecruitKind = -1; b.RecruitPaid = false; b.RecruitProgress = 0;
@@ -244,6 +264,8 @@ namespace PlanetOne.Core
 
         private void TickUnit(PlanetState p, UnitState u)
         {
+            if(TickGroundYield(p,UnitAgent(u)))return;
+            if(u.RecenterToCell&&!CenterGroundUnit(p,u))return;
             var d = Definitions.Get(u.Kind);
             if(EvacuatingUnit(p,u)){if(u.Order==UnitOrder.Move||u.Order==UnitOrder.Retreat)MoveGround(p,u,false);return;}
             if (u.Order == UnitOrder.Attack)
@@ -262,6 +284,7 @@ namespace PlanetOne.Core
                 if (HexGrid.Distance(u.X, u.Y, u.GoalX, u.GoalY) > d.Range) { MoveGround(p, u, true); return; }
                 if (u.Cooldown > 0 || u.Ammunition <= 0) { u.Status = u.Ammunition <= 0 ? "Munition fehlt" : "Lädt nach"; return; }
                 u.Ammunition--; u.Cooldown = d.Interval; u.Status = "Beschießt bekannte Position";
+                RecordCombatShot(UnitShotKind(u.Kind), p.Id, u.Id, u.X, u.Y, p.Id, 0, u.GoalX, u.GoalY, u.OwnerId == State.PlayerFactionId);
                 // Deliberate area fire does not track hidden targets or reveal hit information.
                 foreach (var other in p.Units)
                     if (!other.Destroyed && other.Layer == TargetLayer.Ground && !ProtectedGuest(p,u.OwnerId,other.Id) && AtWar(u.OwnerId, other.OwnerId) &&
@@ -276,7 +299,9 @@ namespace PlanetOne.Core
                 if (!Target(p, u.TargetId, out x, out y, out owner, out layer) || (owner != u.OwnerId && !HasAccess(u.OwnerId,owner,p.Id,u.Order==UnitOrder.Resupply?AccessRight.Supply:AccessRight.Repair)))
                 { u.Order = UnitOrder.Hold; return; }
                 var goal = HexGrid.CellAt(x, y); u.GoalX = goal.X; u.GoalY = goal.Y;
-                if (HexGrid.Distance(u.X, u.Y, x, y) > 1.1) { MoveGround(p, u, true); return; }
+                var workTarget=p.Units.Find(v=>v.Id==u.TargetId&&!v.Destroyed);
+                double workRange=workTarget==null?1.1:Math.Max(1.1,GroundUnitRadius(u.Kind)+GroundUnitRadius(workTarget.Kind)+.15);
+                if (HexGrid.Distance(u.X, u.Y, x, y) > workRange) { MoveGround(p, u, true); return; }
                 if (u.Order == UnitOrder.Resupply) Supply(p, u); else Repair(p, u);
                 return;
             }
@@ -290,6 +315,13 @@ namespace PlanetOne.Core
 
         private void MoveGround(PlanetState p, UnitState u, bool adjacent)
         {
+            if(!adjacent&&(u.Order==UnitOrder.Move||u.Order==UnitOrder.Retreat))
+                foreach(var other in p.Units)
+                    if(other.Id!=u.Id&&!other.Destroyed&&other.Layer==TargetLayer.Ground&&other.Order==UnitOrder.Hold&&
+                        (other.OwnerId==u.OwnerId||CanSeeEntity(p,u.OwnerId,other.Id))&&
+                        HexGrid.Distance(other.X,other.Y,u.GoalX,u.GoalY)<GroundUnitRadius(u.Kind)+GroundUnitRadius(other.Kind)&&
+                        HexGrid.Distance(u.X,u.Y,u.GoalX,u.GoalY)<=Math.Ceiling(GroundUnitRadius(u.Kind)+GroundUnitRadius(other.Kind)))
+                    {u.Path.Clear();u.PathDistance=0;u.Order=UnitOrder.Hold;u.Status="Freien Platz am Ziel erreicht";return;}
             // Reroute only at cell centers; an invalid next segment never teleports a unit.
             if (u.Path.Count == 0 || u.PathDistance >= u.Path.Count - 1 - 0.000001)
             {
@@ -297,23 +329,36 @@ namespace PlanetOne.Core
                 double offset = HexGrid.Distance(u.X, u.Y, cx, cy);
                 if (offset > 0.000001)
                 {
-                    double step = Math.Min(offset, Definitions.Get(u.Kind).Speed * Definitions.TickSeconds);
-                    u.X += (cx - u.X) * step / offset; u.Y += (cy - u.Y) * step / offset;
+                    CenterGroundUnit(p,u);
                     return;
                 }
-                u.Path = GroundPath(p, u, u.GoalX, u.GoalY, adjacent) ?? new List<GridCell>(); u.PathDistance = 0;
+                u.Path = StraightenGroundPath(p,u,GroundPath(p, u, u.GoalX, u.GoalY, adjacent)) ?? new List<GridCell>(); u.PathDistance = 0;u.DirectPath=true;
                 if (u.Path.Count == 0) { u.Status = "Weg blockiert; Durchbruch oder andere Route nötig"; return; }
                 if (u.Path.Count == 1)
                 { if (u.Order == UnitOrder.Move || u.Order == UnitOrder.Retreat) u.Order = UnitOrder.Hold; u.Status = "Ziel erreicht"; return; }
             }
             int index = Math.Min((int)u.PathDistance, u.Path.Count - 2); var next = u.Path[index + 1];
             if (!CanTraverse(p, u.OwnerId, u.Kind, next.X, next.Y,u.Id))
-            { if (u.PathDistance == index) { u.Path.Clear(); u.PathDistance = 0; } u.Status = "Weg blockiert"; return; }
+            { if (u.DirectPath || u.PathDistance == index) { u.RecenterToCell=u.DirectPath;u.Path.Clear(); u.PathDistance = 0; } u.Status = "Weg blockiert"; return; }
             double speed = Definitions.Get(u.Kind).Speed;
+            if(u.DirectPath)
+            {
+                var previousCell=u.Path[index];var from=HexGrid.ToWorld(previousCell.X,previousCell.Y);var to=HexGrid.ToWorld(next.X,next.Y);
+                if(!GroundSegmentClear(p,u,GroundUnitPosition(u),to,false)){u.Path.Clear();u.PathDistance=0;u.RecenterToCell=true;u.Status="Weg geändert; zentriert sich";return;}
+                double distance=Distance(from.X,from.Y,to.X,to.Y);
+                double progress=Math.Min(index+1,u.PathDistance+speed*Definitions.TickSeconds/Math.Max(.000001,distance));
+                var position=GroundLerp(from,to,progress-index);
+                if(MoveGroundTraffic(p,u,position))
+                {u.PathDistance=progress;SetGroundUnitPosition(u,position);if(progress==index+1){u.X=next.X;u.Y=next.Y;}u.Status="Unterwegs";}
+                return;
+            }
             // Stop at each cell to revalidate obstacles before crossing another segment.
-            u.PathDistance = Math.Min(index + 1, u.PathDistance + speed * Definitions.TickSeconds);
-            double fraction = u.PathDistance - index; var previous = u.Path[index];
-            u.X = previous.X + (next.X - previous.X) * fraction; u.Y = previous.Y + (next.Y - previous.Y) * fraction;
+            double nextDistance=Math.Min(index+1,u.PathDistance+speed*Definitions.TickSeconds);
+            double fraction=nextDistance-index;var previous=u.Path[index];
+            double nextX=previous.X+(next.X-previous.X)*fraction,nextY=previous.Y+(next.Y-previous.Y)*fraction;
+            if(!MoveGroundTraffic(p,u,HexGrid.ToWorld(nextX,nextY)))
+            {if(u.Traffic!=null&&!u.Traffic.Yielding&&u.Traffic.WaitTicks%12==0&&Math.Abs(u.PathDistance-index)<.000001){u.Path.Clear();u.PathDistance=0;}return;}
+            u.PathDistance=nextDistance;u.X=nextX;u.Y=nextY;
             u.Status = u.Order == UnitOrder.Retreat ? "Zieht sich zurück" : "Unterwegs";
         }
 
@@ -337,6 +382,7 @@ namespace PlanetOne.Core
             if (u.Ammunition <= 0) { u.Status = "Munition fehlt; Depot oder Versorgung anfordern"; return; }
             if (u.Cooldown > 0) return;
             u.Ammunition--; u.Cooldown = d.Interval * (u.Food > 0 ? 1 : Definitions.UnfedReloadFactor); u.Status = "Feuert";
+            RecordCombatShot(UnitShotKind(u.Kind), p.Id, u.Id, u.X, u.Y, p.Id, target, x, y);
             var enemy = p.Units.Find(v => v.Id == target);
             if (enemy != null) HurtUnit(p, enemy, d.Damage, u.Kind);
             else { var b = p.Buildings.Find(v => v.Id == target); if (b != null) HurtBuilding(p, b, d.Damage); }
@@ -361,6 +407,7 @@ namespace PlanetOne.Core
             if (HasCover(p, u)) damage *= Definitions.CoverDamageFactor;
             u.Health = Math.Max(0, u.Health - damage);
             if (u.Health > 0) return;
+            RecordCombatExplosion(p.Id, u.Id, u.X, u.Y);
             u.Destroyed = true; u.Path.Clear(); u.PathDistance = 0; u.Status = "Vernichtet";
             p.LostTotals[(int)ResourceKind.Parts] += u.Parts; u.Parts = 0;
             Emit(u.OwnerId, p.Id, u.Id, "UnitDestroyed", Definitions.Get(u.Kind).Name + " verloren.");
@@ -380,6 +427,7 @@ namespace PlanetOne.Core
             if (target == 0) return;
             b.Ammunition--; b.FireCooldown = weapon.Interval;
             var enemy = p.Units.Find(u => u.Id == target);
+            RecordCombatShot(UnitShotKind(weapon.AttackKind), p.Id, b.Id, b.X, b.Y, p.Id, enemy.Id, enemy.X, enemy.Y);
             HurtUnit(p, enemy, weapon.Damage, weapon.AttackKind);
         }
 
@@ -425,6 +473,7 @@ namespace PlanetOne.Core
             if (b.Destroyed) return;
             b.Health = Math.Max(0, b.Health - damage);
             if (b.Health > 0) return;
+            RecordCombatExplosion(p.Id, b.Id, b.X, b.Y);
             // Cancel delivery relationships through the proven return-cargo flow first.
             // Military destruction has zero building-cost recovery; real courier cargo survives.
             var stock = (int[])b.Inventory.Clone();

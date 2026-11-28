@@ -143,7 +143,8 @@ internal static class MilitaryTests
     private static void Repair()
     {
         BuildingState depot; var s = Supplied(out depot); var p = s.FindPlanet(1);
-        var engineer = Unit(s, UnitKind.Engineer, 1, 6, 5); var tank = Unit(s, UnitKind.Tank, 1, 5, 5); tank.Health = 80; tank.Ammunition = 0;
+        var engineer = Unit(s, UnitKind.Engineer, 1, 6, 5); var tank = Unit(s, UnitKind.Tank, 1, 4, 5); tank.Health = 80; tank.Ammunition = 0;
+        SaveCodec.Validate(s.State);
         Command(s, engineer, CommandKind.ResupplyUnit, target: depot.Id); s.Step(80); Check(engineer.Parts > 0, "Engineer failed physical depot pickup");
         int before = engineer.Parts, consumed = p.ConsumedTotals[3]; Command(s, engineer, CommandKind.RepairTarget, target: tank.Id); s.Step(25);
         Check(tank.Health > 80 && engineer.Parts < before && p.ConsumedTotals[3] > consumed, "Repair free or ineffective");

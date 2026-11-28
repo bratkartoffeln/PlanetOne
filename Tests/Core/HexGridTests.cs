@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Serialization.Json;
+using System.Text;
 using PlanetOne.Core;
 
 internal static class HexGridTests
@@ -14,7 +16,7 @@ internal static class HexGridTests
         run("Hex cover and line of sight follow sloping neighboring cells", Sight);
         run("Hex landing reserves seven cells and prevents overlapping carriers", Landing);
         run("Hex save validation accepts sloping paths and rejects square diagonals", Paths);
-        run("Actual version five invasion save migrates without changing goods or entities", Migration);
+        run("Legacy fixture follows actual vehicle clearances while valid current saves retain state", LegacyOverlap);
     }
     private static void Check(bool value, string message) { if (!value) throw new Exception(message); }
     private static bool Same(GridCell a, GridCell b) { return a.X == b.X && a.Y == b.Y; }
@@ -101,24 +103,36 @@ internal static class HexGridTests
         try{SaveCodec.Validate(sim.State);}catch(InvalidDataException){rejected=true;}
         Check(rejected,"Invalid hex edge persisted");
     }
-    private static void Migration()
+    private static void LegacyOverlap()
     {
-        string json=File.ReadAllText("Tests/Core/Fixtures/invasion-v5.json");
-        Check(json.Contains("\"Version\":5"),"Not a real old schema fixture");
-        var state=SaveCodec.FromJson(json); Check(state.Version==SaveCodec.CurrentVersion,"Migration not applied");
-        string migrated=SaveCodec.ToJson(state).Replace("\"AiScenario\":false,", "").Replace("\"ComputerFactions\":[],", "");
-        foreach(string added in new[]{"\"DiplomacyScenario\":false,","\"DiplomacyEvents\":[],","\"Evacuations\":[],","\"GateProjects\":[],","\"Treaties\":[],","\"Winners\":[],",",\"Status\":0",",\"Terms\":null",",\"TreatyId\":0","\"PaymentLeg\":false,"})migrated=migrated.Replace(added,"");
-        migrated=migrated.Replace(",\"Winners\":[]", "");
-        migrated=migrated.Replace("\"AsteroidBelts\":[],", "").Replace("\"Asteroids\":[],", "").Replace("\"SpaceMinedOre\":0,", "").Replace("\"Mining\":null,", "");
-        migrated=migrated.Replace("\"DestinationId\":0,", "");
-        // V9 deliberately slows legacy orbits while preserving their position at migration.
-        string orbitalFields="\"Orbit(Eccentricity|Periapsis|PeriodSeconds|Phase)\":[^,}]+,";
-        migrated=System.Text.RegularExpressions.Regex.Replace(migrated,orbitalFields,"");
-        migrated=System.Text.RegularExpressions.Regex.Replace(migrated,"\"Kind\":[0-9]+,(?=\"LostTotals\")","");
-        string original=System.Text.RegularExpressions.Regex.Replace(json,orbitalFields,"");
-        Check(migrated==original.Replace("\"Version\":5","\"Version\":"+SaveCodec.CurrentVersion),"Migration changed non-orbital state");
-        var a=new GameSimulation(state);var b=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(state)));
-        a.State.Paused=b.State.Paused=false;a.Step(200);b.Step(200);
-        Check(SaveCodec.ToJson(a.State)==SaveCodec.ToJson(b.State),"Migrated continuation differs");
+        const string path="Tests/Core/Fixtures/invasion-v5.json";
+        byte[] original=File.ReadAllBytes(path);GameState old;
+        using(var stream=new MemoryStream(original))old=(GameState)new DataContractJsonSerializer(typeof(GameState)).ReadObject(stream);
+        Check(old.Version==5,"Not the original version five fixture");
+        bool overlap=false;
+        foreach(var planet in old.Planets)for(int i=0;i<planet.Units.Count;i++)for(int j=i+1;j<planet.Units.Count;j++)
+        {
+            var a=planet.Units[i];var b=planet.Units[j];
+            if(!a.Destroyed&&!b.Destroyed&&a.Layer==TargetLayer.Ground&&b.Layer==TargetLayer.Ground&&
+                HexGrid.Distance(a.X,a.Y,b.X,b.Y)<GameSimulation.GroundUnitRadius(a.Kind)+GameSimulation.GroundUnitRadius(b.Kind)-GameSimulation.GroundTrafficTolerance)overlap=true;
+        }
+        foreach(var a in old.Ships)foreach(var b in old.Ships)
+            if(a.Id<b.Id&&!a.Destroyed&&!b.Destroyed&&!a.Consumed&&!b.Consumed&&a.TransportPhase==TransportPhase.Space&&b.TransportPhase==TransportPhase.Space&&
+                Math.Sqrt((a.X-b.X)*(a.X-b.X)+(a.Y-b.Y)*(a.Y-b.Y))<Definitions.ShipRadius(a.Kind)+Definitions.ShipRadius(b.Kind)+Definitions.SpaceTrafficGap)overlap=true;
+        // Development saves have no compatibility promise. Moving the original bodies
+        // just to make an obsolete migration assertion pass would conceal lost state.
+        bool rejected=false;
+        try{SaveCodec.FromJson(Encoding.UTF8.GetString(original));}
+        catch(InvalidDataException error){rejected=error.Message.Contains("überlagern");}
+        Check(rejected==overlap,"Legacy collision validation differs from actual vehicle clearances");
+        Check(Convert.ToBase64String(original)==Convert.ToBase64String(File.ReadAllBytes(path)),"Rejected legacy fixture was modified");
+
+        var current=Empty();var mover=InvasionFixture.AddUnit(current,1,1,UnitKind.Tank,20,20);
+        InvasionFixture.AddUnit(current,1,2,UnitKind.Infantry,25,20);
+        current.Enqueue(new SimCommand{Id=current.NextCommandId(),IssuerId=1,PlanetId=1,ActorId=mover.Id,Kind=CommandKind.MoveUnit,X=21,Y=20});current.Step(5);
+        string snapshot=SaveCodec.ToJson(current.State);var restored=new GameSimulation(SaveCodec.FromJson(snapshot));
+        Check(SaveCodec.ToJson(restored.State)==snapshot,"Valid current save changed ownership, quantities, identities or movement");
+        current.Step(200);restored.Step(200);
+        Check(SaveCodec.ToJson(current.State)==SaveCodec.ToJson(restored.State),"Valid current save continuation differs");
     }
 }

@@ -19,6 +19,9 @@ namespace PlanetOne.Runtime
         private List<SaveSlotInfo> slotCatalog=new List<SaveSlotInfo>();
         private SessionPage sessionPage;
         private Vector2 sessionScroll;
+        private Vector2 sessionNavigationScroll;
+        private GUIStyle sessionCardStyle;
+        private string selectedSaveSlot;
         private bool hasSession, settingsReturnToMenu;
         private string sessionError, seedInput="", pendingTitle, pendingDetail;
         private int newScenario, guidePage;
@@ -52,7 +55,12 @@ namespace PlanetOne.Runtime
         public void ShowSessionPage(SessionPage page)
         {
             SetMenuVisible(true);settingsOpen=false;sessionPage=page;sessionScroll=Vector2.zero;sessionError=null;pendingSessionAction=null;
-            if(page==SessionPage.Save || page==SessionPage.Load)RefreshSlots();
+            if(page==SessionPage.Save || page==SessionPage.Load)
+            {
+                RefreshSlots();
+                if(selectedSaveSlot==null || !slotCatalog.Exists(s=>s.Id==selectedSaveSlot && (page!=SessionPage.Save || !s.ReadOnly)))
+                    selectedSaveSlot=ActiveSlotId ?? (slotCatalog.Count>0?slotCatalog[0].Id:null);
+            }
         }
         private void ConfirmSessionAction(string title,string detail,Action action)
         {pendingTitle=title;pendingDetail=detail;pendingSessionAction=action;sessionError=null;}
@@ -157,16 +165,34 @@ namespace PlanetOne.Runtime
         }
         private void DrawSessionMenu()
         {
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical();
             GUILayout.Label("PLANETONE",titleStyle);
-            GUILayout.Label("AUFBAU · RAUMFAHRT · DIPLOMATIE",smallStyle);GUILayout.Space(14);
+            GUILayout.Label(hasSession?"SPIELMENÜ · PARTIE PAUSIERT":"EINZELSPIELER · DEIN WEG ZU DEN STERNEN",smallStyle);
+            GUILayout.EndVertical();
+            if(hasSession && GUILayout.Button(new GUIContent("Fortsetzen",HudSymbol(HudIcon.Play)),selectedButtonStyle,GUILayout.Width(190),GUILayout.MinHeight(UiRowHeight(44))))CloseSessionMenu();
+            GUILayout.EndHorizontal();GUILayout.Space(20);
             if(pendingSessionAction!=null)
             {
-                GUILayout.Label(pendingTitle,headingStyle);GUILayout.Space(14);GUILayout.Label(pendingDetail,bodyStyle);GUILayout.Space(24);
+                sessionScroll=GUILayout.BeginScrollView(sessionScroll);
+                BeginSessionCard();
+                SessionHeading(pendingTitle,HudIcon.Info);
+                GUILayout.Space(12);GUILayout.Label(pendingDetail,bodyStyle);
+                EndSessionCard();
+                GUILayout.EndScrollView();GUILayout.Space(20);
                 GUILayout.BeginHorizontal();
-                if(GUILayout.Button("Abbrechen",buttonStyle,GUILayout.Height(44)))ResolveSessionConfirmation(false);
-                if(GUILayout.Button("Bestätigen",buttonStyle,GUILayout.Height(44)))ResolveSessionConfirmation(true);
+                if(GUILayout.Button("Abbrechen · Esc",buttonStyle,GUILayout.MinHeight(UiRowHeight(46))))ResolveSessionConfirmation(false);
+                if(GUILayout.Button(ConfirmationActionLabel(),selectedButtonStyle,GUILayout.MinHeight(UiRowHeight(46))))ResolveSessionConfirmation(true);
                 GUILayout.EndHorizontal();return;
             }
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical(GUILayout.Width(216));
+            sessionNavigationScroll=GUILayout.BeginScrollView(sessionNavigationScroll);
+            DrawSessionNavigation();
+            GUILayout.EndScrollView();
+            GUILayout.EndVertical();
+            GUILayout.Space(22);
+            GUILayout.BeginVertical();
             sessionScroll=GUILayout.BeginScrollView(sessionScroll);
             switch(sessionPage)
             {
@@ -177,34 +203,86 @@ namespace PlanetOne.Runtime
                 case SessionPage.Fixtures: DrawSessionFixtures();break;
             }
             GUILayout.EndScrollView();
-            if(sessionError!=null){GUILayout.Space(8);GUILayout.Label(sessionError,bodyStyle);}
-            GUILayout.Space(10);
-            if(sessionPage!=SessionPage.Home && GUILayout.Button("Zurück zum Menü",buttonStyle,GUILayout.Height(34)))ShowSessionPage(SessionPage.Home);
-            GUILayout.Label("Version "+Application.version+(hasSession?" · Spielzeit hält im Menü an":" · Einzelspieler"),smallStyle);
+            if(sessionError!=null){GUILayout.Space(10);GUILayout.Label(sessionError,bodyStyle);}
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();GUILayout.Space(14);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Version "+Application.version,smallStyle);
+            GUILayout.FlexibleSpace();
+            string footer=hasSession?"Esc · zurück zur Partie":"Lokale Partien";GUILayout.Label(footer,smallStyle,GUILayout.Width(smallStyle.CalcSize(new GUIContent(footer)).x+8));
+            GUILayout.EndHorizontal();
+        }
+        private void BeginSessionCard()
+        {
+            if(sessionCardStyle==null)sessionCardStyle=new GUIStyle{padding=new RectOffset(18,18,16,16),margin=new RectOffset(0,0,0,12)};
+            ApplyChromeStates(sessionCardStyle,panelTexture,panelTexture,14);
+            GUILayout.BeginVertical(sessionCardStyle);
+        }
+        private static void EndSessionCard(){GUILayout.EndVertical();}
+        private void SessionHeading(string text,HudIcon icon)
+        {
+            GUILayout.BeginHorizontal();
+            Color previous=GUI.color;GUI.color=Cyan;
+            GUILayout.Label(HudSymbol(icon),GUILayout.Width(28),GUILayout.Height(28));GUI.color=previous;
+            GUILayout.Label(text,headingStyle);GUILayout.EndHorizontal();
+        }
+        private bool SessionButton(string text,HudIcon icon,bool primary=false)
+        {return GUILayout.Button(new GUIContent(text,HudSymbol(icon)),primary?selectedButtonStyle:buttonStyle,GUILayout.MinHeight(UiRowHeight(44)));}
+        private void SessionNavigation(string label,HudIcon icon,SessionPage page)
+        {if(SessionButton(label,icon,sessionPage==page)){ShowSessionPage(page);GUIUtility.ExitGUI();}}
+        private void DrawSessionNavigation()
+        {
+            GUILayout.Label("PARTIE",smallStyle);GUILayout.Space(6);
+            SessionNavigation("Übersicht",HudIcon.Planet,SessionPage.Home);
+            SessionNavigation("Neue Partie",HudIcon.Play,SessionPage.NewGame);
+            SessionNavigation("Spiel laden",HudIcon.Supply,SessionPage.Load);
+            if(hasSession)SessionNavigation("Spiel speichern",HudIcon.Supply,SessionPage.Save);
+            GUILayout.Space(18);GUILayout.Label("HILFE & DARSTELLUNG",smallStyle);GUILayout.Space(6);
+            SessionNavigation("Starthilfe",HudIcon.Info,SessionPage.Guide);
+            if(SessionButton("Einstellungen",HudIcon.Settings))SetSettingsVisible(true);
+            GUILayout.Space(18);
+            SessionNavigation("Prüfkarten",HudIcon.Units,SessionPage.Fixtures);
+            GUILayout.Space(12);
+            if(SessionButton("Spiel beenden",HudIcon.Close))
+            {if(hasSession)ConfirmSessionAction("Spiel beenden?","Nicht gespeicherter Fortschritt geht verloren.",()=>Application.Quit());else Application.Quit();}
+        }
+        private string ConfirmationActionLabel()
+        {
+            if(pendingTitle.Contains("überschreiben"))return "Überschreiben";
+            if(pendingTitle.Contains("wiederherstellen"))return "Sicherung laden";
+            if(pendingTitle.Contains("laden"))return "Spielstand laden";
+            if(pendingTitle.Contains("beenden"))return "Spiel beenden";
+            if(pendingTitle.Contains("Testszenario"))return "Prüfkarte öffnen";
+            return "Partie beginnen";
         }
         private void DrawSessionHome()
         {
+            BeginSessionCard();
+            SessionHeading(hasSession?"Deine laufende Partie":"Baue deine erste Kolonie",hasSession?HudIcon.Planet:HudIcon.Build);
+            GUILayout.Space(10);
             if(hasSession)
             {
-                if(GUILayout.Button("Partie fortsetzen",selectedButtonStyle,GUILayout.Height(46)))CloseSessionMenu();
+                GUILayout.Label("Wirtschaft, Flotten und Forschung warten auf deine nächsten Befehle.",bodyStyle);GUILayout.Space(16);
+                if(SessionButton("Partie fortsetzen",HudIcon.Play,true))CloseSessionMenu();
+                GUILayout.Space(10);
                 GUILayout.BeginHorizontal();
-                if(GUILayout.Button("Speichern …",buttonStyle,GUILayout.Height(40)))ShowSessionPage(SessionPage.Save);
-                if(GUILayout.Button("Laden …",buttonStyle,GUILayout.Height(40)))ShowSessionPage(SessionPage.Load);
+                if(SessionButton("Speichern",HudIcon.Supply))ShowSessionPage(SessionPage.Save);
+                if(SessionButton("Laden",HudIcon.Back))ShowSessionPage(SessionPage.Load);
                 GUILayout.EndHorizontal();
-                GUILayout.Label(ActiveSlotId==null?"Noch kein Speicherplatz zugeordnet. F5 nutzt einen freien Platz.":"Aktiver Speicherplatz: "+ActiveSlotId.Substring(5)+" · F5 speichern · F9 laden",smallStyle);
+                GUILayout.Space(12);GUILayout.Label(ActiveSlotId==null?"F5 speichert erstmals auf einem freien Platz.":"Speicherplatz "+ActiveSlotId.Substring(5)+" · F5 speichern · F9 laden",smallStyle);
             }
-            else if(GUILayout.Button("Gespeicherte Partie laden",buttonStyle,GUILayout.Height(44)))ShowSessionPage(SessionPage.Load);
-            GUILayout.Space(14);
-            if(GUILayout.Button("Neue Partie …",buttonStyle,GUILayout.Height(46)))ShowSessionPage(SessionPage.NewGame);
-            if(GUILayout.Button("Starthilfe · die ersten Schritte",buttonStyle,GUILayout.Height(40)))ShowSessionPage(SessionPage.Guide);
-            if(GUILayout.Button("Einstellungen",buttonStyle,GUILayout.Height(40)))SetSettingsVisible(true);
-            if(priorSession!=null && GUILayout.Button("Zur vorherigen Partie zurück",buttonStyle,GUILayout.Height(34)))
-            RestorePreviousSession();
-            GUILayout.Space(16);
-            if(GUILayout.Button("Testszenarien …",buttonStyle,GUILayout.Height(32)))ShowSessionPage(SessionPage.Fixtures);
-            GUILayout.Label("Prüfkarten sind getrennt von regulären Partien.",smallStyle);GUILayout.Space(12);
-            if(GUILayout.Button("Spiel beenden",buttonStyle,GUILayout.Height(34)))
-            {if(hasSession)ConfirmSessionAction("Spiel beenden?","Nicht gespeicherter Fortschritt geht verloren.",()=>Application.Quit());else Application.Quit();}
+            else
+            {
+                GUILayout.Label("Erschließe Planeten, verbinde deine Kolonien und erreiche die Sterne – allein oder mit Verbündeten.",bodyStyle);GUILayout.Space(16);
+                if(SessionButton("Neue Partie auswählen",HudIcon.Play,true))ShowSessionPage(SessionPage.NewGame);
+                if(SessionButton("Gespeicherte Partie laden",HudIcon.Supply))ShowSessionPage(SessionPage.Load);
+            }
+            EndSessionCard();
+            BeginSessionCard();SessionHeading("Gut vorbereitet starten",HudIcon.Info);
+            GUILayout.Label("Die Starthilfe zeigt dir Orientierung, Versorgung, Raumfahrt und das gemeinsame Spielziel.",bodyStyle);GUILayout.Space(12);
+            if(SessionButton("Starthilfe öffnen",HudIcon.Info))ShowSessionPage(SessionPage.Guide);
+            EndSessionCard();
+            if(priorSession!=null && SessionButton("Zur vorherigen Partie zurück",HudIcon.Back))RestorePreviousSession();
         }
         private static readonly string[] ScenarioNames={"Drei Kolonien · Empfohlen","Diplomatische Partie","Gegen einen Computer"};
         private static readonly string[] ScenarioDescriptions={
@@ -213,51 +291,92 @@ namespace PlanetOne.Runtime
             "Ein Spieler gegen eine eigenständige KI. Beginn im Krieg; Aufbau und Gegenwehr stehen im Mittelpunkt."};
         private void DrawNewSession()
         {
-            GUILayout.Label("NEUE PARTIE",headingStyle);GUILayout.Space(10);
-            for(int i=0;i<ScenarioNames.Length;i++)if(GUILayout.Button(ScenarioNames[i],newScenario==i?selectedButtonStyle:buttonStyle,GUILayout.Height(40)))newScenario=i;
-            GUILayout.Space(12);GUILayout.Label(ScenarioDescriptions[newScenario],bodyStyle);GUILayout.Space(14);
-            GUILayout.Label("Startwert · leer lassen für Zufall",headingStyle);seedInput=GUILayout.TextField(seedInput,12,GUILayout.Height(30));
-            GUILayout.Label("Gleicher Startwert und gleiche Partie erzeugen denselben Ausgangszustand. Jede Fraktion bezahlt ihren Aufbau aus endlichen Vorräten.",smallStyle);
-            GUILayout.Space(16);if(GUILayout.Button("Partie beginnen",selectedButtonStyle,GUILayout.Height(44)))RequestNewSession(newScenario,seedInput);
+            SessionHeading("Wähle deine Partie",HudIcon.Planet);GUILayout.Space(14);
+            HudIcon[] icons={HudIcon.Planet,HudIcon.Diplomacy,HudIcon.Units};
+            for(int i=0;i<ScenarioNames.Length;i++)if(SessionButton(ScenarioNames[i],icons[i],newScenario==i))newScenario=i;
+            GUILayout.Space(14);BeginSessionCard();
+            GUILayout.Label(ScenarioNames[newScenario],headingStyle);GUILayout.Space(8);
+            GUILayout.Label(ScenarioDescriptions[newScenario],bodyStyle);GUILayout.Space(16);
+            GUILayout.Label("Startwert (optional)",headingStyle);
+            seedInput=GUILayout.TextField(seedInput,12,GUILayout.MinHeight(UiRowHeight(36)));
+            GUILayout.Label("Leer für Zufall. Mit demselben Startwert lässt sich diese Ausgangslage wiederholen.",smallStyle);
+            EndSessionCard();
+            if(SessionButton("Partie beginnen",HudIcon.Play,true))RequestNewSession(newScenario,seedInput);
         }
         private void DrawSaveSlots()
         {
             bool saving=sessionPage==SessionPage.Save;
-            GUILayout.Label(saving?"SPIEL SPEICHERN":"SPIELSTAND LADEN",headingStyle);
-            GUILayout.Label(saving?"Acht unabhängige Plätze. Belegte Plätze erfordern eine Bestätigung.":"Sicherungen enthalten den vorherigen gültigen Stand und werden nur auf Wunsch geladen.",smallStyle);GUILayout.Space(10);
-            foreach(var info in slotCatalog)
+            SessionHeading(saving?"Spiel speichern":"Spielstand laden",HudIcon.Supply);
+            GUILayout.Label("Wähle einen Speicherplatz. Seine Angaben und Aktionen erscheinen darunter.",smallStyle);GUILayout.Space(14);
+            for(int row=0;row<SaveSlots.Count/2;row++)
             {
-                if(saving && info.ReadOnly)continue;
-                GUILayout.Label(info.Label+(ActiveSlotId==info.Id?" · AKTIV":""),headingStyle);
-                string detail=info.Valid?info.SavedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")+" · Spielzeit "+TimeSpan.FromSeconds(info.Tick*Definitions.TickSeconds).ToString(@"hh\:mm\:ss")+" · Startwert "+info.Seed:info.Exists?"Nicht ladbar: "+info.Error:info.BackupExists?"Nur Sicherung vorhanden":"Freier Speicherplatz";
-                GUILayout.Label(detail,smallStyle);GUILayout.BeginHorizontal();
-                if(saving){if(GUILayout.Button(info.Exists || info.BackupExists?"Hier überschreiben …":"Hier speichern",buttonStyle,GUILayout.Height(32)))RequestSaveSessionSlot(info.Id);}
-                else
+                GUILayout.BeginHorizontal();
+                for(int column=0;column<2;column++)
                 {
-                    bool enabled=GUI.enabled;GUI.enabled=enabled && info.Valid;
-                    if(GUILayout.Button("Laden",buttonStyle,GUILayout.Height(32)))RequestLoadSessionSlot(info.Id);
-                    GUI.enabled=enabled && info.BackupValid;
-                    if(GUILayout.Button("Sicherung laden",buttonStyle,GUILayout.Height(32)))RequestLoadSessionSlot(info.Id,true);
-                    GUI.enabled=enabled;
+                    string id=SaveSlots.Id(row*2+column+1);var slot=slotCatalog.Find(s=>s.Id==id);if(slot==null)continue;
+                    string status=slot.Valid?"Belegt":slot.Exists?"Beschädigt":slot.BackupExists?"Sicherung":"Frei";
+                    if(GUILayout.Button((row*2+column+1)+" · "+status+(ActiveSlotId==id?" · Aktiv":""),selectedSaveSlot==id?selectedButtonStyle:buttonStyle,GUILayout.MinHeight(UiRowHeight(42)))){selectedSaveSlot=id;GUIUtility.ExitGUI();}
                 }
-                GUILayout.EndHorizontal();if(info.BackupError!=null)GUILayout.Label("Sicherung nicht ladbar: "+info.BackupError,smallStyle);GUILayout.Space(14);
+                GUILayout.EndHorizontal();
             }
+            if(!saving && slotCatalog.Exists(s=>s.ReadOnly))
+            {
+                GUILayout.Space(12);GUILayout.Label("Bisherige Spielstände",smallStyle);
+                foreach(var old in slotCatalog)if(old.ReadOnly)
+                    if(GUILayout.Button(old.Label,selectedSaveSlot==old.Id?selectedButtonStyle:buttonStyle,GUILayout.MinHeight(UiRowHeight(38)))){selectedSaveSlot=old.Id;GUIUtility.ExitGUI();}
+            }
+            GUILayout.Space(16);
+            var info=slotCatalog.Find(s=>s.Id==selectedSaveSlot);
+            if(info==null){GUILayout.Label("Kein Speicherplatz ausgewählt.",bodyStyle);return;}
+            BeginSessionCard();
+            GUILayout.Label(info.Label+(ActiveSlotId==info.Id?" · AKTIV":""),headingStyle);GUILayout.Space(8);
+            if(info.Valid)
+            {
+                GUILayout.Label("Gespeichert am "+info.SavedUtc.ToLocalTime().ToString("dd.MM.yyyy · HH:mm"),bodyStyle);
+                GUILayout.Label("Spielzeit "+TimeSpan.FromSeconds(info.Tick*Definitions.TickSeconds).ToString(@"hh\:mm\:ss")+" · Startwert "+info.Seed,smallStyle);
+            }
+            else GUILayout.Label(info.Exists?"Nicht ladbar: "+info.Error:info.BackupExists?"Die Hauptdatei fehlt. Eine Sicherung ist vorhanden.":"Dieser Platz ist frei.",bodyStyle);
+            if(info.ReadOnly)GUILayout.Label("Beim weiteren Speichern bleibt diese bisherige Datei erhalten.",smallStyle);
+            if(info.BackupError!=null)GUILayout.Label("Sicherung nicht ladbar: "+info.BackupError,smallStyle);
+            else if(info.BackupValid)GUILayout.Label("Eine vorherige gültige Sicherung ist verfügbar.",smallStyle);
+            GUILayout.Space(14);
+            if(saving)
+            {if(SessionButton(info.Exists || info.BackupExists?"Hier überschreiben …":"Hier speichern",HudIcon.Supply,true))RequestSaveSessionSlot(info.Id);}
+            else
+            {
+                bool enabled=GUI.enabled;GUI.enabled=enabled && info.Valid;
+                if(SessionButton("Ausgewählten Stand laden",HudIcon.Play,true))RequestLoadSessionSlot(info.Id);
+                GUI.enabled=enabled && info.BackupValid;
+                if(SessionButton("Vorherige Sicherung laden",HudIcon.Back))RequestLoadSessionSlot(info.Id,true);
+                GUI.enabled=enabled;
+            }
+            EndSessionCard();
         }
         private static readonly string[] GuideTitles={"1 · Orientierung und Zeit","2 · Grundversorgung aufbauen","3 · Raumfahrt und Nachschub","4 · Partner, Konflikte und Ziel"};
         private static readonly string[] GuideTexts={
-            "Linksklick wählt ein Objekt. Kurzer Rechtsklick zeigt seine Befehle; rechts ziehen verschiebt die Kamera. Q/E dreht, das Mausrad zoomt. Die Leertaste pausiert. Im Menü steht die Spielzeit still. Öffne Aster über die Planetenkarte und „Oberfläche öffnen“.",
-            "Baue zuerst Hydroponik für Nahrung und eine Solaranlage für Energie. Mine, Schmelze und Werkstatt liefern Erz, Metall und Bauteile. Bauflächen brauchen erreichbare Straßen; Material fährt tatsächlich zur Baustelle. Wähle ein Gebäude und öffne „Details“, um fehlende Versorgung zu sehen.",
+            "Linksklick wählt ein Objekt. Rechtsklick bewegt gewählte Einheiten oder greift einen Gegner an. Strg + Rechtsklick öffnet weitere Befehle und Diplomatie; rechts ziehen verschiebt die Kamera. Q/E dreht, das Mausrad zoomt. Die Leertaste pausiert. Im Menü steht die Spielzeit still. Ein Doppelklick auf einen Planeten startet den Anflug zur Oberfläche.",
+            "Baue zuerst Hydroponik für Nahrung und eine Solaranlage für Energie. Mine, Schmelze und Werkstatt liefern Erz, Metall und Bauteile. Mit „Verbindung planen“ ein Startgebäude und ein Zielgebäude oder einen Bauplatz verbinden. L zeigt das Versorgungsnetz; Material fährt tatsächlich zur Baustelle. Wähle ein Gebäude und öffne „Details“, um fehlende Versorgung zu sehen.",
             "Ein versorgtes Labor ermöglicht Forschung; Raumtransport schaltet den Weg zu weiteren Kolonien frei. Der Raumhafen baut Schiffe aus bezahlten Materialien. Flotte trennt Schiffe, Aufträge, Schiffbau und Abbau. Frachter transportieren echte Waren, keine globalen Bestände.",
             "Diplomatie erlaubt Handel, Zugangsrechte und Koalitionen. Die Drei-Kolonien-Partie beginnt friedlich. Für den Sieg brauchst du Forschung, gelieferte Komponenten und ein gesichertes Sprungtor. Verbündete können gemeinsam gewinnen. F5 speichert; im Menü kannst du einen anderen Speicherplatz wählen."};
         private void DrawStartGuide()
         {
-            GUILayout.Label("STARTHILFE",headingStyle);GUILayout.Space(14);GUILayout.Label(GuideTitles[guidePage],headingStyle);GUILayout.Space(12);GUILayout.Label(GuideTexts[guidePage],bodyStyle);GUILayout.Space(20);
+            SessionHeading("Starthilfe",HudIcon.Info);GUILayout.Space(14);
+            string[] topics={"Orientierung","Versorgung","Raumfahrt","Diplomatie"};
+            for(int row=0;row<2;row++)
+            {
+                GUILayout.BeginHorizontal();
+                for(int column=0;column<2;column++)
+                {int page=row*2+column;if(GUILayout.Button((page+1)+" · "+topics[page],guidePage==page?selectedButtonStyle:buttonStyle,GUILayout.MinHeight(UiRowHeight(40))))guidePage=page;}
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.Space(16);BeginSessionCard();
+            GUILayout.Label(GuideTitles[guidePage],headingStyle);GUILayout.Space(12);GUILayout.Label(GuideTexts[guidePage],bodyStyle);GUILayout.Space(18);
+            if(hasSession && SessionButton(guidePage==0?"Eigene Kolonie öffnen":guidePage==1?"Baukatalog öffnen":guidePage==2?"Forschung öffnen":"Diplomatie öffnen",guidePage==1?HudIcon.Build:guidePage==2?HudIcon.Research:guidePage==3?HudIcon.Diplomacy:HudIcon.Planet,true))OpenGuideDestination(guidePage);
+            EndSessionCard();
             GUILayout.BeginHorizontal();
-            if(GUILayout.Button("‹ Vorheriger Schritt",buttonStyle,GUILayout.Height(34)))guidePage=(guidePage+3)%4;
-            if(GUILayout.Button("Nächster Schritt ›",buttonStyle,GUILayout.Height(34)))guidePage=(guidePage+1)%4;
-            GUILayout.EndHorizontal();GUILayout.Space(12);GUILayout.Label("Vier kurze Schritte. Jederzeit über das Spielmenü erreichbar.",smallStyle);
-            if(hasSession && GUILayout.Button(guidePage==0?"Eigene Kolonie öffnen":guidePage==1?"Baukatalog öffnen":guidePage==2?"Forschung öffnen":"Diplomatie öffnen",selectedButtonStyle,GUILayout.Height(42)))OpenGuideDestination(guidePage);
-            if(hasSession && GUILayout.Button("Zur Partie",buttonStyle,GUILayout.Height(36)))CloseSessionMenu();
+            if(GUILayout.Button("‹ Zurück",buttonStyle,GUILayout.MinHeight(UiRowHeight(38))))guidePage=(guidePage+3)%4;
+            if(GUILayout.Button("Weiter ›",buttonStyle,GUILayout.MinHeight(UiRowHeight(38))))guidePage=(guidePage+1)%4;
+            GUILayout.EndHorizontal();
         }
         public void OpenGuideDestination(int page)
         {
@@ -268,13 +387,18 @@ namespace PlanetOne.Runtime
         }
         private void DrawSessionFixtures()
         {
-            GUILayout.Label("TESTSZENARIEN",headingStyle);GUILayout.Label("Separate Prüfkarten mit endlichen vorbereiteten Anlagen und Beständen. Kein regulärer Spielstart.",bodyStyle);GUILayout.Space(14);
-            if(GUILayout.Button("Aufbau / Raumfahrt",buttonStyle,GUILayout.Height(40)))LaunchFixture(StartSpaceFixture);
-            if(GUILayout.Button("Bodengefecht",buttonStyle,GUILayout.Height(40)))LaunchFixture(StartMilitaryFixture);
-            if(GUILayout.Button("Invasion",buttonStyle,GUILayout.Height(40)))LaunchFixture(StartInvasionFixture);
-            if(GUILayout.Button("Verträge / Sprungtor",buttonStyle,GUILayout.Height(40)))LaunchFixture(StartDiplomacyFixture);
-            if(GUILayout.Button("Planetentypen / Luftfracht",buttonStyle,GUILayout.Height(40)))LaunchFixture(StartPlanetEnvironmentFixture);
-            if(GUILayout.Button("Asteroidenabbau",buttonStyle,GUILayout.Height(40)))LaunchFixture(StartAsteroidFixture);
+            SessionHeading("Prüfkarten",HudIcon.Units);GUILayout.Space(10);
+            GUILayout.Label("Einzelne Spielbereiche mit vorbereiteten Anlagen ausprobieren. Reguläre Partien findest du unter „Neue Partie“.",bodyStyle);GUILayout.Space(16);
+            BeginSessionCard();GUILayout.Label("AUFBAU & WELTEN",smallStyle);
+            if(SessionButton("Aufbau und Raumfahrt",HudIcon.Build))LaunchFixture(StartSpaceFixture);
+            if(SessionButton("Planetentypen und Luftfracht",HudIcon.Planet))LaunchFixture(StartPlanetEnvironmentFixture);
+            if(SessionButton("Asteroidenabbau",HudIcon.Metal))LaunchFixture(StartAsteroidFixture);
+            EndSessionCard();
+            BeginSessionCard();GUILayout.Label("KONFLIKT & ZUSAMMENARBEIT",smallStyle);
+            if(SessionButton("Bodengefecht",HudIcon.Units))LaunchFixture(StartMilitaryFixture);
+            if(SessionButton("Invasion",HudIcon.Fleet))LaunchFixture(StartInvasionFixture);
+            if(SessionButton("Verträge und Sprungtor",HudIcon.Diplomacy))LaunchFixture(StartDiplomacyFixture);
+            EndSessionCard();
         }
     }
 }
