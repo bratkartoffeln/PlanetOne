@@ -72,7 +72,7 @@ namespace PlanetOne.Core
     public static partial class Definitions
     {
         public const int EvacuationTicks=2400, GateSecureTicks=1200, DiplomacyPlanTicks=400;
-        public static readonly int[] GateComponents={12,0,40,24,8,8};
+        public static readonly int[] GateComponents={12,0,40,24,8,8,0};
         public static readonly Technology[] GateResearch={Technology.Electronics,Technology.Sensors};
         public static string TreatyName(TreatyKind k) { return new[]{"Waffenstillstand","Nichtangriff","Handel","Zugang und Nutzung","Verteidigungspakt","Koalition","Gemeinsame Operation","Kapitulation mit Restbesitzübergabe"}[(int)k]; }
         public static string TreatyStatus(TreatyPhase p) { return new[]{"Vorgeschlagen","Angenommen","Aktiv","Gekündigt","Beendet","Abgelehnt","Zurückgezogen","Gebrochen"}[(int)p]; }

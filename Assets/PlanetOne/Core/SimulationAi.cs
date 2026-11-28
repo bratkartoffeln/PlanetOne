@@ -31,6 +31,7 @@ namespace PlanetOne.Core
                 Array.Copy(p.Terrain,w.Terrain,p.Terrain.Length);
                 if(own)
                 {
+                    w.AtmosphericHydrogen=p.AtmosphericHydrogen;
                     w.Population=p.Population;w.Housing=p.HousingCapacity;w.Workers=p.WorkersTotal;w.WorkersUsed=p.WorkersUsed;
                     w.Energy=p.EnergyProduced;w.Shipments=p.Shipments.Count;w.PendingDeliveries=p.Deliveries.Count;Array.Copy(p.Roads,w.Roads,p.Roads.Length);Array.Copy(p.OreRemaining,w.Ore,p.OreRemaining.Length);
                 }

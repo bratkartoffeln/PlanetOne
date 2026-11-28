@@ -308,7 +308,7 @@ namespace PlanetOne.Runtime
             if(next!=supplyTask){supplyTask=next;sidebarScroll=Vector2.zero;supplyFormError=null;}
             var port=ChoosePort(); if(port==null) return;
             WorkspaceHeading("WARE");
-            freightResource=DrawWorkspaceTabs(freightResource,new[]{"Nahrung","Erz","Metall","Bauteile","Kristalle","Elektronik"});
+            freightResource=DrawWorkspaceTabs(freightResource,new[]{"Nahrung","Erz","Metall","Bauteile","Kristalle","Elektronik","Wasserstoff"});
             int r=freightResource;
             if(supplyEditPort!=port.Id || supplyEditResource!=r)
             {

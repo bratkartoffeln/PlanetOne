@@ -359,7 +359,7 @@ internal static class CoreTests
         for (int i = 0; i < 600; i++) b.Advance(0.05);
         for (int i = 0; i < 300; i++) c.Advance(0.05);
         Assert(a.State.Tick == b.State.Tick && b.State.Tick == c.State.Tick, "Game speed changed simulated duration.");
-        for (int r = 0; r < 6; r++)
+        for (int r = 0; r < Definitions.ResourceCount; r++)
             Assert(ActualAmount(a.FindPlanet(1), (ResourceKind)r) == ActualAmount(b.FindPlanet(1), (ResourceKind)r) &&
                 ActualAmount(a.FindPlanet(1), (ResourceKind)r) == ActualAmount(c.FindPlanet(1), (ResourceKind)r), "Game speed changed economy.");
         Command(a, CommandKind.SetPaused, flag: true);
@@ -380,7 +380,7 @@ internal static class CoreTests
             var cost = Definitions.Get(BuildingKind.SolarPlant).Cost;
             var site = new BuildingState { Id = sim.State.NextEntityId++, PlanetId = 1, Kind = BuildingKind.SolarPlant,
                 X = 10 + i, Y = 5, Inventory = (int[])cost.Clone(), Priority = i == 2 ? 2 : 1 };
-            for (int r = 0; r < 6; r++) hq.Inventory[r] -= cost[r];
+            for (int r = 0; r < Definitions.ResourceCount; r++) hq.Inventory[r] -= cost[r];
             p.Buildings.Add(site);
         }
         sim.Step();
@@ -528,7 +528,7 @@ internal static class CoreTests
         var hq = p.Buildings[0];
         Assert(hq.ReservedReturnSpace == 20, "Loaded cargo has no guaranteed return capacity.");
         // Explicit capacity fixture: other stock fills every unreserved source slot.
-        int nonFood = 0; for (int r = 1; r < 6; r++) nonFood += hq.Inventory[r];
+        int nonFood = 0; for (int r = 1; r < Definitions.ResourceCount; r++) nonFood += hq.Inventory[r];
         hq.Inventory[0] = GameSimulation.StorageCapacity(hq) - hq.ReservedReturnSpace - nonFood;
         for (int i = 1; i < p.Buildings.Count; i++) Command(sim, CommandKind.CancelConstruction, target: p.Buildings[i].Id);
         sim.Step();
@@ -585,8 +585,8 @@ internal static class CoreTests
             var current = migrated.FindPlanet(oldPlanet.Id);
             Assert(current.Buildings.Count == oldPlanet.Buildings.Count && current.Shipments.Count == oldPlanet.Shipments.Count &&
                 current.Deliveries.Count == oldPlanet.Deliveries.Count, "Migration changed existing entities.");
-            for (int r = 0; r < 6; r++)
-                Assert(ActualAmount(current, (ResourceKind)r) == ActualAmount(oldPlanet, (ResourceKind)r), "Migration changed an actual material amount.");
+            for (int r = 0; r < Definitions.ResourceCount; r++)
+                Assert(ActualAmount(current, (ResourceKind)r) == (r==(int)ResourceKind.Hydrogen?0:ActualAmount(oldPlanet, (ResourceKind)r)), "Migration changed an actual material amount.");
             foreach (var oldBuilding in oldPlanet.Buildings)
             {
                 var building = current.Buildings.Find(b => b.Id == oldBuilding.Id);
@@ -594,7 +594,7 @@ internal static class CoreTests
                     building.Built == oldBuilding.Built && building.BuildProgress == oldBuilding.BuildProgress &&
                     building.CycleActive == oldBuilding.CycleActive && building.CycleProgress == oldBuilding.CycleProgress,
                     "Migration changed a building or running recipe.");
-                for (int r = 0; r < 6; r++)
+                    for (int r = 0; r < oldBuilding.Inventory.Length; r++)
                     Assert(building.Inventory[r] == oldBuilding.Inventory[r] && building.ReservedIncoming[r] == oldBuilding.ReservedIncoming[r] &&
                         building.ReservedOutgoing[r] == oldBuilding.ReservedOutgoing[r], "Migration changed a local inventory or reservation.");
             }
@@ -622,7 +622,7 @@ internal static class CoreTests
         var sim = GameSimulation.CreateDefault(2026); var p = sim.FindPlanet(1);
         // Deliberately documented starting fixture proves both building resources are replenished locally.
         p.Buildings[0].Inventory[(int)ResourceKind.Parts] = 20;
-        int[] initial = { 60, 0, 100, 20, 0, 0 };
+        int[] initial = { 60, 0, 100, 20, 0, 0, 0 };
         Build(sim, BuildingKind.SolarPlant, 10, 5);
         Build(sim, BuildingKind.Farm, 9, 7);
         Build(sim, BuildingKind.Mine, 4, 4);
@@ -650,7 +650,7 @@ internal static class CoreTests
         foreach (var building in p.Buildings)
         { totalMetalCost += Definitions.Get(building.Kind).Cost[2]; totalPartsCost += Definitions.Get(building.Kind).Cost[3]; }
         Assert(totalMetalCost > initial[2] && totalPartsCost > initial[3], "Expansion did not require both locally produced construction goods.");
-        for (int r = 0; r < 6; r++)
+        for (int r = 0; r < Definitions.ResourceCount; r++)
             Assert(ActualAmount(p, (ResourceKind)r) == initial[r] + p.ProducedTotals[r] + p.RecoveredTotals[r] - p.ConsumedTotals[r],
                 "Material conservation failed for " + (ResourceKind)r + ".");
         SaveCodec.Validate(sim.State);

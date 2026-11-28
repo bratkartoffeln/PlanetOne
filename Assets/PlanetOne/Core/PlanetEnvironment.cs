@@ -46,7 +46,13 @@ namespace PlanetOne.Core
         public static double RotationSeconds(PlanetKind kind)
         {return kind==PlanetKind.GasGiant?240:kind==PlanetKind.Rocky?1200:kind==PlanetKind.Desert?900:600;}
         public static bool AllowsBuilding(PlanetKind world,BuildingKind kind)
-        {return world!=PlanetKind.GasGiant || (kind!=BuildingKind.Mine && kind!=BuildingKind.CrystalMine && kind!=BuildingKind.Wall && kind!=BuildingKind.Gate);}
+        {
+            if(kind==BuildingKind.GasExtractor)return world==PlanetKind.GasGiant;
+            return world!=PlanetKind.GasGiant || (kind!=BuildingKind.Mine && kind!=BuildingKind.CrystalMine && kind!=BuildingKind.Wall && kind!=BuildingKind.Gate);
+        }
+        // Recoverable gas in the colony's operating band, measured in freight units.
+        public static int InitialHydrogen(int seed,PlanetState planet)
+        {return Airborne(planet)?1600+2*(int)(unchecked((uint)(seed+planet.Id*191))%401):0;}
         public static bool BlocksGround(int terrain) { return terrain==1 || terrain==4; }
 
         // One hex per segment preserves the existing capacity, speed, return trip and recovery accounting.

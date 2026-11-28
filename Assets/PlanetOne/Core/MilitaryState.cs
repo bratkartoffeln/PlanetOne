@@ -68,7 +68,7 @@ namespace PlanetOne.Core
             Seconds = seconds; Health = health; Speed = speed; Range = range; Sight = sight;
             Damage = damage; Ammo = ammo; Interval = interval; Indirect = indirect; AntiAir = antiAir;
         }
-        public int[] Cost { get { return new[] { Food, 0, Metal, Parts, 0, 0 }; } }
+        public int[] Cost { get { return new[] { Food, 0, Metal, Parts, 0, 0, 0 }; } }
     }
 
     public sealed class TowerDefinition

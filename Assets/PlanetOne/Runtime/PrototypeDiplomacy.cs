@@ -19,7 +19,7 @@ namespace PlanetOne.Runtime
         private readonly Vector2[] diplomacyScrolls=new Vector2[5];
         private static readonly string[] DiplomacySectionNames={"Überblick","Verträge","Angebot","Koalition","Sprungtor"};
         private static readonly string[] TreatyChoiceNames={"Waffenruhe","Nichtangriff","Handel","Zugangsrechte","Verteidigung","Koalition","Operation"};
-        private static readonly string[] TradeGoodsNames={"Nahrung","Erz","Metall","Bauteile","Kristalle","Elektronik"};
+        private static readonly string[] TradeGoodsNames={"Nahrung","Erz","Metall","Bauteile","Kristalle","Elektronik","Wasserstoff"};
         public int DiplomacySection {get{return diplomacySection;}}
         public bool OpenDiplomacySection(int section)
         {

@@ -681,6 +681,18 @@ namespace PlanetOne.Runtime
             Require(!wheel && container && platform,"Gas colony renders flying cargo and floating bases without wheels");
             yield return Capture("gas-air-freight.png");Require(captureFailure==null,captureFailure??"Air freight captured");
             Require(controller.SaveGame() && controller.LoadGame(),"Planet environments and airborne cargo load in the real player");
+            atmosphere=controller.Simulation.FindPlanet(7);
+            QueueBuild(7,BuildingKind.GasExtractor,11,7);
+            QueueBuild(7,BuildingKind.Spaceport,8,9);
+            AdvanceSeconds(Definitions.TickSeconds);
+            var gasPort=atmosphere.Buildings.Find(b=>b.Kind==BuildingKind.Spaceport);
+            var extractor=atmosphere.Buildings.Find(b=>b.Kind==BuildingKind.GasExtractor);
+            for(int i=0;i<200 && gasPort.Inventory[(int)ResourceKind.Hydrogen]<8;i++)AdvanceSeconds(1);
+            Require(gasPort.Inventory[(int)ResourceKind.Hydrogen]==8 && extractor.Built && atmosphere.ProducedTotals[(int)ResourceKind.Hydrogen]>=8,"Working atmospheric extractor supplies the spaceport by drone");
+            controller.SelectBuilding(extractor.Id);
+            var platformPoint=HexGrid.ToWorld(extractor.X,extractor.Y);
+            controller.SetSurfaceFocus(new Vector3((float)platformPoint.X,0,(float)platformPoint.Y));
+            yield return null;yield return Capture("gas-hydrogen-extraction.png");Require(captureFailure==null,"Working gas platform captured");
             controller.StartAsteroidFixture();var mining=controller.Simulation;controller.SetOrbitCamera(0,50);
             foreach(var world in mining.State.Planets)
                 Require(controller.CelestialView(world.Id).localScale.x<=controller.StarView.localScale.x*.5f,"Planet radius limited to half the star radius: "+world.Name);
