@@ -268,7 +268,7 @@ namespace PlanetOne.Runtime
             if(Definitions.IsTower(kind))
             {
                 // Walls meet the fixed drum. Only the assembly above the bearing turns and recoils.
-                pivotHeight=.88f;
+                pivotHeight=.52f;
                 const float foot=.17f,bearingHeight=.08f;
                 float drumTop=pivotHeight-bearingHeight;
                 float diameter=heavy?.70f:.60f;

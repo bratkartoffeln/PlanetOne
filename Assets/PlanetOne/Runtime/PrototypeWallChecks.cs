@@ -49,7 +49,12 @@ namespace PlanetOne.Runtime
                     weapon.localRotation=Quaternion.Euler(0,yaw,0);
                     foreach(var part in movingParts)underside=Mathf.Min(underside,part.bounds.min.y);
                 }
-                Require(movingParts.Length>0 && underside>wallTop+.05f,"Rotating assembly clears both adjacent walls through 360 degrees: "+kind);
+                Require(movingParts.Length>0 && underside>wallTop,"Rotating assembly clears both adjacent walls through 360 degrees: "+kind+" ("+(underside-wallTop).ToString("F3")+")");
+                float crown=float.MinValue;
+                foreach(var cap in collar.GetComponentsInChildren<MeshRenderer>())
+                    if(cap.name=="Mauerabschluss")crown=Mathf.Max(crown,cap.bounds.max.y);
+                float gap=underside-crown;
+                Require(gap>0 && gap<=.12f,"Turntable sits just above the connected wall crown: "+kind+" ("+gap.ToString("F3")+")");
                 if(kind==BuildingKind.AntiTankTower)
                 {
                     float zoom=Camera.main.orthographicSize;
