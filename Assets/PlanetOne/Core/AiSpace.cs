@@ -19,8 +19,8 @@ namespace PlanetOne.Core
                 if(port==null)continue;
                 if(v.Research.Completed.Contains(Technology.Colonization)&&!HasShip(v,ShipKind.ColonyShip)&&v.Worlds.Exists(p=>p.OwnerId==0))
                 {
-                    int[] colonialBudget={48,0,120,40,0,0};
-                    for(int r=0;r<6;r++)if(port.Supply.Target[r]<colonialBudget[r])
+                    int[] colonialBudget={48,0,120,40,0,0,0};
+                    for(int r=0;r<Definitions.ResourceCount;r++)if(port.Supply.Target[r]<colonialBudget[r])
                         return Order("Kolonisierung finanzieren","Kosten der Startladung physisch am Hafen sammeln; Reserven bleiben lokal",new SimCommand {Kind=CommandKind.SetSupplyPolicy,PlanetId=w.Id,TargetId=port.Id,IntValue=r,Minimum=colonialBudget[r]/2,Amount=colonialBudget[r],Reserve=4,X=1});
                 }
                 if(port.ShipBuildKind<0 && w.Population>=20)
@@ -32,7 +32,7 @@ namespace PlanetOne.Core
                     if(build.HasValue)
                     {
                         var cost=Definitions.Ships[(int)build.Value].Cost;bool enough=true;
-                        for(int r=0;r<6;r++)if(Goods(w,v,r)<cost[r]+(r==2?Definitions.AiMetalReserve:r==3?Definitions.AiPartsReserve:0))enough=false;
+                        for(int r=0;r<Definitions.ResourceCount;r++)if(Goods(w,v,r)<cost[r]+(r==2?Definitions.AiMetalReserve:r==3?Definitions.AiPartsReserve:0))enough=false;
                         if(enough)return Order("Raumtransport beschaffen","Reale Baukosten und Besatzung verfügbar",new SimCommand {Kind=CommandKind.BuildShip,PlanetId=w.Id,TargetId=port.Id,IntValue=(int)build.Value},"Kolonisierung vor Angriff, sofern neutraler Standort bekannt");
                     }
                 }
@@ -48,8 +48,8 @@ namespace PlanetOne.Core
                 // Own ports with shortages use actual freight promises; the shared logistics engine reserves goods.
                 if(v.Worlds.Exists(p=>p.OwnerId==v.FactionId&&p.Id!=w.Id)&&!v.Worlds.Exists(p=>p.OwnerId==0))
                 {
-                    int[] targets={32,0,36,16,12,4};
-                    for(int r=0;r<6;r++)if(port.Supply.Target[r]!=targets[r])
+                    int[] targets={32,0,36,16,12,4,w.Kind==PlanetKind.GasGiant?8:0};
+                    for(int r=0;r<Definitions.ResourceCount;r++)if(port.Supply.Target[r]!=targets[r])
                         return Order("Kolonie versorgen","Hafenpuffer für tatsächlichen interplanetaren Bedarf einrichten",new SimCommand {Kind=CommandKind.SetSupplyPolicy,PlanetId=w.Id,TargetId=port.Id,IntValue=r,Minimum=targets[r]/2,Amount=targets[r],Reserve=r==2?20:r==3?8:4,X=1});
                 }
             }

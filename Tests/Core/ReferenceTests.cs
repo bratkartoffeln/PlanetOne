@@ -186,7 +186,7 @@ internal static class ReferenceTests
         if(waitForMaterials)Wait(s,()=>gate.Operational&&Enough(gate.Inventory,Definitions.GateComponents),"Gate material delivery");
         return gate;
     }
-    private static bool Enough(int[] actual,int[] needed){for(int r=0;r<6;r++)if(actual[r]<needed[r])return false;return true;}
+    private static bool Enough(int[] actual,int[] needed){for(int r=0;r<Definitions.ResourceCount;r++)if(actual[r]<needed[r])return false;return true;}
     private static void CooperativeVictory()
     {
         Check(prepared,"Current run did not produce a valid cooperative baseline");
@@ -217,7 +217,7 @@ internal static class ReferenceTests
     internal static void VerifyIndustrialLedger(GameSimulation s)
     {
         SaveCodec.Validate(s.State);
-        for(int r=1;r<6;r++)
+        for(int r=1;r<Definitions.ResourceCount;r++)
         {
             long total=s.State.SpaceLostTotals[r]-(r==1?s.State.SpaceMinedOre:0);
             foreach(var p in s.State.Planets)
@@ -232,6 +232,6 @@ internal static class ReferenceTests
             long initial=r==2?300:r==3?120:0;
             Check(total==initial,"Global "+(ResourceKind)r+" ledger differs: "+total+" expected "+initial);
         }
-        Console.WriteLine("  All five industrial resource ledgers match finite initial stocks plus actual production, consumption, recovery and loss");
+        Console.WriteLine("  All industrial resource ledgers match finite initial stocks plus actual production, consumption, recovery and loss");
     }
 }

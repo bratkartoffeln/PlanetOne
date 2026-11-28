@@ -6,6 +6,10 @@ internal static class MilitaryTests
 {
     internal static void Register(Action<string, Action> run)
     {
+        run("Workshop repairs local machinery using finite parts and damage limits mobility and output", FieldMaintenance);
+        run("Tanks fire from a moving column without losing their destination", MovingFire);
+        run("Gate traffic uses only the opposing pair aligned with its aperture", GateAperture);
+        run("Three infantry share distinct stands and a fourth takes a neighbouring cell", InfantryStands);
         run("M3 recruits through construction and physical deliveries exactly once", Recruitment);
         run("M3 planet recruitment limits and one-at-a-time cancellation", RecruitmentLimit);
         run("M3 active recruitment cancellation refunds only paid costs", CancelActiveOrder);
@@ -48,6 +52,64 @@ internal static class MilitaryTests
     private static void Command(GameSimulation s, UnitState u, CommandKind kind, int x = 0, int y = 0, long target = 0)
     { s.Enqueue(new SimCommand { Id = s.NextCommandId(), IssuerId = u.OwnerId, PlanetId = 1, ActorId = u.Id, Kind = kind, X = x, Y = y, TargetId = target }); s.Step(); }
     private static string Result(GameSimulation s) { return s.State.CommandResults[s.State.CommandResults.Count - 1].Code; }
+    private static void FieldMaintenance()
+    {
+        var s=Empty();var p=s.FindPlanet(1);var shop=Unit(s,UnitKind.MobileWorkshop,1,7,7);
+        var tank=Unit(s,UnitKind.Tank,1,8,7);var soldier=Unit(s,UnitKind.Infantry,1,7,8);
+        var far=Unit(s,UnitKind.Tank,1,14,8);soldier.Health=far.Health=tank.Health=10;shop.Parts=2;
+        int consumed=p.ConsumedTotals[3];s.Step();
+        Check(tank.Health==26 && shop.ActiveRepairTarget==tank.Id,"Nearby repair did not start");
+        s.Step(90);Check(tank.Health==42 && shop.Parts==0 && shop.ActiveRepairTarget==0 && p.ConsumedTotals[3]==consumed+2,"Parts or repair marker incorrect");
+        Check(soldier.Health==10 && far.Health==10,"Repaired ineligible target");
+        var building=Building(s,BuildingKind.Workshop,7,6);building.Health=150;shop.Parts=1;
+        Command(s,shop,CommandKind.RepairTarget,target:building.Id);s.Step(30);
+        Check(building.Health==160 && shop.ActiveRepairTarget==0 && shop.Parts==0,"Building repair did not finish cleanly");
+        double lastSpeed=10,lastOutput=2;
+        foreach(double fraction in new[]{1,.75,.5,.25})
+        {
+            tank.Health=180*fraction;building.Health=160*fraction;
+            Check(Definitions.GroundSpeed(tank)<lastSpeed && Definitions.ProductionRate(building)<lastOutput,"Damage tier missing");
+            lastSpeed=Definitions.GroundSpeed(tank);lastOutput=Definitions.ProductionRate(building);
+        }
+    }
+    private static void MovingFire()
+    {
+        var s=Empty();var tank=Unit(s,UnitKind.Tank,1,5,5);var enemy=Unit(s,UnitKind.Tank,2,6,7);enemy.Ammunition=0;
+        Command(s,tank,CommandKind.MoveUnit,12,5);s.Step(3);
+        Check(tank.X>5 && tank.Order==UnitOrder.Move && tank.GoalX==12 && tank.Ammunition<16 && enemy.Health<180,"Tank did not fire while advancing");
+    }
+    private static void GateAperture()
+    {
+        var s=Empty();var p=s.FindPlanet(1);var cell=new GridCell(5,6);
+        Building(s,BuildingKind.Gate,5,6);Building(s,BuildingKind.Wall,5,5);Building(s,BuildingKind.Wall,5,7);
+        int open=0;
+        for(int i=0;i<6;i++)
+        {
+            var n=HexGrid.Neighbor(5,6,i);bool pass=GameSimulation.GateEdgeOpen(p,cell,n);
+            Check(pass==GameSimulation.GateEdgeOpen(p,n,cell) && pass==GameSimulation.GateEdgeOpen(p,cell,HexGrid.Neighbor(5,6,(i+3)%6)),"Passage is asymmetric");
+            if(pass)open++;
+        }
+        Check(open==2,"Gate has more than one passage axis");
+    }
+    private static void InfantryStands()
+    {
+        var s=Empty();var troops=new[]{Unit(s,UnitKind.Infantry,1,9,9),Unit(s,UnitKind.AntiTank,1,6,8),Unit(s,UnitKind.Infantry,1,12,10),Unit(s,UnitKind.Infantry,1,9,13)};
+        for(int i=1;i<4;i++)Command(s,troops[i],CommandKind.MoveUnit,9,9);
+        s.Step(180);
+        for(int i=0;i<troops.Length;i++)
+        {
+            var u=troops[i];var at=HexGrid.CellAt(u.X,u.Y);
+            Check(u.Order==UnitOrder.Hold && (at.X==9 && at.Y==9)==(i<3),"Unexpected infantry stand "+i+" at "+u.X+","+u.Y+" / "+u.Status);
+            for(int j=0;j<i;j++)Check(HexGrid.Distance(u.X,u.Y,troops[j].X,troops[j].Y)>.43,"Two infantry overlap");
+        }
+        SaveCodec.Validate(s.State);
+        Command(s,troops[1],CommandKind.MoveUnit,4,4);s.Step(160);
+        Check(troops[1].Order==UnitOrder.Hold && HexGrid.Distance(troops[1].X,troops[1].Y,4,4)<.001,"Infantry could not leave its shared hex");
+        for(int i=0;i<3;i++)Command(s,troops[i],CommandKind.MoveUnit,0,0);
+        s.Step(360);
+        for(int i=0;i<3;i++)Check(troops[i].Order==UnitOrder.Hold && HexGrid.CellAt(troops[i].X,troops[i].Y).Equals(new GridCell(0,0)),"Map-edge stand unreachable");
+        SaveCodec.Validate(s.State);
+    }
     private static void Recruitment()
     {
         var s = GameSimulation.CreateDefault(); var p = s.FindPlanet(1);

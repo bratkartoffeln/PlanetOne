@@ -115,13 +115,8 @@ namespace PlanetOne.Runtime
             {
                 var p=simulation.FindPlanet(openPlanetId);var cell=SurfaceCellAtScreen(point);
                 if(cell.X<0 || cell.Y<0 || cell.X>=p.Width || cell.Y>=p.Height)return false;
-                UnitState hit=null;float best=24;
-                foreach(var u in p.Units)
-                {
-                    if(u.Destroyed || !simulation.CanSeeEntity(p,PlayerFactionId,u.Id) || !IsSurfacePointVisible(u.X,u.Y,.3f))continue;
-                    float d=Vector2.Distance(sceneCamera.WorldToScreenPoint(SurfacePosition(u.X,.3f,u.Y)),point);
-                    if(d<best){hit=u;best=d;}
-                }
+                var picked=PointerTargetAtScreen(point);
+                var hit=picked.Building?null:p.Units.Find(u=>u.Id==picked.Id);
                 if(hit!=null)
                 {
                     if(hit.OwnerId==PlayerFactionId){if(!selectedUnits.Contains(hit.Id))SelectUnit(hit.Id);c=SelectionCommands();}
@@ -129,9 +124,7 @@ namespace PlanetOne.Runtime
                 }
                 else
                 {
-                    BuildingState b=null;RaycastHit rayHit;long picked;
-                    if(Physics.Raycast(sceneCamera.ScreenPointToRay(point),out rayHit,300) && buildingPickIds.TryGetValue(rayHit.collider.GetInstanceID(),out picked))b=p.Buildings.Find(v=>v.Id==picked);
-                    if(b==null)b=BuildingAt(p,cell.X,cell.Y);
+                    var b=picked.Building?p.Buildings.Find(v=>v.Id==picked.Id):null;
                     if(b!=null && !b.Destroyed && simulation.CanSeeEntity(p,PlayerFactionId,b.Id))
                     {
                         if(GameSimulation.BuildingOwner(p,b)==PlayerFactionId && selectedUnits.Count==0)SelectBuilding(b.Id);
@@ -204,8 +197,8 @@ namespace PlanetOne.Runtime
                 }
                 if(b.Built && !b.Deconstructing)
                 {
-                    var engineers=Array.FindAll(actors,id=>p.Units.Exists(u=>u.Id==id && u.Kind==UnitKind.Engineer));
-                    if(engineers.Length>0)AddAction(list,"repair-here","Dieses Gebäude reparieren",HudIcon.Build,()=>{foreach(long id in engineers)RequestUnitOrder(id,CommandKind.RepairTarget,b.X,b.Y,b.Id);},"Mit ausgewählten Pionieren",b.Health>=Definitions.BuildingHealth(b.Kind)?"Gebäude ist unbeschädigt":null);
+                    var engineers=Array.FindAll(actors,id=>p.Units.Exists(u=>u.Id==id && Definitions.CanRepair(u.Kind)));
+                    if(engineers.Length>0)AddAction(list,"repair-here","Dieses Gebäude reparieren",HudIcon.Build,()=>{foreach(long id in engineers)RequestUnitOrder(id,CommandKind.RepairTarget,b.X,b.Y,b.Id);},"Mit Pionieren oder mobiler Werkstatt",b.Health>=Definitions.BuildingHealth(b.Kind)?"Gebäude ist unbeschädigt":null);
                     if(actors.Length>0 && b.Kind==BuildingKind.MilitaryDepot)AddAction(list,"resupply-here","Hier Nachschub holen",HudIcon.Supply,()=>{foreach(long id in actors)RequestUnitOrder(id,CommandKind.ResupplyUnit,b.X,b.Y,b.Id);},"Für ausgewählte Bodeneinheiten");
                     if(b.Kind==BuildingKind.Spaceport){AddAction(list,"production","Schiffe bauen",HudIcon.Fleet,()=>{chosenPort=b.Id;fleetTask=2;OpenPresentationSection(3);},"Bauaufträge an diesem Raumhafen");AddAction(list,"supply","Fracht und Versorgung",HudIcon.Supply,()=>{chosenPort=b.Id;OpenPresentationSection(5);});}
                     else if(b.Kind==BuildingKind.Laboratory)AddAction(list,"production","Forschung öffnen",HudIcon.Research,()=>OpenPresentationSection(4));
@@ -225,7 +218,7 @@ namespace PlanetOne.Runtime
                 AddAction(list,"retreat","Zurückziehen",HudIcon.Back,()=>TargetUnits(CommandKind.RetreatUnit,actors),"Sicheren Zielort wählen",noActors);
                 var p=simulation.FindPlanet(c.World);
                 if(Array.Exists(actors,id=>p.Units.Exists(u=>u.Id==id && u.Kind==UnitKind.Artillery)))AddAction(list,"bombard","Artilleriefeuer",HudIcon.Units,()=>TargetUnits(CommandKind.AttackPosition,Array.FindAll(actors,id=>p.Units.Exists(u=>u.Id==id && u.Kind==UnitKind.Artillery))),"Position wählen");
-                if(Array.Exists(actors,id=>p.Units.Exists(u=>u.Id==id && u.Kind==UnitKind.Engineer)))AddAction(list,"repair","Reparieren",HudIcon.Build,()=>TargetUnits(CommandKind.RepairTarget,Array.FindAll(actors,id=>p.Units.Exists(u=>u.Id==id && u.Kind==UnitKind.Engineer))),"Eigenes beschädigtes Ziel wählen");
+                if(Array.Exists(actors,id=>p.Units.Exists(u=>u.Id==id && Definitions.CanRepair(u.Kind))))AddAction(list,"repair","Reparieren",HudIcon.Build,()=>TargetUnits(CommandKind.RepairTarget,Array.FindAll(actors,id=>p.Units.Exists(u=>u.Id==id && Definitions.CanRepair(u.Kind)))),"Eigenes beschädigtes Ziel wählen");
                 AddAction(list,"resupply","Nachschub holen",HudIcon.Supply,()=>TargetUnits(CommandKind.ResupplyUnit,actors),"Depot oder Versorger wählen",noActors);
                 AddAction(list,"details","Truppendetails",HudIcon.Info,()=>OpenObjectDetails(c));return list;
             }

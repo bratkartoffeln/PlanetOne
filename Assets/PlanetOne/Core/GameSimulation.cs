@@ -44,6 +44,7 @@ namespace PlanetOne.Core
                 OrbitPeriapsis = parent >= 0 ? 0.3 : (id - 1) * 0.55,
                 Kind = PlanetEnvironment.InitialKind(id,parent) };
             p.Terrain = new int[p.Width * p.Height];
+            p.AtmosphericHydrogen=PlanetEnvironment.InitialHydrogen(state.Seed,p);
             p.OreRemaining = new int[p.Terrain.Length];
             p.Roads = new bool[p.Terrain.Length];
             for (int y = 0; y < p.Height; y++)
@@ -230,7 +231,7 @@ namespace PlanetOne.Core
             if (!Enum.IsDefined(typeof(BuildingKind), kind) || kind == BuildingKind.Headquarters)
                 return "Dieser Gebäudetyp kann hier nicht gebaut werden.";
             if(!PlanetEnvironment.AllowsBuilding(p.Kind,kind))
-                return "Gasstationen besitzen keinen festen Boden für Minen, Mauern oder Straßentore. Metall und Erz per Raumfracht importieren.";
+                return kind==BuildingKind.GasExtractor ? "Gasförderer benötigen einen Gasriesen." : "Gasstationen besitzen keinen festen Boden für Minen, Mauern oder Straßentore. Metall und Erz per Raumfracht importieren.";
             string technologyError = BuildingTechnologyError(kind, factionId);
             if (technologyError != null) return technologyError;
             int index = y * p.Width + x;
@@ -244,7 +245,7 @@ namespace PlanetOne.Core
                 return "Kein befahrbarer Weg vom Kommandozentrum zum Bauplatz. Gelände und Gebäude versperren die Zufahrt.";
             var definition = Definitions.Get(kind);
             var shortages = new List<string>();
-            for (int r = 0; r < 6; r++)
+            for (int r = 0; r < Definitions.ResourceCount; r++)
             {
                 if(definition.Cost[r]==0)continue;
                 int available = FreeBuildingStock(p,factionId,r,proposedSite);
@@ -346,8 +347,10 @@ namespace PlanetOne.Core
                 Health = Definitions.BuildingHealth(command.Building),
                 Priority = command.Building == BuildingKind.Farm ? 2 : 1 };
             p.Buildings.Add(building);
+            if(building.Kind==BuildingKind.Spaceport && PlanetEnvironment.Airborne(p))
+                building.Supply.Target[(int)ResourceKind.Hydrogen]=8;
             var definition = Definitions.Get(command.Building);
-            for (int r = 0; r < 6; r++)
+            for (int r = 0; r < Definitions.ResourceCount; r++)
             {
                 int remaining = definition.Cost[r];
                 foreach (var source in p.Buildings)
@@ -404,8 +407,8 @@ namespace PlanetOne.Core
         private static bool PathStillValid(PlanetState p, List<GridCell> path)
         {
             if(PlanetEnvironment.Airborne(p))return true;
-            for (int i = 1; i < path.Count - 1; i++)
-                if (!CargoCellOpen(p,path[i].X,path[i].Y)) return false;
+            for (int i = 1; i < path.Count; i++)
+                if (!GateEdgeOpen(p,path[i-1],path[i]) || i<path.Count-1 && !CargoCellOpen(p,path[i].X,path[i].Y)) return false;
             return true;
         }
 

@@ -15,7 +15,7 @@ Die Paketfolge konkretisiert die Erweiterungen aus Abschnitt 16 des [Spielkonzep
 | M14 · P27 Kampagne und Sonderszenarien | M11–M13, Szenariomenü | Zwei verknüpfte Missionen und ein eigenständig startbares Sonderszenario verwenden definierte Startbedingungen und sichtbare Ziele. Sieg schaltet die Folgemission frei. Niederlage, Neustart und Laden mitten in der Mission erhalten den richtigen Kampagnenfortschritt. |
 | M15 · P28 Balance und Plattformabnahme | M14 | Eine vollständige Kampagne und die regulären Siegpfade laufen im gebauten Windows-Player. Laufzeit, Speichern, Bedienung und Installer werden auf dem Zielgerät geprüft. Für Web, Mobilgeräte und Konsolen wird je Ziel die Machbarkeit und der erforderliche Geräte- und Eingabetest dokumentiert. Eine Portierung braucht eine eigene Zielplattformentscheidung. |
 
-M10 ist lokal umgesetzt. Die [Prüfungen und Startbefehle](M10_NACHWEIS.md) dokumentieren den Stand. M11–M15 sind geplant. Nummerierung, Reihenfolge und Paketgrenzen sind in D-058 festgehalten.
+M10 und M11 sind lokal umgesetzt. [M10-Nachweis](M10_NACHWEIS.md) und [M11-Nachweis](M11_NACHWEIS.md) enthalten Abnahmeszenarien und Startbefehle. M12–M15 sind geplant. Nummerierung, Reihenfolge und Paketgrenzen sind in D-058 festgehalten.
 
 ## Vorheriger Ergänzungsauftrag 1.0.18
 
@@ -429,6 +429,16 @@ Manuelle Prüfungen beurteilen Bedienbarkeit, Warnungen, räumliche Lesbarkeit, 
 
 Leistungsmessungen verwenden ein festgehaltenes Szenario und Hardwareprofil. Ein schneller leerer Prototyp beweist keine ausreichende Leistung bei mehreren Kolonien, KI und gleichzeitigen Gefechten. Umfang und Grenzwerte werden vor der jeweiligen Messung festgelegt.
 
+## Modellgestaltung in 1.0.21
+
+Die grafische Überarbeitung von Kolonie und Flotte betrifft die Darstellung bestehender Spielinhalte aus Aufbau, Logistik und Militär. [Modellgestaltung und Windows-Prüfung](MODELLE_1_0_21.md)
+
+### Betriebsanimationen in 1.0.22
+
+D-061 ergänzt LOG-018 um ein Zeitfenster je Ausfahrt. Bodenbewegung, Durchfahrtstore, Ladeschleusen, Fahnen und Partikeleffekte gehören zur Darstellung von P04, P06 und P08. Der Windows-Player prüft die Stellung der Ketten gegen das Gelände-Mesh, die Gelenke bewegter Infanterie und den Zyklus der Türen. Für den separaten Konvoitest dient `tools/Test-Presentation.ps1 -CourierSpacingOnly`. Der vollständige Durchlauf verwendet `tools/Test-Presentation.ps1 -ReferenceSave TestResults/Reference/victory.json`. [Abnahme TEST-045](ACCEPTANCE_TESTS.md#test-045--fahrzeuge-figuren-und-betriebsanimationen)
+
+Am 28. November 2026 bestanden lokal alle 227 Coretests, der gesonderte Konvoitest und der vollständige Playerdurchlauf mit 1.157 PASS-Meldungen. Nach der abschließenden Ausrichtung der Torpfosten und Montage der Leuchten bestand der neu gebaute Windows-Player den Darstellungsdurchlauf `-PolishOnly` mit 606 PASS-Meldungen.
+
 ## Ergänzung 1.0.18: Zweispurige Straßen und Priorität stehender Einheiten
 
 - **Umfang:** D-045–047 / LOG-015, SURFACE-011, GUI-022 und TEST-040; Core-Fahrspurpositionen, Vorfahrt, Bau-Rückfahrt, freie Umwege, passende Fahrzeughüllen sowie rein darstellende Zielpfeile.
@@ -446,3 +456,15 @@ LOG-016 / TEST-041 / D-048 / T-075–077 ersetzen die sichtbaren Straßen durch 
 ### Folgeauftrag: Verbindungsstraßen, Befestigungen und direkte Fahrt
 
 D-049–053 / T-078–081 / LOG-017 / GUI-023 / SURFACE-012 / TEST-042 ergänzen das bestätigte Versorgungsnetz. Schmale Straßen, verbundene schmale Mauern/Tore samt Vorschau, Angriffsanfahrt bis zur Schussposition, transparente auswahlabhängige Bögen, direkte freie Bodenfahrt und Zentrieren bei Auftragswechsel sind implementiert. Die Belegungsplanung nutzt die aktuelle Fahrzeugwabe; tatsächliche Körperabstände bleiben geprüft. Landschaftsklick hebt die Einheitenauswahl auf. Aktuelle Test- und Paketnachweise folgen im GUI-Nachweis; ältere dortige Ergebnisse bleiben historisch.
+
+### Version 1.0.23 · Bodenverteidigung und Gebäudefuhrpark
+
+P06/P07, LOG-019, D-062–064 und TEST-046 ergänzen den laufenden Prototyp um zugeordnete Transporter, Werkstätten, Schadensstufen, Richtungstore und gemeinsame Infanteriestandplätze. `tools/Test-Core.ps1` bestand mit 232 Kernprüfungen einschließlich beider Referenzsiege. Der mit `tools/Unity.ps1 -Action Build` gebaute Windows-Player bestand `tools/Test-Presentation.ps1 -PolishOnly` auf einem isolierten Desktop. Die Aufnahmen `construction-delivery.png` und `damaged-tank-tracks.png` zeigen die Entladung am Bauplatz und den beschädigten Panzer in Fahrt.
+
+### Version 1.0.24 · Geschütztürme, Fahrkurven und Energiebalken
+
+SURFACE-012 und TEST-046: Alle vier Bodengeschütze stehen auf einem erhöhten Drehkranz. Bodeneinheiten runden Wegpunkte innerhalb der passierbaren Wabe ab. Beide Ketten schreiben ihre eigene Spur. Der Energiebalken folgt der zwischen den Simulationsticks dargestellten Einheit. `tools/Test-Core.ps1` bestand mit 233 Prüfungen, darunter Kurvenfahrt, Laden in der Kurve und Durchfahrten zwischen geparkten Fahrzeugen. Der mit `tools/Unity.ps1 -Action Build` gebaute Windows-Player bestand `tools/Test-Presentation.ps1 -PolishOnly` auf dem isolierten Desktop. Die Aufnahmen `tower-wall-clearance.png` und `tank-turn-tracks-hud.png` zeigen die geprüften Spielsituationen.
+
+### Version 1.0.25 · Niedrigere Turmsockel
+
+Die Drehachse der vier Bodengeschütze liegt auf 0,52 Welteinheiten über der Modellbasis. Im Mauerring von TEST-046 ergab die Prüfung im Windows-Player bei allen vier Türmen 0,10 Welteinheiten Abstand zwischen Drehteller und Maueranschluss. Auch der höchste Punkt der angrenzenden Mauern blieb beim Rundumschwenk frei.

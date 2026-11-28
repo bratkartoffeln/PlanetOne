@@ -14,7 +14,7 @@ namespace PlanetOne.Core
                 foreach(var spec in new[]{new[]{(int)BuildingKind.SolarPlant,10,5},new[]{(int)BuildingKind.Farm,9,7},new[]{(int)BuildingKind.Spaceport,7,5},new[]{(int)BuildingKind.JumpGate,7,7}})
                 {
                     var b=new BuildingState {Id=sim.State.NextEntityId++,PlanetId=p.Id,Kind=(BuildingKind)spec[0],X=spec[1],Y=spec[2],Built=true};
-                    if(b.Kind==BuildingKind.JumpGate)Array.Copy(Definitions.GateComponents,b.Inventory,6);
+                    if(b.Kind==BuildingKind.JumpGate)Array.Copy(Definitions.GateComponents,b.Inventory,Definitions.ResourceCount);
                     if(b.Kind==BuildingKind.Spaceport){b.Inventory[2]=24;b.Inventory[3]=12;}
                     p.Buildings.Add(b);
                 }

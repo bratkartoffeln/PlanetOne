@@ -12,7 +12,7 @@ namespace PlanetOne.Core
             {
                 Require(p != null && p.Buildings != null, "Alter Koloniezustand fehlt.");
                 p.Units = new List<UnitState>(); p.Sightings = new List<SightingState>();
-                p.GatePermissions = new List<GatePermission>(); p.LostTotals = new int[6];
+                p.GatePermissions = new List<GatePermission>(); p.LostTotals = new int[Definitions.ResourceCount];
                 foreach (var b in p.Buildings)
                 {
                     b.Health = Definitions.BuildingHealth(b.Kind); b.Destroyed = false;
@@ -47,10 +47,12 @@ namespace PlanetOne.Core
                     Enum.IsDefined(typeof(UnitKind), u.Kind) && Enum.IsDefined(typeof(UnitOrder), u.Order) &&
                     Enum.IsDefined(typeof(TargetLayer), u.Layer), "Ungültige Einheit.");
                 var d = Definitions.Get(u.Kind);
-                Require(Finite(u.X) && Finite(u.Y) && u.X >= 0 && u.Y >= 0 && u.X <= p.Width - 1 && u.Y <= p.Height - 1 &&
+                Require(u.InfantrySlot>=0 && u.InfantrySlot<=3 && (u.InfantrySlot==0 || Definitions.Producer(u.Kind)==BuildingKind.Barracks),"Ungültiger Infanteriestandplatz.");
+                Require(Finite(u.X) && Finite(u.Y) && u.X >= -1 && u.Y >= -1 && u.X <= p.Width && u.Y <= p.Height &&
+                    ValidGroundCell(p,HexGrid.CellAt(u.X,u.Y)) &&
                     Finite(u.Health) && u.Health >= 0 && u.Health <= d.Health && u.Destroyed == (u.Health == 0), "Ungültiger Einheitenort oder Schaden.");
                 Require(u.Ammunition >= 0 && u.Ammunition <= d.Ammo && u.Food >= 0 && u.Food <= 4 && u.Parts >= 0 && u.Parts <= 8 &&
-                    (u.Kind == UnitKind.Engineer || u.Parts == 0) && Finite(u.Cooldown) && u.Cooldown >= 0 &&
+                    (Definitions.CanRepair(u.Kind) || u.Parts == 0) && Finite(u.Cooldown) && u.Cooldown >= 0 &&
                     Finite(u.RationTime) && u.RationTime >= 0 && u.RationTime < Definitions.RationSeconds + 0.000001,
                     "Ungültige Einheitenvorräte.");
                 Require(u.Layer == TargetLayer.Ground || state.MilitaryTestFixture, "Übergangsziel benötigt eine ausgewiesene P12-Testfixture.");
@@ -69,8 +71,9 @@ namespace PlanetOne.Core
                     var a = u.Path[i]; var b = u.Path[Math.Min(i + 1, u.Path.Count - 1)]; double t = u.PathDistance - i;
                     if(u.DirectPath)
                     {
-                        var from=HexGrid.ToWorld(a.X,a.Y);var to=HexGrid.ToWorld(b.X,b.Y);var at=HexGrid.ToWorld(u.X,u.Y);
-                        Require(Math.Abs(at.X-(from.X+(to.X-from.X)*t))<.000001&&Math.Abs(at.Y-(from.Y+(to.Y-from.Y)*t))<.000001,"Direkter Bodenweg und Position widersprechen sich.");
+                        var expected=i+1<u.Path.Count?GameSimulation.DirectGroundPosition(u,i,t):HexGrid.ToWorld(a.X,a.Y);
+                        var at=HexGrid.ToWorld(u.X,u.Y);
+                        Require(Math.Abs(at.X-expected.X)<.000001&&Math.Abs(at.Y-expected.Y)<.000001,"Direkter Bodenweg und Position widersprechen sich.");
                     }
                     else Require(Math.Abs(u.X - (a.X + (b.X - a.X) * t)) < 0.000001 &&
                         Math.Abs(u.Y - (a.Y + (b.Y - a.Y) * t)) < 0.000001, "Bodenweg und Einheitenposition widersprechen sich.");
@@ -93,7 +96,7 @@ namespace PlanetOne.Core
                     if(GameSimulation.GroundCourierDocked(shipment))
                     {
                         var at=GameSimulation.GroundCourierPosition(shipment);
-                        Require(p.Buildings.Exists(b=>(b.Id==shipment.SourceId||b.Id==shipment.TargetId)&&GroundAtBuilding(at,b)),"Innenfahrzeug steht außerhalb seines tatsächlichen Gebäudes.");
+                        Require(p.Buildings.Exists(b=>(b.Id==shipment.SourceId||b.Id==shipment.TargetId||b.Id==shipment.HomeId)&&GroundAtBuilding(at,b)),"Innenfahrzeug steht außerhalb seines tatsächlichen Gebäudes.");
                     }
                     else {cargoIndices.Add(positions.Count);positions.Add(GameSimulation.GroundCourierPosition(shipment));radii.Add(GameSimulation.GroundCourierRadius(shipment));}
                 }
@@ -111,12 +114,15 @@ namespace PlanetOne.Core
                     p.Buildings.Exists(b => b.Id == g.GateId && b.Kind == BuildingKind.Gate) &&
                     gates.Add(g.FactionId + ":" + g.GateId), "Ungültiges Torrecht.");
         }
+        private static bool ValidGroundCell(PlanetState p,GridCell at)
+        {return at.X>=0 && at.Y>=0 && at.X<p.Width && at.Y<p.Height;}
+
         private static void ValidateGroundTraffic(GameState state,PlanetState planet,GroundTrafficState traffic)
         {
             if(traffic==null)return;
             Require(traffic.WaitTicks>=0&&Finite(traffic.Progress)&&traffic.Progress>=0&&traffic.Progress<=1&&Finite(traffic.StartX)&&Finite(traffic.StartY)&&Finite(traffic.RequestX)&&Finite(traffic.RequestY),"Ungültiger Bodenverkehrszustand.");
             Require(!traffic.Yielding || (!traffic.Docked||traffic.Progress==1)&&traffic.YieldForId>0&&traffic.YieldForId<state.NextEntityId&&traffic.YieldSinceTick>=0&&traffic.YieldSinceTick<=state.Tick&&traffic.GoalX>=0&&traffic.GoalY>=0&&traffic.GoalX<planet.Width&&traffic.GoalY<planet.Height,"Ungültiges Ausweichmanöver.");
-            Require(!traffic.Yielding || traffic.StartX>=0&&traffic.StartX<=planet.Width-.5&&traffic.StartY>=0&&traffic.StartY<=(planet.Height-1)*HexGrid.RowHeight,"Ausweichfahrt beginnt außerhalb der Karte.");
+            Require(!traffic.Yielding || traffic.StartX>=-1&&traffic.StartX<=planet.Width+1&&traffic.StartY>=-1&&traffic.StartY<=planet.Height&&ValidGroundCell(planet,HexGrid.FromWorld(traffic.StartX,traffic.StartY)),"Ausweichfahrt beginnt außerhalb der Karte.");
         }
         private static bool GroundAtBuilding(SimPoint position,BuildingState building)
         {var center=HexGrid.ToWorld(building.X,building.Y);double dx=center.X-position.X,dy=center.Y-position.Y;return dx*dx+dy*dy<=(GameSimulation.RoadLaneOffset+.000001)*(GameSimulation.RoadLaneOffset+.000001);}

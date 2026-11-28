@@ -56,6 +56,7 @@ namespace PlanetOne.Core
     public sealed class AiWorld
     {
         public PlanetKind Kind;
+        public int AtmosphericHydrogen;
         public int Id, OwnerId, Width, Height, Population, Housing, Workers, WorkersUsed, Energy, EnergyDemand;
         public bool Current;
         public double X, Y;

@@ -103,15 +103,18 @@ namespace PlanetOne.Runtime
         }
         private void BuildAirVehicle(Transform root,UnitKind kind,Color color,bool courier)
         {
-            HullPart(root,new Vector3(0,.18f,0),new Vector3(.43f,.20f,.64f),color);
-            Part(root,courier?"Frachtcontainer":"Geschützte Flugkapsel",new Vector3(0,.32f,0),new Vector3(.29f,.22f,.40f),Hull);
+            HullPart(root,new Vector3(0,.18f,0),new Vector3(.43f,.20f,.64f),Hull);
+            ArmourPanel(root,courier?"Frachtcontainer":"Geschützte Flugkapsel",new Vector3(0,.32f,0),new Vector3(.29f,.22f,.40f),courier?Industrial:color);
+            HullPart(root,new Vector3(0,.265f,.23f),new Vector3(.22f,.12f,.24f),Canopy);
             for(int side=-1;side<=1;side+=2)for(int end=-1;end<=1;end+=2) {
                 var at=new Vector3(side*.34f,.15f,end*.23f);
                 Rod(root,"Ausleger",new Vector3(0,.18f,end*.16f),at,.055f,Steel);
                 Part(root,"Schwebetriebwerk",at,new Vector3(.24f,.06f,.24f),Steel,PrimitiveType.Cylinder);
+                  Part(root,"Düsenkragen",at+Vector3.up*.057f,new Vector3(.19f,.019f,.19f),Hull,PrimitiveType.Cylinder);
                 Part(root,"Antrieb",at-Vector3.up*.08f,new Vector3(.15f,.10f,.15f),Cyan,PrimitiveType.Sphere);
             }
-            if(!courier && kind==UnitKind.Engineer)Rod(root,"Werkzeugarm",new Vector3(0,.35f,.1f),new Vector3(0,.36f,.58f),.045f,Steel);
+            if(!courier && kind==UnitKind.MobileWorkshop)WorkshopBody(root,color);
+            else if(!courier && kind==UnitKind.Engineer)Rod(root,"Werkzeugarm",new Vector3(0,.35f,.1f),new Vector3(0,.36f,.58f),.045f,Steel);
             else if(!courier)
             {
                 var turret=new GameObject("Turret").transform;turret.SetParent(root,false);turret.localPosition=new Vector3(0,.39f,.05f);

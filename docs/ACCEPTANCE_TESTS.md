@@ -426,3 +426,20 @@ Aktuelle Laufdaten und verbleibende Integrationsprüfungen stehen in [GUI_BEWEGU
 ## TEST-043 · Freie Kolonielogistik bis zum Spielende
 
 **Grundlage** M10/P23, LOG-018 und F05. Ohne vorgebaute Straße einen erreichbaren Bauplatz beauftragen. Verladung, sichtbaren Kurier, Nutzungsspur und Fertigstellung beobachten. Eine durch unpassierbares Gelände abgetrennte Quelle darf keinen Bau finanzieren. Nach Wiederherstellung der Verbindung wird der tatsächliche Bestand genau einmal verbraucht. Bei Save/Load müssen Reservierungen, Fracht und Nutzungsspuren erhalten bleiben. In beiden regulären F05-Verläufen müssen die Ressourcenbilanzen bis zum Einzel- bzw. Koalitionssieg aufgehen. Bei Gaswelten dürfen Lieferungen keine Bodenspuren erzeugen.
+## TEST-044 · Wasserstoff vom Gasband zum Zielhafen
+
+**M11/P24, ECO-009.** Auf einem kolonisierten Gasriesen Solaranlage, Gasförderer, Lager und Raumhafen regulär bauen. Während eines beladenen Drohnenflugs speichern, laden und bis zur Ankunft fortsetzen. Verglichen werden der vollständige Spielzustand, die Lagerbestände, die geförderte Menge und der verbleibende Gasvorrat. Bei acht Wasserstoff im Hafen und einer Exportreserve von drei muss eine Bestellung über acht genau fünf an den zweiten Hafen liefern. Einen vollen Stationsspeicher, die letzte förderbare Charge, erschöpftes Gas und einen abgelehnten Bodenbauplatz getrennt prüfen. Im Windows-Player schwebende Station und gelieferten Hafenbestand kontrollieren.
+
+## TEST-045 · Fahrzeuge, Figuren und Betriebsanimationen
+
+Zwei Kuriere an derselben Ausfahrt losschicken. Nach der ersten Ausfahrt speichern und laden und den Abstand beim zweiten Start prüfen. Im Windows-Player den Abstand beider Modelle im Konvoi und bei Gegenverkehr beobachten. An einem Panzer die vier Aufstandspunkte gegen das tatsächliche Gelände prüfen. Eine Fußtruppe durch ein eigenes Tor bewegen und Bewegung von Hüfte und Knie sowie Öffnen und Schließen der Schranke verfolgen. Eine Leerfahrt muss beide Ladeschleusen betätigen. Das Fahnentuch bewegt sich an der freien Kante, seine Mastkante bleibt fest. Beobachtete Schüsse und Zerstörungen erzeugen Partikel auch im ersten sichtbaren Bild. Der Düsenstrahl eines fliegenden Aufklärers folgt seinen Triebwerken.
+
+## TEST-046 · Heimatfahrzeuge, Instandsetzung und Befestigungen
+
+Drei Lieferungen gleichzeitig an ein Lager bestellen. Eigene Fahrzeugkennung, Abholfahrt und Depotreserve prüfen, den Fuhrpark speichern und laden. Beim Rückbau Material und Fahrzeuge am Depot zählen. Ein leerer Rückbautransporter darf die ehemalige Abholstelle nicht erneut anfahren. Am Bauplatz während des Entladens beobachten, wie der Behälter vom weiter sichtbaren Fahrzeug heruntergehoben wird.
+
+Einen Panzer quer an einem sichtbaren Gegner vorbeifahren lassen. Marschziel, verbrauchte Munition, Ausrichtung und Rückstoß prüfen. Dieselbe Rückstoßkontrolle am Geschützturm durchführen. Bei kritischer Beschädigung Rauch und Feuer, nach der Fahrt zwei verblassende Kettenspuren prüfen. Eine mobile Werkstatt mit begrenztem Teilevorrat abstellen und die reparierten Strukturpunkte gegen die verbrauchten Teile rechnen.
+
+Vier Fußtruppen auf dasselbe Feld schicken und ihre tatsächlichen Endpositionen vergleichen. Ein Tor aus allen sechs Richtungen prüfen. Eine geschlossene Mauer auf unebenem Gelände mit einem Geschützturm ergänzen. Die Auswahl aus verschiedenen Richtungen und in allen drei Oberflächenlayouts testen.
+
+Alle vier Bodengeschütztürme zwischen zwei Mauersegmente setzen. Beim vollen Schwenk müssen Drehteller, Waffenwiege und Rohre oberhalb beider Mauerkronen bleiben. Auf der Prüfkarte darf der Abstand zwischen Maueranschluss und Drehteller höchstens 0,12 Welteinheiten betragen. Einen ausgewählten Panzer um ein geparktes Fahrzeug fahren lassen und in der Kurve speichern. Beim Laden müssen Kurve und Ziel erhalten bleiben. Im Player die innere und äußere Kettenspur sowie die Position des Energiebalkens zwischen zwei Simulationsticks prüfen.

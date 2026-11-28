@@ -70,7 +70,7 @@ internal static class AsteroidTests
         var second=new ShipState {Id=s.State.NextEntityId++,Kind=ShipKind.Freighter,OwnerId=1,Crew=2};s.State.Ships.Add(second);Scout(s,second);
         Check(Cmd(s,ship:second) && second.Mining.Amount==13,"Overbooked finite deposit");Check(a.ReservedOre==53 && Port(s).ReservedIncoming[1]==53,"Reservations differ");SaveCodec.Validate(s.State);
         Cmd(s,CommandKind.CancelFreight);Check(a.ReservedOre==13,"Cancel released another ship claim");
-        var full=Fixture();Scout(full);var port=Port(full);for(int r=0;r<6;r++)port.Inventory[r]=0;port.Inventory[1]=Definitions.Get(BuildingKind.Spaceport).Capacity;
+        var full=Fixture();Scout(full);var port=Port(full);for(int r=0;r<Definitions.ResourceCount;r++)port.Inventory[r]=0;port.Inventory[1]=Definitions.Get(BuildingKind.Spaceport).Capacity;
         Check(!Cmd(full),"Full port overbooked");
         var other=new BuildingState {Id=full.State.NextEntityId++,Kind=BuildingKind.Spaceport,PlanetId=1,X=16,Y=6,Built=true,Health=Definitions.BuildingHealth(BuildingKind.Spaceport)};
         full.FindPlanet(1).Buildings.Add(other);

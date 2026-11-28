@@ -4,9 +4,9 @@ using System.Runtime.Serialization;
 
 namespace PlanetOne.Core
 {
-    public enum ResourceKind { Food, Ore, Metal, Parts, Crystals, Electronics }
+    public enum ResourceKind { Food, Ore, Metal, Parts, Crystals, Electronics, Hydrogen }
     public enum BuildingKind { Headquarters, Mine, Smelter, SolarPlant, Warehouse, Workshop, Farm, Housing,
-        Barracks, VehicleFactory, MilitaryDepot, GunTower, AntiTankTower, FlakTower, ArtilleryTower, Wall, Gate, Spaceport, Laboratory, CrystalMine, ElectronicsFactory, ShieldGenerator, OrbitalBattery, JumpGate }
+        Barracks, VehicleFactory, MilitaryDepot, GunTower, AntiTankTower, FlakTower, ArtilleryTower, Wall, Gate, Spaceport, Laboratory, CrystalMine, ElectronicsFactory, ShieldGenerator, OrbitalBattery, JumpGate, GasExtractor }
     public enum CommandKind { PlaceBuilding, PlaceRoad, RemoveRoad, CancelConstruction, DemolishBuilding,
         SetBuildingEnabled, SetBuildingPriority, SetPaused, SetTimeScale,
         RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget, BuildShip, FlyShip, GuardPlanet, EscortShip, Colonize, StartResearch, SetSupplyPolicy, AssignFreight, CancelFreight, SetAutoSupply, SetTradeRoute, MoveShipPosition,
@@ -109,7 +109,7 @@ namespace PlanetOne.Core
         [DataMember] public List<ShipState> Ships = new List<ShipState>();
         [DataMember] public List<TradeRoute> Routes = new List<TradeRoute>();
         [DataMember] public List<SpaceSighting> SpaceSightings = new List<SpaceSighting>();
-        [DataMember] public int[] SpaceLostTotals = new int[6];
+        [DataMember] public int[] SpaceLostTotals = new int[Definitions.ResourceCount];
         [DataMember] public bool SpaceTestFixture;
         [DataMember] public bool MilitaryTestFixture;
         [DataMember] public int Seed;
@@ -149,6 +149,7 @@ namespace PlanetOne.Core
         // Terrain: 0 = ground/platform airspace, 1 = rock, 2 = ore, 3 = crystal, 4 = open water.
         [DataMember] public int[] Terrain;
         [DataMember] public int[] OreRemaining;
+        [DataMember] public int AtmosphericHydrogen;
         [DataMember] public bool[] Roads;
         [DataMember] public List<BuildingState> Buildings = new List<BuildingState>();
         [DataMember] public List<DeliveryOrder> Deliveries = new List<DeliveryOrder>();
@@ -169,10 +170,10 @@ namespace PlanetOne.Core
         [DataMember] public double FoodDebt;
         [DataMember] public double EnergyStored;
         [DataMember] public double EnergyCapacity;
-        [DataMember] public int[] ProducedTotals = new int[6];
-        [DataMember] public int[] ConsumedTotals = new int[6];
-        [DataMember] public int[] RecoveredTotals = new int[6];
-        [DataMember] public int[] LostTotals = new int[6];
+        [DataMember] public int[] ProducedTotals = new int[Definitions.ResourceCount];
+        [DataMember] public int[] ConsumedTotals = new int[Definitions.ResourceCount];
+        [DataMember] public int[] RecoveredTotals = new int[Definitions.ResourceCount];
+        [DataMember] public int[] LostTotals = new int[Definitions.ResourceCount];
         [DataMember] public List<UnitState> Units = new List<UnitState>();
         [DataMember] public List<SightingState> Sightings = new List<SightingState>();
         [DataMember] public List<GatePermission> GatePermissions = new List<GatePermission>();
@@ -198,9 +199,9 @@ namespace PlanetOne.Core
         [DataMember] public bool CycleActive;
         [DataMember] public double CycleProgress;
         [DataMember] public int ProductionReservedSpace;
-        [DataMember] public int[] Inventory = new int[6];
-        [DataMember] public int[] ReservedOutgoing = new int[6];
-        [DataMember] public int[] ReservedIncoming = new int[6];
+        [DataMember] public int[] Inventory = new int[Definitions.ResourceCount];
+        [DataMember] public int[] ReservedOutgoing = new int[Definitions.ResourceCount];
+        [DataMember] public int[] ReservedIncoming = new int[Definitions.ResourceCount];
         [DataMember] public string Status = "Baustelle";
         [DataMember] public bool Enabled = true;
         [DataMember] public int Priority = 1;
@@ -208,6 +209,8 @@ namespace PlanetOne.Core
         [DataMember] public int CapacityOverride;
         [DataMember] public double EnergyStored;
         [DataMember] public int ReservedReturnSpace;
+        [DataMember(EmitDefaultValue=false)] public List<long> Couriers;
+        [DataMember(EmitDefaultValue=false)] public long NextCourierExitTick;
         [DataMember] public int LegacyCapacityAllowance;
         [DataMember] public bool PowerBlocked;
         [DataMember] public double Health = 160;
@@ -238,6 +241,9 @@ namespace PlanetOne.Core
     [DataContract, Serializable]
     public sealed class ShipmentState
     {
+        [DataMember(EmitDefaultValue=false)] public long CourierId;
+        [DataMember(EmitDefaultValue=false)] public long HomeId;
+        [DataMember(EmitDefaultValue=false)] public bool ApproachingSource;
         [DataMember] public long Id;
         [DataMember] public long SourceId;
         [DataMember] public long TargetId;

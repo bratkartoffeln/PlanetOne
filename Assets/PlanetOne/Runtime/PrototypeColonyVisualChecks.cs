@@ -16,7 +16,7 @@ namespace PlanetOne.Runtime
             controller.StartReferenceScenario();controller.SetSimulationPaused(true);controller.SetView(1);controller.CloseContextPanel();
             foreach(var planet in controller.Simulation.State.Planets)
                 Require(planet.Width==40&&planet.Height==32,"New colony keeps 40 by 32 simulation cells: "+planet.Name);
-            controller.ExportBuildingCatalogue(outputDirectory);
+            controller.ExportModelCatalogue(outputDirectory);
             var renderedModels=new HashSet<string>();
             foreach(BuildingKind kind in Enum.GetValues(typeof(BuildingKind)))
             {
