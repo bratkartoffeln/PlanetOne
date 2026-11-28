@@ -78,7 +78,7 @@ namespace PlanetOne.Runtime
         public int RenderedShipmentCount { get { return shipmentViews.Count; } }
         public int PlayerFactionId { get { return simulation.State.PlayerFactionId; } }
         public static string SavePath { get { return Path.Combine(Application.persistentDataPath, "prototype-save.json"); } }
-        public string ActiveSavePath { get { return smokeSavePath ?? (simulation.State.DiplomacyScenario && simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "diplomacy-fixture-save.json") : simulation.State.DiplomacyScenario ? Path.Combine(Application.persistentDataPath, "diplomacy-save.json") : simulation.State.AiScenario ? Path.Combine(Application.persistentDataPath, "ai-scenario-save.json") : simulation.State.InvasionTestFixture ? Path.Combine(Application.persistentDataPath, "invasion-fixture-save.json") : simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "space-fixture-save.json") : simulation.State.MilitaryTestFixture ? Path.Combine(Application.persistentDataPath, "military-fixture-save.json") : SavePath); } }
+        public string ActiveSavePath { get { return smokeSavePath ?? (ActiveSlotId!=null?saveSlots.PathFor(ActiveSlotId):(simulation.State.DiplomacyScenario && simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "diplomacy-fixture-save.json") : simulation.State.DiplomacyScenario ? Path.Combine(Application.persistentDataPath, "diplomacy-save.json") : simulation.State.AiScenario ? Path.Combine(Application.persistentDataPath, "ai-scenario-save.json") : simulation.State.InvasionTestFixture ? Path.Combine(Application.persistentDataPath, "invasion-fixture-save.json") : simulation.State.SpaceTestFixture ? Path.Combine(Application.persistentDataPath, "space-fixture-save.json") : simulation.State.MilitaryTestFixture ? Path.Combine(Application.persistentDataPath, "military-fixture-save.json") : SavePath)); } }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureBootstrap()
@@ -114,6 +114,7 @@ namespace PlanetOne.Runtime
             BuildSpace();
             SetView(0);
             Notify("Willkommen. Öffne einen Planeten, um seine Kolonie aufzubauen.");
+            InitializeSessions();
             if (PrototypeSmokeRunner.IsRequested) gameObject.AddComponent<PrototypeSmokeRunner>();
         }
 
@@ -122,7 +123,7 @@ namespace PlanetOne.Runtime
             if (simulation == null) return;
             Shader.SetGlobalFloat("_PlanetOneSeconds",(float)(simulation.State.Tick*Definitions.TickSeconds));
             HandleKeyboard();
-            simulation.Advance(Time.unscaledDeltaTime);
+            if(hasSession && !menuOpen && !settingsOpen)simulation.Advance(Time.unscaledDeltaTime);
             UpdateFoodRates();
             if (!string.IsNullOrEmpty(simulation.State.LastMessage) && simulation.State.LastMessage != lastSimulationMessage)
             {
@@ -157,7 +158,7 @@ namespace PlanetOne.Runtime
         public bool HandleShortcut(KeyCode key)
         {
             if(IsCommandMenuOpen){if(key==KeyCode.Escape){CloseCommandMenu();return true;}return false;}
-            if (key==KeyCode.Escape) { if(settingsOpen) settingsOpen=false; else if(menuOpen) menuOpen=false; else if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue || spaceMoveTargetMode) {CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;} else if(panelOpen){panelOpen=false;contextOpen=true;} else if(SelectionCardVisible)contextOpen=false; else menuOpen=true; selectionStart=null; shipSelectionStart=null; return true; }
+            if (key==KeyCode.Escape) { if(settingsOpen)CloseSettings(); else if(HandleSessionEscape()){} else if(placement.HasValue || placingRoad || removingRoad || militaryTargetMode.HasValue || spaceMoveTargetMode) {CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;} else if(panelOpen){panelOpen=false;contextOpen=true;} else if(SelectionCardVisible)contextOpen=false; else ShowSessionPage(SessionPage.Home); selectionStart=null; shipSelectionStart=null; return true; }
             if(settingsOpen || menuOpen)return false;
             if(key==KeyCode.Space){TogglePause();return true;}
             if(key==KeyCode.F5)return SaveGame();
@@ -539,6 +540,8 @@ namespace PlanetOne.Runtime
             PreparePresentationSkin();
             bool previousEnabled=GUI.enabled;
             GUI.enabled=previousEnabled && !settingsOpen && !menuOpen && !IsCommandMenuOpen && commandDismissFrame!=Time.frameCount;
+            if(hasSession)
+            {
             if (openPlanetId == 0) { DrawPlanetNameplates(scale); DrawShipLabels(scale); DrawAsteroidLabels(scale); }
             else { DrawBuildingLabels(scale); DrawMilitaryLabels(scale); }
             DrawPresentationTop(width);
@@ -546,6 +549,7 @@ namespace PlanetOne.Runtime
             DrawSidebar(width, height);
             DrawPresentationBottom(width, height);
             DrawSelectionCard(width,height);
+            }
             GUI.enabled=previousEnabled;
             DrawPresentationDialogs(width,height);
             DrawCommandMenu();
@@ -771,6 +775,7 @@ namespace PlanetOne.Runtime
 
         public bool SaveGame()
         {
+            if(smokeSavePath==null)return QuickSaveSession();
             try
             {
                 PlanetOne.Platform.SnapshotStore.Save(ActiveSavePath,simulation.State);
@@ -779,8 +784,8 @@ namespace PlanetOne.Runtime
             catch(Exception error){Notify("Speichern fehlgeschlagen: "+error.Message);Debug.LogWarning("Speichern: "+error.Message);return false;}
         }
 
-        public bool LoadGame(){return LoadSnapshot(false);}
-        public bool LoadBackupGame(){return LoadSnapshot(true);}
+        public bool LoadGame(){return smokeSavePath==null?QuickLoadSession(false):LoadSnapshot(false);}
+        public bool LoadBackupGame(){return smokeSavePath==null?QuickLoadSession(true):LoadSnapshot(true);}
         private bool LoadSnapshot(bool backup)
         {
             GameSimulation previous=simulation;int previousView=openPlanetId;bool replaced=false;

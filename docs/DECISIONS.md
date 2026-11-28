@@ -1,5 +1,11 @@
 # Entscheidungen und Plattformstrategie
 
+## M9: Einstieg und lokale Partien (25. November 2026)
+
+- **D-037, Arbeitsannahme zum Fortsetzungsauftrag:** Der bisherige Plan endete bei M8. M9/P22 verbessert den Einstieg in den bestehenden Einzelspieler: Startmenü, Auswahl der drei vorhandenen regulären Szenarien, mehrere lokale Speicherplätze und kurze Starthilfe. Neue Wirtschaftssysteme, weitere Sternsysteme und Kampagnen werden damit nicht vorgezogen.
+- **T-057, entschieden:** Acht feste Speicherplätze unter `Saves/slot-1.json` bis `slot-8.json`, jeweils mit explizit ladbarer `.bak`. Metadaten werden aus validierten Snapshots gelesen; keine zweite Manifestdatei und keine Änderung des Speicherformats 11. Die sieben bisherigen Dateinamen bleiben schreibgeschützt im Katalog ladbar. F5 verwendet zuerst einen freien Platz, danach den der konkreten laufenden Sitzung zugeordneten Platz. Volle Plätze verlangen eine Auswahl, belegte Ziele beim manuellen Speichern eine Bestätigung. F9 und Partiewechsel bestätigen den Verlust ungespeicherten Fortschritts. Fehler erhalten die laufende Simulation.
+- **T-058, entschieden:** Start-, Spiel- und Einstellungsmenü halten die Fortschaltung der gemeinsamen Simulation an; deren gespeicherter Pausenzustand bleibt erhalten. Eine neue Partie nutzt die vorhandene Szenariofabrik mit zufälligem oder eingegebenem Startwert. Prüfkarten stehen getrennt. Die vierseitige Starthilfe navigiert zu vorhandenen Spielbereichen und erzeugt weder Ressourcen noch Befehle. Automatisierte Dateiprüfungen und echte Player-Renderläufe erfolgen weiterhin ohne Screenreader, Computer-Use oder Aktivierung des Arbeitsdesktops. [Nachweis](M9_NACHWEIS.md).
+
 ## Verständliche Objektbefehle (25. November 2026)
 
 - **D-036, Vorgabe:** Befehls-GUI nach vorheriger Stilrecherche übersichtlicher und intuitiver gestalten; Kontextmenüs direkt an angeklickten oder aktiven Elementen sind erwünscht.

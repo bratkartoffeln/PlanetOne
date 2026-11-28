@@ -2,7 +2,11 @@
 
 Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0 bis M4 sind umgesetzt und abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen vollständigen zusätzlichen Maustest. M3 ist mit Core-Tests, Windows-Build, Grafiklauf und gezielten tatsächlichen Maus-/Tastatureingaben geprüft; siehe [M3_NACHWEIS](M3_NACHWEIS.md). P08–P10 sind in Version 1.0.3 abgeschlossen; Nachweise und konkrete Grenzen stehen in [M4_NACHWEIS](M4_NACHWEIS.md).
 
-## Aktueller Meilenstein M8 (1.0.15)
+## Aktueller Meilenstein M9 (1.0.17)
+
+Der Fortsetzungsauftrag ergänzt **P22: Spieleinstieg und lokale Partien**. Der bisherige Plan endete bei M8; D-037 hält die konkrete Arbeitsannahme fest. Umfang, Prüfungen und Git-Stand stehen in [M9_NACHWEIS](M9_NACHWEIS.md). M8 und die Befehlsoberfläche 1.0.16 sind inzwischen über PR #15/#16 in `main` integriert; deren übrige Abnahmegrenzen bleiben erhalten.
+
+## Vorheriger Meilenstein M8 (1.0.15)
 
 Zusätzlicher Bedienungsauftrag **1.0.16**: Objektbefehle und Rechtsklickmenüs sind implementiert; Windows-Build, 161 Core-Tests, vollständiger 1440×900-Lauf mit 476 Einzelprüfungen und gezielter 1280×720-Lauf mit 78 Einzelprüfungen bestanden. [Recherche, Belege und Git-Grenze](BEFEHLS_GUI_NACHWEIS.md).
 
@@ -82,6 +86,7 @@ Fachliche Grundlage sind insbesondere SURFACE-003 bis SURFACE-008, ECO-001 bis E
 | M6 | Eigenständig wirtschaftende und militärisch anpassungsfähige KI | P14–P15 | M5 |
 | M7 | Mehrere KI, Diplomatie und gemeinsamer Sieg | P16–P18 | M6 |
 | M8 | Geprüftes vollständiges Szenario und vereinbarte Exporte | P19–P21 | M7 |
+| M9 | Verständlicher Spieleinstieg und getrennte lokale Partien | P22 | M8 und Befehlsoberfläche 1.0.16 |
 
 M3 und M4 können nach M2 parallel bearbeitet werden, sofern die Schnittstellen und Dateizuständigkeiten vorher geklärt sind. Die vorgezogene reine Raumansicht benötigt nur die gemeinsame Simulation; die übrigen Abhängigkeiten von P08 bleiben erhalten. Parallele Agenten bearbeiten getrennte Dateien beziehungsweise ausdrücklich zugewiesene Module.
 
@@ -337,6 +342,17 @@ Ergänzung **1.0.16**: recherchierte Objektbefehle, Rechtsklickmenüs und aufget
 - **Nicht enthalten:** Zusätzliche Systeme, Kampagne, fertige künstlerische Ausstattung oder Mehrspieler.
 - **Abnahme:** Ein vollständiger Durchlauf zeigt Aufbau, Forschung, automatische Lieferung, Raumkampf, echte Invasion, adaptive KI, mindestens einen Vertrag und ein abgeschlossenes Szenarioziel. Ein zweiter gezielter Durchlauf weist den gemeinsamen Koalitionssieg nach. Wirtschaftlicher Wiederaufbau nach einem Konvoiverlust bleibt möglich.
 - **Prüfung:** Protokollierte Spieltests mit Startwert, wesentlichen Entscheidungen, Ergebnis und gefundenen Fehlern. Automatisierte Gesamtzustandsprüfungen sichern Mengen, Eigentümer, Rechte und Zielerfüllung; subjektive Lesbarkeit und Spielspaß werden im manuellen Test bewertet.
+
+## M9 Spieleinstieg und lokale Partien
+
+### P22 Startmenü, Speicherplätze und Starthilfe
+
+- **Status:** Implementiert; lokale Prüfungen und Git-Integration siehe [M9_NACHWEIS](M9_NACHWEIS.md). **Abhängigkeit:** P19–P21 und GUI-012.
+- **Module:** Runtime-Sitzungsführung und Menüs, Plattform-Dateiadapter, Integrationsprüfungen. Regeln GUI-013/014, ARCH-014/015 und TEST-033.
+- **Umfang:** Startmenü, drei vorhandene reguläre Szenarien mit frei wählbarem Startwert, getrennte Prüfkarten, acht Speicherplätze mit Sicherungen und alten Einzeldateien, Bestätigungen bei Zustandsersatz, vierseitige Starthilfe mit Navigation. Menüs halten die laufende Einzelspielersimulation an.
+- **Nicht enthalten:** Neue Spielregeln, zusätzliche Systeme, Kampagne, automatische Ressourcenhilfen, Cloudspeicher oder automatische Veröffentlichung.
+- **Abnahme:** Gültige Starts entsprechen exakt der Szenariofabrik. Getrennte Speicherziele, Backup-Wiederherstellung, alte Dateien, voller Katalog und Abbruch erhalten ihre ausgewiesenen Zustände. Sichtbare Fehlermeldungen, Layouts, Tastaturkurzbefehle und der bisherige Spielablauf sind geprüft. Starthilfe gibt keine versteckten Spielaufträge.
+- **Prüfung:** Echte Dateisnapshots, Controller-/Eingabeprüfungen und Renderkontrolle in zwei Auflösungen auf dem isolierten Windows-Desktop. Physische Eingabe bleibt entsprechend dem beauftragten Testverfahren gesondert ausgewiesen.
 
 ## Definition of Done für ein Arbeitspaket
 

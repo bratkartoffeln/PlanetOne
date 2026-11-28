@@ -48,6 +48,7 @@ internal static class CoreTests
         PlanetEnvironmentTests.Register(Run);
         AsteroidTests.Register(Run);
         SnapshotStoreTests.Register(Run);
+        SaveSlotTests.Register(Run);
         TransitionTests.Register(Run);
         ReferenceTests.Register(Run);
         Console.WriteLine(failures == 0 ? "All " + checks + " core tests passed." : failures + " test(s) failed.");

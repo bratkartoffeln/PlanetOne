@@ -4,6 +4,12 @@ PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, ph
 
 Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung verbindet klare Geometrie mit texturierten Oberflächen und dunklem Weltraum. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).
 
+## M9: Startmenü und Spielstände in 1.0.17
+
+**Neue Partie → Drei Kolonien** startet das vollständige Szenario. Zwei weitere reguläre Partien, ein optionaler Startwert und eine vierseitige **Starthilfe** stehen im Menü bereit. Prüfkarten sind separat erreichbar. Menü und Einstellungen halten die Spielzeit an; die Leertastenpause bleibt dabei erhalten.
+
+**Speichern … / Laden …** bietet acht getrennte Speicherplätze mit jeweils einer ausdrücklich ladbaren Sicherung. **F5** verwendet zunächst einen freien Platz und aktualisiert danach den aktiven Platz; **F9** fragt vor dem Laden nach. Alte Spielstände bleiben zusätzlich ladbar und werden beim weiteren Speichern in einen neuen Platz übernommen. Ein belegter manueller Speicherplatz oder Partiewechsel erfordert eine Bestätigung. [Bedienung und Prüfstand](docs/M9_NACHWEIS.md).
+
 ## Objektbefehle und Kontextmenüs in 1.0.16
 
 **Linksklick wählt aus, kurzer Rechtsklick öffnet passende Befehle, Rechtsziehen verschiebt die Kamera.** Die untere Leiste zeigt die wichtigsten Aktionen zur Auswahl; **Alle Befehle …** macht das Kontextmenü auch ohne Rechtsklick erreichbar. Gebäude bieten Betrieb, Priorität, Produktion und Details. Die Flottenverwaltung trennt Schiffe, Aufträge, Schiffbau und Abbau. Rückbau erfordert eine Bestätigung mit Rückgewinnung; Escape oder ein verbrauchter Klick daneben schließt ein Menü. [Recherche, Bedienung und Prüfstand](docs/BEFEHLS_GUI_NACHWEIS.md).

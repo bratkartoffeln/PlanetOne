@@ -1,5 +1,12 @@
 # Abnahmeszenarien für PlanetOne
 
+## TEST-033 Startmenü und getrennte Spielstände
+
+- **Grundlage:** M9/P22, GUI-013/014, ARCH-014/015, D-037, T-057/058.
+- **Ablauf:** Startmenü ohne laufende Partie prüfen; alle drei regulären Szenarien mit festem Seed starten und den vollständigen Zustand mit der jeweiligen Szenariofabrik vergleichen. Ungültigen Seed, abgebrochenen Partiewechsel und Navigation durch die Starthilfe prüfen. Verschiedene Partien in getrennten Plätzen speichern; belegtes Ziel zunächst abbrechen, anschließend bestätigen. Hauptdatei beschädigen, ausdrücklich Sicherung laden, erneut speichern. Alte Einzeldatei laden und in einen neuen Platz speichern. Alle Plätze füllen. Zwischen regulärer Partie und Prüfkarte zurückwechseln.
+- **Erwartung:** Exakte Zustände und Sicherungen, keine zusätzlichen Bestände, keine Änderung anderer Plätze oder alter Dateien. Fehler und Abbruch erhalten Simulation und Speicherziel. Volle Plätze bewirken keinen automatischen Ersatz. F9 bestätigt vor dem Laden. Menüs sperren Welteingaben; Spielzeit steht still, ein zuvor pausiertes Spiel bleibt nach dem Schließen pausiert. Start- und Speicheransichten bleiben in allen drei Layouts bei 1440×900 und 1280×720 erreichbar.
+- **Prüfarten:** Dateiverhalten in unabhängigen Core-/Plattformtests; Controllerpfade und gerenderte GUI im isolierten Windows-Player. Physische Bedienung und subjektive Verständlichkeit sind keine automatisch bestandenen Kriterien. [Nachweis](M9_NACHWEIS.md).
+
 ## TEST-032 Objektbefehle und Kontextmenüs
 
 - **Grundlage:** GUI-012, D-036, T-055/056, P20.
