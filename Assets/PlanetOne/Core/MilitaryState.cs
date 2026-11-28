@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 
 namespace PlanetOne.Core
 {
-    public enum UnitKind { Infantry, AntiTank, Tank, Artillery, Engineer, AntiAir }
+    public enum UnitKind { Infantry, AntiTank, Tank, Artillery, Engineer, AntiAir, MobileWorkshop }
     public enum UnitOrder { Hold, Move, Attack, Retreat, Bombard, Resupply, Repair }
     public enum TargetLayer { Ground, LandingTransition, Space }
 
@@ -22,8 +22,10 @@ namespace PlanetOne.Core
         [DataMember] public int Parts;
         [DataMember] public double Cooldown;
         [DataMember] public double RationTime;
+        [IgnoreDataMember] public long ActiveRepairTarget;
         [DataMember] public bool Destroyed;
         [DataMember] public UnitOrder Order;
+        [DataMember(EmitDefaultValue=false)] public int InfantrySlot;
         [DataMember] public int GoalX;
         [DataMember] public int GoalY;
         [DataMember] public long TargetId;
@@ -68,7 +70,7 @@ namespace PlanetOne.Core
             Seconds = seconds; Health = health; Speed = speed; Range = range; Sight = sight;
             Damage = damage; Ammo = ammo; Interval = interval; Indirect = indirect; AntiAir = antiAir;
         }
-        public int[] Cost { get { return new[] { Food, 0, Metal, Parts, 0, 0 }; } }
+        public int[] Cost { get { return new[] { Food, 0, Metal, Parts, 0, 0, 0 }; } }
     }
 
     public sealed class TowerDefinition
@@ -109,7 +111,8 @@ namespace PlanetOne.Core
             new UnitDefinition("Kampfpanzer", 12, 4, 2, 2, 8, 180, 1.6, 4, 5, 20, 16, 1.2),
             new UnitDefinition("Mobile Artillerie", 10, 4, 2, 2, 9, 75, 1.1, 9, 3.5, 38, 8, 2.5, true),
             new UnitDefinition("Pionier und Versorgung", 6, 3, 2, 1, 6, 85, 1.8, 2, 5, 3, 8, 1.5),
-            new UnitDefinition("Mobile Flugabwehr", 8, 3, 2, 1, 7, 90, 1.6, 6, 7, 25, 16, 1.2, false, true)
+            new UnitDefinition("Mobile Flugabwehr", 8, 3, 2, 1, 7, 90, 1.6, 6, 7, 25, 16, 1.2, false, true),
+            new UnitDefinition("Mobile Werkstatt", 10, 8, 2, 2, 9, 130, 1.45, 0, 5, 0, 0, 1)
         };
         public static UnitDefinition Get(UnitKind kind)
         {
@@ -120,6 +123,17 @@ namespace PlanetOne.Core
         { return kind >= BuildingKind.GunTower && kind <= BuildingKind.ArtilleryTower; }
         public static BuildingKind Producer(UnitKind kind)
         { return kind == UnitKind.Infantry || kind == UnitKind.AntiTank ? BuildingKind.Barracks : BuildingKind.VehicleFactory; }
+        public static bool CanRepair(UnitKind kind)
+        { return kind == UnitKind.Engineer || kind == UnitKind.MobileWorkshop; }
+        public static int DamageStage(double health, double maximum)
+        { double fraction = health / maximum; return fraction <= .25 ? 3 : fraction <= .50 ? 2 : fraction <= .75 ? 1 : 0; }
+        private static readonly double[] ConditionRates = { 1, .9, .75, .55 };
+        public static double GroundSpeed(UnitState unit)
+        { var d = Get(unit.Kind); return d.Speed * ConditionRates[DamageStage(unit.Health,d.Health)]; }
+        public static double ProductionRate(BuildingState b)
+        { return ConditionRates[DamageStage(b.Health,BuildingHealth(b.Kind))]; }
+        public const int WorkshopStarterParts = 4;
+        public const double WorkshopRadius = 2;
         public const int PlanetRecruitmentLimit = 20;
         public static double BuildingHealth(BuildingKind kind)
         { return kind == BuildingKind.Wall ? 200 : kind == BuildingKind.Gate ? 160 : 160; }

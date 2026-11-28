@@ -14,6 +14,18 @@ namespace PlanetOne.Runtime
             controller.StartInvasionFixture();controller.SetSimulationPaused(true);controller.SetView(0);controller.CloseContextPanel();
             var actual=controller.Simulation;
             foreach(var old in actual.State.Ships)actual.DestroyShip(old.Id);
+            var runner=TrafficVisualShip(actual,ShipKind.Scout,29,30,40,30);
+            yield return null;yield return null;
+            var movingScout=controller.ShipView(runner.Id);
+            var plume=movingScout.GetComponent<ShipExhaust>().Plume;
+            controller.SetSimulationPaused(false);
+            float deadline=Time.realtimeSinceStartup+2;
+            while(plume.particleCount<4 && Time.realtimeSinceStartup<deadline)yield return null;
+            Require(plume.particleCount>=4,"Moving scout emits paired engine particles");
+            controller.SetSimulationPaused(true);
+            controller.SetSpaceFocus(movingScout.position);Camera.main.orthographicSize=1.25f;
+            controller.CaptureWorld(Path.Combine(outputDirectory,"space-engine-plume.png"));
+            actual.DestroyShip(runner.Id);
             var ships=new Dictionary<ShipKind,ShipState>();
             foreach(ShipKind kind in Enum.GetValues(typeof(ShipKind)))ships[kind]=InvasionFixture.AddShip(actual,1,1,kind);
             yield return null;yield return null;

@@ -172,8 +172,13 @@ internal static class GroundTrafficTests
             planet.Shipments.Add(courier);
         }
         sim.Step();
-        Check(planet.Shipments.TrueForAll(c=>c.DistanceTravelled>0),"Another delivery blocked departure");
+        Check(planet.Shipments.FindAll(c=>c.DistanceTravelled>0).Count==1,"Departures from one depot must be staggered");
         sim=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(sim.State)));
+        sim.Step(5);
+        var convoy=sim.FindPlanet(1).Shipments;
+        Check(convoy.FindAll(c=>c.DistanceTravelled>0).Count==1,"Reload lost the depot departure interval");
+        sim.Step();
+        Check(convoy.TrueForAll(c=>c.DistanceTravelled>0) && Math.Abs(convoy[0].DistanceTravelled-convoy[1].DistanceTravelled)>.7,"Convoy failed to leave with a headway");
         sim.Step(120);
         Check(sim.FindPlanet(1).Shipments.Count==0,"Overlapping deliveries failed to finish");
     }

@@ -27,7 +27,7 @@ namespace PlanetOne.Runtime
             MeshPart("Fahrbahn",root,mesh,Vector3.zero,Vector3.one,new Color(.27f,.25f,.22f));root.gameObject.AddComponent<OwnedSurfaceMesh>().Mesh=mesh;
             return root;
         }
-        private void AddCurvedRibbon(List<Vector3> vertices,List<int> indices,Vector3 a,Vector3 center,Vector3 b,float width)
+        private void AddCurvedRibbon(List<Vector3> vertices,List<int> indices,Vector3 a,Vector3 center,Vector3 b,float width,float clearance=.045f)
         {
             int first=vertices.Count;const int segments=18;
             for(int i=0;i<=segments;i++)
@@ -35,7 +35,7 @@ namespace PlanetOne.Runtime
                 float t=i/(float)segments;Vector3 point=RoadBend(a,center,b,t);
                 Vector3 tangent=2*((1-t)*(center-a)+t*(b-center));if(tangent.sqrMagnitude<.00001f)tangent=b-a;
                 var side=Vector3.Cross(Vector3.up,tangent.normalized)*width;Vector3 left=point-side,right=point+side;
-                left.y=ReliefHeight(left.x,left.z)+.045f;right.y=ReliefHeight(right.x,right.z)+.045f;vertices.Add(left);vertices.Add(right);
+                left.y=ReliefHeight(left.x,left.z)+clearance;right.y=ReliefHeight(right.x,right.z)+clearance;vertices.Add(left);vertices.Add(right);
                 if(i<segments){int n=first+i*2;indices.AddRange(new[]{n,n+2,n+1,n+1,n+2,n+3});}
             }
         }
@@ -44,6 +44,19 @@ namespace PlanetOne.Runtime
         {
             var point=GameSimulation.CourierDisplayPosition(shipment);
             Vector3 position=new Vector3((float)point.X,0,(float)point.Y);
+            if(!GameSimulation.IsConstructionVehicle(shipment) && shipment.Path.Count>1 && (shipment.Traffic==null || !shipment.Traffic.Yielding))
+            {
+                // Vehicles stop on the loading apron in front of the actual endpoint.
+                int last=shipment.Path.Count-1;float d=(float)shipment.DistanceTravelled;
+                float apron=last==1?.38f:.62f;
+                bool start=d<apron;float offset=start?apron-d:apron-(last-d);
+                if(offset>0)
+                {
+                    var dock=shipment.Path[start?0:last];var next=shipment.Path[start?1:last-1];
+                    var a=HexGrid.ToWorld(dock.X,dock.Y);var b=HexGrid.ToWorld(next.X,next.Y);
+                    position+=new Vector3((float)(b.X-a.X),0,(float)(b.Y-a.Y))*offset;
+                }
+            }
             position.y=ReliefHeight(position.x,position.z)+(AtmosphereSurface?.55f:.055f);return position;
         }
         private readonly List<ShipmentState> visibleCouriers=new List<ShipmentState>();
@@ -54,7 +67,13 @@ namespace PlanetOne.Runtime
         // ends of a tick do not guarantee clear models halfway through the frame.
         private void SeparateCourierModels()
         {
-            visibleCouriers.Sort((a,b)=>{int priority=(b.Phase==ShipmentPhase.Building).CompareTo(a.Phase==ShipmentPhase.Building);return priority!=0?priority:a.Id.CompareTo(b.Id);});
+            visibleCouriers.Sort((a,b)=>
+            {
+                int priority=(b.Phase==ShipmentPhase.Building).CompareTo(a.Phase==ShipmentPhase.Building);
+                if(priority!=0)return priority;
+                int progress=b.DistanceTravelled.CompareTo(a.DistanceTravelled);
+                return progress!=0?progress:a.Id.CompareTo(b.Id);
+            });
             drawnCouriers.Clear();
             foreach (var shipment in visibleCouriers)
             {
@@ -77,15 +96,18 @@ namespace PlanetOne.Runtime
                     if ((center-other.Center).sqrMagnitude>=gap*gap) continue;
                     // Queue behind a vehicle travelling in the same direction. At crossings
                     // and in counterflow, keep the route heading and separate sideways.
-                    var axis=Vector2.Dot(heading,other.Heading)>.85f ? -heading : new Vector2(heading.y,-heading.x);
+                    bool following=Vector2.Dot(heading,other.Heading)>.85f;
+                    var axis=following ? -heading : new Vector2(heading.y,-heading.x);
+                    if(following)desired=basePosition+heading*Vector2.Dot(desired-basePosition,heading);
                     float positive=ClearanceAlong(desired,axis,size.VisualRadius);
                     float negative=ClearanceAlong(desired,-axis,size.VisualRadius);
-                    center=desired+(positive<=negative+.001f ? axis*positive : -axis*negative);
+                    center=desired+(following || positive<=negative+.001f ? axis*positive : -axis*negative);
                     break;
                 }
                 size.DisplayOffset=center-basePosition;
                 if(size.DisplayOffset.sqrMagnitude>.00000001f)
                     view.position=new Vector3(center.x,ReliefHeight(center.x,center.y)+(AtmosphereSurface?.55f:.055f),center.y);
+                if(!AtmosphereSurface)SeatOnTerrain(view,false);
                 drawnCouriers.Add(new CourierFootprint{Center=center,Heading=heading,Radius=size.VisualRadius});
             }
         }
@@ -115,7 +137,15 @@ namespace PlanetOne.Runtime
         private void UpdateShipmentPose(Transform view,ShipmentState shipment)
         {
             var cargo=view.Find(AtmosphereSurface?"Frachtcontainer":"Ladebehälter");
-            if(cargo!=null)cargo.gameObject.SetActive(shipment.Amount>0&&shipment.Phase!=ShipmentPhase.Loading);
+            if(cargo!=null)
+            {
+                if(!cargo.TryGetComponent<CargoTransferPose>(out var load))load=cargo.gameObject.AddComponent<CargoTransferPose>();
+                bool loading=shipment.Phase==ShipmentPhase.Loading && !shipment.ApproachingSource;
+                bool unloading=shipment.Phase==ShipmentPhase.Unloading || shipment.Phase==ShipmentPhase.Recovering && GameSimulation.GroundCourierDocked(shipment);
+                float progress=Mathf.Clamp01((float)(shipment.PhaseProgress/Definitions.TransferSeconds));
+                load.Pose(loading?1-progress:unloading?progress:0);
+                cargo.gameObject.SetActive(shipment.Amount>0 && !shipment.ApproachingSource);
+            }
             Vector3 position=ShipmentRoadPosition(shipment);UpdateSurfaceMotion(view,position);
             if(GameSimulation.IsConstructionVehicle(shipment))
             {
@@ -130,11 +160,28 @@ namespace PlanetOne.Runtime
         }
         private void UpdateSurfaceMotion(Transform view,Vector3 position)
         {
-            float dx=ReliefHeight(position.x+.12f,position.z)-ReliefHeight(position.x-.12f,position.z);
-            float dz=ReliefHeight(position.x,position.z+.12f)-ReliefHeight(position.x,position.z-.12f);
             var facing=view.GetComponent<MotionFacing>();if(facing==null)facing=view.gameObject.AddComponent<MotionFacing>();
-            facing.MoveTick(position,0,AtmosphereSurface?Vector3.up:new Vector3(-dx,.24f,-dz).normalized,simulation.State.Tick,MovementInterpolation);
+            facing.MoveTick(position,0,Vector3.up,simulation.State.Tick,MovementInterpolation);
         }
+        private void SeatOnTerrain(Transform view,bool onFoot)
+        {
+            var p=view.position;
+            var forward=Vector3.ProjectOnPlane(view.forward,Vector3.up).normalized;
+            var right=Vector3.Cross(Vector3.up,forward);
+            float scale=view.lossyScale.x;
+            var axle=forward*(scale*(onFoot?.065f:.25f));
+            var track=right*(scale*(onFoot?.065f:.25f));
+            float fl=GroundAt(p+axle-track),fr=GroundAt(p+axle+track);
+            float rl=GroundAt(p-axle-track),rr=GroundAt(p-axle+track);
+            var pitch=2*axle+Vector3.up*((fl+fr-rl-rr)*.5f);
+            var roll=2*track+Vector3.up*((fr+rr-fl-rl)*.5f);
+            var normal=Vector3.Cross(pitch,roll).normalized;
+            view.rotation=Quaternion.LookRotation(pitch,normal);
+            // The underside of the track is 0.031 model units above its origin.
+            p.y=(fl+fr+rl+rr)*.25f-(onFoot?0:.031f)*scale*normal.y;
+            view.position=p;
+        }
+        private float GroundAt(Vector3 p){return ReliefHeight(p.x,p.z);}
     }
     internal sealed class ConstructionArmPose:MonoBehaviour
     {
@@ -143,4 +190,15 @@ namespace PlanetOne.Runtime
         internal void SetWorking(bool working,float time)
         {transform.localRotation=Quaternion.AngleAxis(working?Mathf.Sin(time*2)*22:0,Vector3.up)*restRotation;}
     }
+    internal sealed class CargoTransferPose:MonoBehaviour
+    {
+        private Vector3 bed;private bool initialized;
+        internal void Pose(float progress)
+        {
+            if(!initialized){bed=transform.localPosition;initialized=true;}
+            float eased=Mathf.SmoothStep(0,1,progress);
+            transform.localPosition=bed+Vector3.right*(eased*.55f)+Vector3.up*(Mathf.Sin(Mathf.PI*eased)*.39f-eased*.12f);
+        }
+    }
+
 }

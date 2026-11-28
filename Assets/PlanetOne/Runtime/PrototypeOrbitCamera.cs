@@ -113,17 +113,25 @@ namespace PlanetOne.Runtime
         {
             var point=PlanetOne.Core.GameSimulation.GroundUnitPosition(unit);
             UpdateSurfaceMotion(view,new Vector3((float)point.X,ReliefHeight((float)point.X,(float)point.Y)+(AtmosphereSurface?.55f:.035f),(float)point.Y));
+            if(!AtmosphereSurface)
+            {
+                bool onFoot=unit.Kind==PlanetOne.Core.UnitKind.Infantry || unit.Kind==PlanetOne.Core.UnitKind.AntiTank;
+                SeatOnTerrain(view,onFoot);
+                if(onFoot)view.GetComponent<InfantryStride>().Pose(view.position,AnimationDelta);
+            }
         }
     }
     public sealed class MotionFacing:MonoBehaviour
     {
         private bool initialized;
         private Vector3 heading=Vector3.forward,from,target;
+        private Quaternion headingRotation;
         private long sampleTick=long.MinValue;
         public void MoveTick(Vector3 position,float modelHeading,Vector3 normal,long tick,float alpha)
         {
             if(!initialized||sampleTick==long.MinValue||tick<sampleTick||tick-sampleTick>1)
             {
+                if(!initialized)headingRotation=transform.rotation;
                 var displacement=position-transform.position;displacement.y=0;
                 if(initialized&&displacement.sqrMagnitude>.0000001f)heading=displacement.normalized;
                 from=target=position;initialized=true;
@@ -139,7 +147,8 @@ namespace PlanetOne.Runtime
         {
             Vector3 projected=Vector3.ProjectOnPlane(heading,normal);if(projected.sqrMagnitude<.00001f)projected=Vector3.forward;
             Quaternion rotation=Quaternion.LookRotation(projected,normal)*Quaternion.Euler(0,modelHeading,0);
-            transform.rotation=Quaternion.Slerp(transform.rotation,rotation,1-Mathf.Exp(-16*Time.unscaledDeltaTime));
+            headingRotation=Quaternion.Slerp(headingRotation,rotation,1-Mathf.Exp(-16*Time.unscaledDeltaTime));
+            transform.rotation=headingRotation;
         }
     }
 }

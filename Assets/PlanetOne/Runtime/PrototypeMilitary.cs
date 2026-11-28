@@ -8,6 +8,7 @@ namespace PlanetOne.Runtime
     public sealed partial class PrototypeController
     {
         private readonly Dictionary<long, Transform> unitViews = new Dictionary<long, Transform>();
+        private readonly HashSet<long> removedUnitViews=new HashSet<long>();
         private readonly List<long> selectedUnits = new List<long>();
         private readonly Dictionary<int, List<long>> controlGroups = new Dictionary<int, List<long>>();
         private bool showingMilitary;
@@ -68,38 +69,14 @@ namespace PlanetOne.Runtime
         private bool HandleMilitaryPointer(PlanetState p, bool inside)
         {
             if (!inside) return false;
-            UnitState nearest = null; float best = 24;
-            foreach (var u in p.Units)
-            {
-                if (u.Destroyed || !simulation.CanSeeEntity(p, PlayerFactionId, u.Id) || !IsSurfacePointVisible(u.X,u.Y,0.3f)) continue;
-                var screen = sceneCamera.WorldToScreenPoint(SurfacePosition(u.X, 0.3f, u.Y));
-                float distance = Vector2.Distance(Input.mousePosition, screen);
-                if (distance < best) { nearest = u; best = distance; }
-            }
             if (Input.GetMouseButtonDown(0) && militaryTargetMode.HasValue && selectedUnits.Count > 0)
             {
-                long target = nearest == null ? 0 : nearest.Id;
+                long target = PointerTargetAtScreen(Input.mousePosition).Id;
                 if (target == 0) { var b = BuildingAt(p, hoverX, hoverY); if (b != null) target = b.Id; }
                 foreach (long id in selectedUnits) RequestUnitOrder(id, militaryTargetMode.Value, hoverX, hoverY, target);
                 militaryTargetMode = null; return true;
             }
             return false;
-        }
-
-        private bool RequestSurfaceOrderAtScreen(Vector2 point)
-        {
-            if(openPlanetId==0 || selectedUnits.Count==0 || !IsWorldPoint(point))return false;
-            var p=simulation.FindPlanet(openPlanetId);var cell=SurfaceCellAtScreen(point);
-            if(cell.X<0 || cell.Y<0 || cell.X>=p.Width || cell.Y>=p.Height)return false;
-            UnitState nearest=null;float best=22;
-            foreach(var unit in p.Units) {
-                if(unit.Destroyed || !simulation.CanSeeEntity(p,PlayerFactionId,unit.Id) || !IsSurfacePointVisible(unit.X,unit.Y,.3f))continue;
-                Vector2 screen=sceneCamera.WorldToScreenPoint(SurfacePosition(unit.X,.3f,unit.Y));
-                float distance=Vector2.Distance(point,screen);if(distance<best){best=distance;nearest=unit;}
-            }
-            bool accepted=false;
-            foreach(long id in selectedUnits)accepted=RequestUnitOrder(id,nearest!=null && nearest.OwnerId!=PlayerFactionId?CommandKind.AttackTarget:CommandKind.MoveUnit,cell.X,cell.Y,nearest==null?0:nearest.Id) || accepted;
-            return accepted;
         }
 
         private void HandleSelectionEvents()
@@ -126,23 +103,27 @@ namespace PlanetOne.Runtime
             if(!IsWorldPoint(point))return false;var p=simulation.FindPlanet(openPlanetId);
             bool drag=Vector2.Distance(start,point)>12;
             if(!additive)selectedUnits.Clear();
+            if(!drag)
+            {
+                var hit=PointerTargetAtScreen(point);
+                if(hit.Id!=0 && !hit.Building && hit.Owner==PlayerFactionId)return SelectUnit(hit.Id,additive);
+                return additive || SelectBuilding(hit.Building?hit.Id:0);
+            }
             foreach(var u in p.Units)
             {
                 if(u.Destroyed||u.OwnerId!=PlayerFactionId||!IsSurfacePointVisible(u.X,u.Y,.3f))continue;
-                Vector2 screen=sceneCamera.WorldToScreenPoint(SurfacePosition(u.X,.3f,u.Y));
-                bool hit=drag?screen.x>=Math.Min(start.x,point.x)&&screen.x<=Math.Max(start.x,point.x)&&screen.y>=Math.Min(start.y,point.y)&&screen.y<=Math.Max(start.y,point.y):Vector2.Distance(screen,point)<24;
-                if(hit){SelectUnit(u.Id,true);if(!drag)return true;}
+                Vector2 screen=UnitSelectionScreenRect(u.Id,false).center;
+                bool hit=screen.x>=Math.Min(start.x,point.x)&&screen.x<=Math.Max(start.x,point.x)&&screen.y>=Math.Min(start.y,point.y)&&screen.y<=Math.Max(start.y,point.y);
+                if(hit)SelectUnit(u.Id,true);
             }
-            if(drag){if(selectedUnits.Count==0&&!additive)SelectBuilding(0);return true;}
-            if(additive)return true;
-            RaycastHit hitBuilding;long id;
-            if(Physics.Raycast(sceneCamera.ScreenPointToRay(point),out hitBuilding,300f)&&buildingPickIds.TryGetValue(hitBuilding.collider.GetInstanceID(),out id))return SelectBuilding(id);
-            var cell=SurfaceCellAtScreen(point);var building=BuildingAt(p,cell.X,cell.Y);return SelectBuilding(building==null?0:building.Id);
+            if(selectedUnits.Count==0&&!additive)SelectBuilding(0);
+            return true;
         }
 
         private void UpdateMilitaryViews(PlanetState p)
         {
-            foreach(var view in unitViews.Values) if(view!=null) view.gameObject.SetActive(false);
+            removedUnitViews.Clear();
+            foreach(long id in unitViews.Keys)removedUnitViews.Add(id);
             foreach (var u in p.Units)
             {
                 Transform t;
@@ -155,16 +136,28 @@ namespace PlanetOne.Runtime
                     BuildGroundUnitModel(t,u.Kind,color);
                     unitViews[u.Id] = t;
                 }
-                t.gameObject.SetActive(visible);
-                if (visible) UpdateGroundPose(t,u);
+                removedUnitViews.Remove(u.Id);
+                if(t.gameObject.activeSelf!=visible)t.gameObject.SetActive(visible);
+                if (visible)
+                {
+                    int stage=Definitions.DamageStage(u.Health,Definitions.Get(u.Kind).Health);
+                    var stride=t.GetComponent<InfantryStride>();
+                    if(stride!=null)stride.Injury=stage;
+                    UpdateGroundPose(t,u);
+                    UpdateWear(t,stage,stride,false);
+                    if(!AtmosphereSurface && Definitions.Producer(u.Kind)==BuildingKind.VehicleFactory)StampTracks(t);
+                }
+                else if(t.TryGetComponent<FootprintSample>(out var previous))previous.Ready=false;
             }
+            foreach(long id in removedUnitViews){Destroy(unitViews[id].gameObject);unitViews.Remove(id);}
             selectedUnits.RemoveAll(id => !p.Units.Exists(u => u.Id == id && !u.Destroyed));
         }
 
         private void DrawMilitaryLabels(float scale)
         {
             var p = simulation.FindPlanet(openPlanetId);
-            var labelRects=new List<Rect>();
+            DrawServiceMarks(p,scale);
+            var labelRects=showTerrainLabels?new List<Rect>():null;
             if (simulation.State.MilitaryTestFixture)
             {
                 string banner="M3 PRÜFKARTE · endliche Bestände · keine Fraktions-KI";
@@ -179,15 +172,18 @@ namespace PlanetOne.Runtime
                 var screen = sceneCamera.WorldToScreenPoint(SurfacePosition(u.X, 0.6f, u.Y));
                 if (!sceneCamera.pixelRect.Contains(screen)) continue;
                 float x = screen.x / scale, y = (Screen.height - screen.y) / scale;
-                string marker = selectedUnits.Contains(u.Id) ? "▶ " : "";
-                string label=marker+Definitions.Get(u.Kind).Name;Vector2 size=smallStyle.CalcSize(new GUIContent(label));
-                var labelRect=new Rect(x-size.x*.5f,y-size.y-6,size.x+4,size.y+4);
-                while(labelRects.Exists(r=>r.Overlaps(labelRect))) labelRect.y-=labelRect.height+2;
-                labelRects.Add(labelRect);
-                GUI.Label(labelRect,label,smallStyle);
+                if(showTerrainLabels)
+                {
+                    string marker = selectedUnits.Contains(u.Id) ? "▶ " : "";
+                    string label=marker+Definitions.Get(u.Kind).Name;Vector2 size=smallStyle.CalcSize(new GUIContent(label));
+                    var labelRect=new Rect(x-size.x*.5f,y-size.y-6,size.x+4,size.y+4);
+                    while(labelRects.Exists(r=>r.Overlaps(labelRect))) labelRect.y-=labelRect.height+2;
+                    labelRects.Add(labelRect);
+                    GUI.Label(labelRect,label,smallStyle);
+                }
                 Fill(new Rect(x - 18, y - 3, 36, 4), Border);
                 Fill(new Rect(x - 18, y - 3, 36 * (float)(u.Health / Definitions.Get(u.Kind).Health), 4), DiplomaticColor(u.OwnerId));
-                if (selectedUnits.Contains(u.Id) && u.Order != UnitOrder.Hold)
+                if (showTerrainLabels && selectedUnits.Contains(u.Id) && u.Order != UnitOrder.Hold)
                 {
                     var goal = sceneCamera.WorldToScreenPoint(SurfacePosition(u.GoalX, 0.15f, u.GoalY));
                     GUI.Label(new Rect(goal.x / scale - 8, (Screen.height - goal.y) / scale - 12, 120,UiRowHeight(30)), "× Ziel", bodyStyle);
@@ -243,13 +239,14 @@ namespace PlanetOne.Runtime
                 }
                 if(!any){GUILayout.Label("Keine eigenen Bodentruppen auf dieser Welt.",mutedStyle);if(WorkspaceButton("Rekrutierung öffnen"))militaryTask=3;}
                 GUILayout.Space(10);if(WorkspaceButton(militaryHelpOpen?"Bedienhinweise schließen":"Auswahl und Gruppen …"))militaryHelpOpen=!militaryHelpOpen;
-                if(militaryHelpOpen)GUILayout.Label("Klick wählt aus; Umschalt ergänzt. Ziehen erzeugt einen Auswahlrahmen. Rechtsklick bewegt oder greift an; Strg + Rechtsklick öffnet weitere Befehle. H hält die Stellung. Strg+1–3 speichert eine Gruppe, 1–3 wählt sie aus.",smallStyle);
+                if(militaryHelpOpen)GUILayout.Label("Klick wählt aus; Umschalt ergänzt. Ziehen erzeugt einen Auswahlrahmen. Rechtsklick bewegt oder greift an; Strg + Rechtsklick öffnet weitere Befehle. F3 schaltet Typ- und Ladehinweise um. H hält die Stellung. Strg+1–3 speichert eine Gruppe, 1–3 wählt sie aus.",smallStyle);
                 return;
             }
             var u=p.Units.Find(v=>selectedUnits.Contains(v.Id) && !v.Destroyed && v.OwnerId==PlayerFactionId);
             if(u==null){GUILayout.Label("Zuerst eigene Einheiten auswählen.",mutedStyle);if(WorkspaceButton("Einheiten auswählen"))militaryTask=0;return;}
             GUILayout.Label(selectedUnits.Count+" ausgewählt · "+Definitions.Get(u.Kind).Name,headingStyle);
             GUILayout.Label(u.Status,bodyStyle);
+            if(u.Kind==UnitKind.MobileWorkshop)GUILayout.Label("Repariert im Stand eigene Fahrzeuge im Umkreis von zwei Feldern. Ersatzteile am Militärdepot nachladen.",smallStyle);
             GUILayout.Label("Munition "+u.Ammunition+" · Rationen "+u.Food+" · Bauteile "+u.Parts+"\nReichweite "+Definitions.Get(u.Kind).Range+" · Sicht "+Definitions.Get(u.Kind).Sight+(simulation.HasCover(p,u)?" · Deckung":""),smallStyle);
             if(WorkspaceButton("Objektbefehle öffnen …",true))OpenSelectionCommandMenu(Input.mousePosition);
             if(WorkspaceButton("Stellung halten"))foreach(long id in selectedUnits)RequestUnitOrder(id,CommandKind.HoldPosition);
@@ -257,7 +254,7 @@ namespace PlanetOne.Runtime
             TargetButton("Angriffsziel wählen",CommandKind.AttackTarget);
             if(p.Units.Exists(v=>selectedUnits.Contains(v.Id) && v.Kind==UnitKind.Artillery))TargetButton("Artillerieziel wählen",CommandKind.AttackPosition);
             TargetButton("Nachschubquelle wählen",CommandKind.ResupplyUnit);
-            if(p.Units.Exists(v=>selectedUnits.Contains(v.Id) && v.Kind==UnitKind.Engineer))TargetButton("Reparaturziel wählen",CommandKind.RepairTarget);
+            if(p.Units.Exists(v=>selectedUnits.Contains(v.Id) && Definitions.CanRepair(v.Kind)))TargetButton("Reparaturziel wählen",CommandKind.RepairTarget);
             if(militaryTargetMode.HasValue)GUILayout.Label("Jetzt das Ziel auf der Karte anklicken. Escape bricht ab.",bodyStyle);
         }
 

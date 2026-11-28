@@ -50,7 +50,7 @@ namespace PlanetOne.Core
             else if (c.Kind == CommandKind.SetSupplyPolicy)
             {
                 if (!PortOwned(b, c.IssuerId)) error = "Eigener Raumhafen benötigt.";
-                else if (c.IntValue < 0 || c.IntValue >= 6 || c.Minimum < 0 || c.Amount < c.Minimum || c.Amount > 200 || c.Reserve < 0 || c.Reserve > 200 || c.X < 0 || c.X > 2) error = "Ungültige Versorgungswerte.";
+                else if (c.IntValue < 0 || c.IntValue >= Definitions.ResourceCount || c.Minimum < 0 || c.Amount < c.Minimum || c.Amount > 200 || c.Reserve < 0 || c.Reserve > 200 || c.X < 0 || c.X > 2) error = "Ungültige Versorgungswerte.";
                 else { int r = c.IntValue; b.Supply.Minimum[r] = c.Minimum; b.Supply.Target[r] = c.Amount; b.Supply.ExportReserve[r] = c.Reserve; b.Supply.Priority[r] = c.X; }
             }
             else if (ship == null) error = "Eigenes aktives Schiff benötigt.";
@@ -62,7 +62,7 @@ namespace PlanetOne.Core
             else if (c.Kind == CommandKind.AssignFreight || c.Kind == CommandKind.SetTradeRoute)
             {
                 var target = p.Buildings.Find(v => PortOwned(v, c.IssuerId));
-                if (!PortOwned(b, c.IssuerId) || target == null || b.PlanetId == p.Id || c.IntValue < 0 || c.IntValue >= 6 || c.Amount <= 0 || c.Amount > Definitions.Ships[0].Capacity || ship.Kind != ShipKind.Freighter)
+                if (!PortOwned(b, c.IssuerId) || target == null || b.PlanetId == p.Id || c.IntValue < 0 || c.IntValue >= Definitions.ResourceCount || c.Amount <= 0 || c.Amount > Definitions.Ships[0].Capacity || ship.Kind != ShipKind.Freighter)
                     error = "Gültige eigene Häfen, Ware und Frachtmenge benötigt.";
                 else if (c.Kind == CommandKind.SetTradeRoute)
                 {
@@ -104,7 +104,7 @@ namespace PlanetOne.Core
         {
             if (ship.Kind != ShipKind.ColonyShip || p.OwnerId != 0 || p.Buildings.Count != 0) return "Unbesiedelte Welt und Kolonieschiff benötigt.";
             if(ship.Crew!=Definitions.Ships[(int)ShipKind.ColonyShip].Crew)return "Vollständige Gründungsbesatzung benötigt.";
-            for(int resource=0;resource<6;resource++)if(ship.Cargo[resource]<Definitions.Ships[(int)ShipKind.ColonyShip].ColonyCargo[resource])return "Vollständige reale Gründungsausrüstung benötigt.";
+            for(int resource=0;resource<Definitions.ResourceCount;resource++)if(ship.Cargo[resource]<Definitions.Ships[(int)ShipKind.ColonyShip].ColonyCargo[resource])return "Vollständige reale Gründungsausrüstung benötigt.";
             if (!IsPlanetVisible(ship.OwnerId, p.Id) || !AtPlanetDock(ship,p.Id)) return "Kolonieschiff muss die aufgeklärte Zielwelt erreichen.";
             int x = 8, y = 6;
             if (p.Terrain[y * p.Width + x] != 0) return "Gründungsfläche ist blockiert.";
@@ -115,29 +115,29 @@ namespace PlanetOne.Core
             for (int rx = 2; rx <= 15; rx++) if (p.Terrain[6 * p.Width + rx] == 0 && rx != x) p.Roads[6 * p.Width + rx] = true;
             for (int ry = 2; ry <= 11; ry++) if (p.Terrain[ry * p.Width + x] == 0 && ry != y) p.Roads[ry * p.Width + x] = true;
             }
-            ship.Cargo = new int[6]; ship.Crew = 0; ship.Consumed = true; ship.Order = ShipOrder.Hold; ship.Status = "In Kolonie umgewandelt";
+            ship.Cargo = new int[Definitions.ResourceCount]; ship.Crew = 0; ship.Consumed = true; ship.Order = ShipOrder.Hold; ship.Status = "In Kolonie umgewandelt";
             Emit(ship.OwnerId, p.Id, ship.Id, "ColonyFounded", "Kolonie auf " + p.Name + " gegründet; Schiff und Ausrüstung wurden übertragen.");
             return null;
         }
         private void PlanSpaceInputs(PlanetState p, BuildingState b)
         {
-            var desired = new int[6];
-            if (b.ShipBuildKind >= 0 && !b.ShipBuildPaid) Array.Copy(Definitions.Ships[b.ShipBuildKind].Cost, desired, 6);
+            var desired = new int[Definitions.ResourceCount];
+            if (b.ShipBuildKind >= 0 && !b.ShipBuildPaid) Array.Copy(Definitions.Ships[b.ShipBuildKind].Cost, desired, Definitions.ResourceCount);
             var research = State.Factions.Find(f => f.Id == p.OwnerId).Research;
             if (research.Active >= 0 && research.LaboratoryId == b.Id && !research.Paid)
-                for (int r = 0; r < 6; r++) desired[r] = Math.Max(desired[r], Definitions.Technologies[research.Active].Cost[r]);
+                for (int r = 0; r < Definitions.ResourceCount; r++) desired[r] = Math.Max(desired[r], Definitions.Technologies[research.Active].Cost[r]);
             if (b.Kind == BuildingKind.Spaceport)
-                for (int r = 0; r < 6; r++) desired[r] = Math.Max(desired[r], b.Supply.Target[r]);
+                for (int r = 0; r < Definitions.ResourceCount; r++) desired[r] = Math.Max(desired[r], b.Supply.Target[r]);
             if (b.Kind == BuildingKind.Spaceport)
                 foreach (var yard in State.Ships)
                     if (!yard.Destroyed && yard.Kind == ShipKind.OrbitalYard && yard.OwnerId == BuildingOwner(p,b) && yard.TargetPlanetId == p.Id)
-                        for (int r=0;r<6;r++) desired[r]=Math.Max(desired[r], yard.ProductionKind>=0 && !yard.ProductionPaid ? Math.Max(0,Definitions.Ships[yard.ProductionKind].Cost[r]-yard.Cargo[r]) : r==3?8:0);
-            for (int r = 0; r < 6; r++) if (desired[r] > 0) PlanInput(p, b, r, desired[r]);
+                        for (int r=0;r<Definitions.ResourceCount;r++) desired[r]=Math.Max(desired[r], yard.ProductionKind>=0 && !yard.ProductionPaid ? Math.Max(0,Definitions.Ships[yard.ProductionKind].Cost[r]-yard.Cargo[r]) : r==3?8:0);
+            for (int r = 0; r < Definitions.ResourceCount; r++) if (desired[r] > 0) PlanInput(p, b, r, desired[r]);
         }
         private bool Pay(PlanetState p, BuildingState b, int[] cost)
         {
-            for (int r = 0; r < 6; r++) if (b.Inventory[r] - b.ReservedOutgoing[r] < cost[r]) return false;
-            for (int r = 0; r < 6; r++) { b.Inventory[r] -= cost[r]; p.ConsumedTotals[r] += cost[r]; }
+            for (int r = 0; r < Definitions.ResourceCount; r++) if (b.Inventory[r] - b.ReservedOutgoing[r] < cost[r]) return false;
+            for (int r = 0; r < Definitions.ResourceCount; r++) { b.Inventory[r] -= cost[r]; p.ConsumedTotals[r] += cost[r]; }
             return true;
         }
         private void TickSpace()
@@ -153,13 +153,13 @@ namespace PlanetOne.Core
                     if (!Pay(p, b, d.Cost)) { b.Status = "Wartet auf Schiffsmaterial"; continue; }
                     p.Population -= d.Crew; p.WorkersTotal = Math.Min(p.WorkersTotal, p.Population); p.WorkersUsed = Math.Min(p.WorkersUsed, p.WorkersTotal); b.ShipBuildPaid = true;
                 }
-                b.ShipBuildProgress += Definitions.TickSeconds * p.Productivity; b.Status = "Schiffsbau " + (int)(100 * b.ShipBuildProgress / d.Seconds) + "%";
+                b.ShipBuildProgress += Definitions.TickSeconds * p.Productivity * Definitions.ProductionRate(b); b.Status = "Schiffsbau " + (int)(100 * b.ShipBuildProgress / d.Seconds) + "%";
                 if (b.ShipBuildProgress + 0.0000001 < d.Seconds) continue;
                 SimPoint pos;
                 if(!TrySpaceSpawn((ShipKind)b.ShipBuildKind,p.OwnerId,GetOrbitPosition(p.Id),out pos))
                 {b.ShipBuildProgress=d.Seconds;b.Status="Schiff fertig; wartet auf freien Ausflug";continue;}
                 State.Ships.Add(new ShipState { Id = State.NextEntityId++, OwnerId = p.OwnerId, Kind = (ShipKind)b.ShipBuildKind, X = pos.X, Y = pos.Y, Crew = d.Crew, Cargo = (int[])d.ColonyCargo.Clone(), TargetPlanetId = p.Id, Order = ShipOrder.Guard, Health = Definitions.SpaceWeapons[b.ShipBuildKind].Health });
-                for (int r = 0; r < 6; r++) p.ConsumedTotals[r] -= d.ColonyCargo[r];
+                for (int r = 0; r < Definitions.ResourceCount; r++) p.ConsumedTotals[r] -= d.ColonyCargo[r];
                 b.ShipBuildKind = -1; b.ShipBuildPaid = false; b.ShipBuildProgress = 0; b.Status = "Schiff fertiggestellt";
             }
             foreach (var f in State.Factions)
@@ -170,7 +170,7 @@ namespace PlanetOne.Core
                 if (!b.Operational) { research.Status = "Forschung pausiert: " + b.Status; continue; }
                 var d = Definitions.Technologies[research.Active];
                 if (!research.Paid) { if (!Pay(FindPlanet(b.PlanetId), b, d.Cost)) { research.Status = "Versuchsmaterial wird angeliefert"; continue; } research.Paid = true; }
-                research.Progress += Definitions.TickSeconds * FindPlanet(b.PlanetId).Productivity; research.Status = d.Name + " " + (int)(100 * research.Progress / d.Seconds) + "%";
+                research.Progress += Definitions.TickSeconds * FindPlanet(b.PlanetId).Productivity * Definitions.ProductionRate(b); research.Status = d.Name + " " + (int)(100 * research.Progress / d.Seconds) + "%";
                 if (research.Progress + 0.0000001 < d.Seconds) continue;
                 research.Completed.Add(d.Id); research.Active = -1; research.Paid = false; research.Progress = 0; research.Status = d.Name + " freigeschaltet";
                 Emit(f.Id, b.PlanetId, b.Id, "ResearchCompleted", research.Status);
@@ -229,7 +229,7 @@ namespace PlanetOne.Core
             for (int priority = 2; priority >= 0; priority--) foreach (var p in State.Planets) foreach (var target in p.Buildings)
             {
                 if (!PortOwned(target, ship.OwnerId)) continue;
-                for (int r = 0; r < 6; r++)
+                for (int r = 0; r < Definitions.ResourceCount; r++)
                 {
                     int stock = target.Inventory[r] + target.ReservedIncoming[r];
                     if (stock < target.Supply.Minimum[r]) target.Supply.Replenishing[r] = true;
@@ -285,7 +285,7 @@ namespace PlanetOne.Core
         }
         private void RecoverCargo(ShipState ship)
         {
-            for (int r = 0; r < 6; r++) if (ship.Cargo[r] > 0)
+            for (int r = 0; r < Definitions.ResourceCount; r++) if (ship.Cargo[r] > 0)
             {
                 BuildingState nearest = null; double best = double.MaxValue;
                 foreach (var p in State.Planets) foreach (var port in p.Buildings)
@@ -300,7 +300,7 @@ namespace PlanetOne.Core
         public void DestroyShip(long shipId)
         {
             var ship = State.Ships.Find(s => s.Id == shipId); if (ship == null || ship.Destroyed || ship.Consumed) return;
-            CancelFreight(ship); for (int r = 0; r < 6; r++) { State.SpaceLostTotals[r] += ship.Cargo[r]; ship.Cargo[r] = 0; }
+            CancelFreight(ship); for (int r = 0; r < Definitions.ResourceCount; r++) { State.SpaceLostTotals[r] += ship.Cargo[r]; ship.Cargo[r] = 0; }
             ship.Destroyed = true; ship.Crew = 0; ship.AutoSupply = false; ship.Status = "Zerstört";
             ship.Health = 0; ship.Order = ShipOrder.Hold;
             foreach (var troop in ship.Troops) { troop.Destroyed = true; troop.Health = 0; State.SpaceLostTotals[3] += troop.Parts; troop.Parts = 0; }
@@ -313,7 +313,7 @@ namespace PlanetOne.Core
             if (b.ShipBuildPaid && b.ShipBuildKind >= 0)
             {
                 var d = Definitions.Ships[b.ShipBuildKind];
-                if (!b.Destroyed) { for (int r = 0; r < 6; r++) { b.Inventory[r] += d.Cost[r]; p.ConsumedTotals[r] -= d.Cost[r]; } p.Population += d.Crew; }
+                if (!b.Destroyed) { for (int r = 0; r < Definitions.ResourceCount; r++) { b.Inventory[r] += d.Cost[r]; p.ConsumedTotals[r] -= d.Cost[r]; } p.Population += d.Crew; }
             }
             b.ShipBuildKind = -1; b.ShipBuildPaid = false; b.ShipBuildProgress = 0;
         }

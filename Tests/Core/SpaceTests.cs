@@ -139,8 +139,8 @@ internal static class SpaceTests
     private static void Graph()
     {
         Definitions.ValidateTechnologies(Definitions.Technologies);
-        bool rejected=false; try { Definitions.ValidateTechnologies(new[] { new TechnologyDefinition(Technology.Transport,"cycle",1,new int[6],Technology.Transport) }); } catch(ArgumentException) { rejected=true; } Check(rejected,"Cycle accepted");
-        rejected=false; try { Definitions.ValidateTechnologies(new[] { new TechnologyDefinition(Technology.Transport,"missing",1,new int[6],Technology.Electronics) }); } catch(ArgumentException) { rejected=true; } Check(rejected,"Missing node accepted");
+        bool rejected=false; try { Definitions.ValidateTechnologies(new[] { new TechnologyDefinition(Technology.Transport,"cycle",1,new int[Definitions.ResourceCount],Technology.Transport) }); } catch(ArgumentException) { rejected=true; } Check(rejected,"Cycle accepted");
+        rejected=false; try { Definitions.ValidateTechnologies(new[] { new TechnologyDefinition(Technology.Transport,"missing",1,new int[Definitions.ResourceCount],Technology.Electronics) }); } catch(ArgumentException) { rejected=true; } Check(rejected,"Missing node accepted");
     }
     private static void Persistence()
     {

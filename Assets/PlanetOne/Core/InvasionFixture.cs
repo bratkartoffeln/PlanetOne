@@ -18,7 +18,7 @@ namespace PlanetOne.Core
                 AddBuilding(s,p.Id,BuildingKind.SolarPlant,7,5);
                 AddBuilding(s,p.Id,BuildingKind.Farm,7,7);
                 var port=p.Buildings.Find(b=>b.Kind==BuildingKind.Spaceport);
-                port.Inventory=new[]{40,0,60,30,0,0}; port.Supply.Target=new[]{24,0,32,24,0,0};
+                port.Inventory=new[]{40,0,60,30,0,0,0}; port.Supply.Target=new[]{24,0,32,24,0,0,0};
             }
             AddBuilding(s,2,BuildingKind.FlakTower,13,7);
             AddBuilding(s,2,BuildingKind.GunTower,11,7);

@@ -77,7 +77,7 @@ namespace PlanetOne.Core
             else if(c.Kind==CommandKind.LoadShipSupplies)
             {
                 var port=FindBuilding(c.TargetId);
-                if(c.IntValue<0 || c.IntValue>=6 || c.Amount>24 || c.Amount<=0 || s.Kind!=ShipKind.LandingTransport || !PortOwned(port,c.IssuerId) || !port.Operational || s.TransportPhase!=TransportPhase.Space || !AtPlanetDock(s,port.PlanetId)) error="Träger am betriebsfähigen eigenen Hafen und gültige Menge benötigt.";
+                if(c.IntValue<0 || c.IntValue>=Definitions.ResourceCount || c.Amount>24 || c.Amount<=0 || s.Kind!=ShipKind.LandingTransport || !PortOwned(port,c.IssuerId) || !port.Operational || s.TransportPhase!=TransportPhase.Space || !AtPlanetDock(s,port.PlanetId)) error="Träger am betriebsfähigen eigenen Hafen und gültige Menge benötigt.";
                 else if(Total(s.Cargo)+c.Amount>Definitions.Ships[(int)s.Kind].Capacity || port.Inventory[c.IntValue]-port.ReservedOutgoing[c.IntValue]<c.Amount) error="Frachtraum oder freie Hafenware fehlt.";
                 else { port.Inventory[c.IntValue]-=c.Amount; s.Cargo[c.IntValue]+=c.Amount; }
             }
@@ -175,7 +175,7 @@ namespace PlanetOne.Core
             if(yard.ActionProgress>=Definitions.SpaceTransferSeconds)
             {
                 yard.ActionProgress=0;
-                for(int r=0;r<6;r++)
+                for(int r=0;r<Definitions.ResourceCount;r++)
                 { int desired=yard.ProductionKind>=0 && !yard.ProductionPaid?Definitions.Ships[yard.ProductionKind].Cost[r]:0; if(r==3) desired=Math.Max(desired,8);
                   if(yard.Cargo[r]<desired && Total(yard.Cargo)<Definitions.Ships[(int)yard.Kind].Capacity && port.Inventory[r]-port.ReservedOutgoing[r]>0) { port.Inventory[r]--; yard.Cargo[r]++; break; } }
             }
@@ -183,9 +183,9 @@ namespace PlanetOne.Core
             var d=Definitions.Ships[yard.ProductionKind];
             if(!yard.ProductionPaid)
             {
-                for(int r=0;r<6;r++) if(yard.Cargo[r]<d.Cost[r]) { yard.Status="Werft wartet auf Hafentransfer"; return; }
+                for(int r=0;r<Definitions.ResourceCount;r++) if(yard.Cargo[r]<d.Cost[r]) { yard.Status="Werft wartet auf Hafentransfer"; return; }
                 if(p.Population-d.Crew<4) { yard.Status="Werft wartet auf Besatzung"; return; }
-                for(int r=0;r<6;r++) { yard.Cargo[r]-=d.Cost[r]; p.ConsumedTotals[r]+=d.Cost[r]; }
+                for(int r=0;r<Definitions.ResourceCount;r++) { yard.Cargo[r]-=d.Cost[r]; p.ConsumedTotals[r]+=d.Cost[r]; }
                 p.Population-=d.Crew; p.WorkersTotal=Math.Min(p.WorkersTotal,p.Population); p.WorkersUsed=Math.Min(p.WorkersUsed,p.WorkersTotal); yard.ProductionPaid=true;
             }
             yard.ProductionProgress+=Definitions.TickSeconds;
@@ -332,7 +332,7 @@ namespace PlanetOne.Core
                 { if(BuildingOwner(p,a)!=BuildingOwner(p,b))ReturnConstructionVehicle(d); continue; }
                 if(BuildingOwner(p,a)==BuildingOwner(p,b) || d.Phase==ShipmentPhase.Recovering || d.Phase==ShipmentPhase.Returning) continue;
                 b.ReservedIncoming[(int)d.Resource]-=d.Amount;
-                if(d.Phase==ShipmentPhase.Loading) {a.ReservedOutgoing[(int)d.Resource]-=d.Amount;p.Shipments.RemoveAt(i);continue;}
+                if(d.Phase==ShipmentPhase.Loading) {a.ReservedOutgoing[(int)d.Resource]-=d.Amount;RecallCourier(p,d);continue;}
                 a.ReservedReturnSpace-=d.Amount;a.ReservedIncoming[(int)d.Resource]+=d.Amount;d.RecoveryReserved=true;d.Phase=ShipmentPhase.Recovering;
                 d.Path.Reverse();d.DistanceTravelled=d.Path.Count-1-d.DistanceTravelled;d.PhaseProgress=0;d.RouteBlocked=true;
             }
@@ -358,7 +358,7 @@ namespace PlanetOne.Core
             {
                 if(u.Food<4 && h.Food>0) { h.Food--;u.Food++;u.Cooldown=1; }
                 if(u.Ammunition<Definitions.Get(u.Kind).Ammo && h.Parts>0) { h.Parts--;p.ConsumedTotals[3]++;u.Ammunition=Math.Min(Definitions.Get(u.Kind).Ammo,u.Ammunition+Definitions.AmmoPerPart);u.Cooldown=1; }
-                if(u.Kind==UnitKind.Engineer && u.Parts<8 && h.Parts>0) {h.Parts--;u.Parts++;u.Cooldown=1;}
+                if(Definitions.CanRepair(u.Kind) && u.Parts<8 && h.Parts>0) {h.Parts--;u.Parts++;u.Cooldown=1;}
             }
         }
     }

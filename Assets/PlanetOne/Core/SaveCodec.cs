@@ -9,7 +9,7 @@ namespace PlanetOne.Core
     /// <summary>Portable JSON snapshot codec. File locations and atomic writes belong to the platform adapter.</summary>
     public static partial class SaveCodec
     {
-        public const int CurrentVersion = 13;
+        public const int CurrentVersion = 14;
         private const int MaximumJsonLength = 4 * 1024 * 1024;
 
         public static string ToJson(GameState state)
@@ -44,7 +44,8 @@ namespace PlanetOne.Core
                     if(state!=null && state.Version==9) MigrateEnvironments(state);
                     if(state!=null && state.Version==10) MigrateAsteroids(state);
                     if(state!=null && state.Version==11) MigrateConstructionVehicles(state);
-                    if(state!=null && state.Version==12) state.Version=CurrentVersion;
+                    if(state!=null && state.Version==12) state.Version=13;
+                    if(state!=null && state.Version==13) MigrateAtmosphere(state);
                     if(state!=null&&state.Planets!=null)foreach(var planet in state.Planets)if(planet.Trails==null)planet.Trails=new List<GroundTrailState>();
                     Validate(state);
                     return state;
@@ -110,6 +111,7 @@ namespace PlanetOne.Core
                 Goods(p.ProducedTotals); Goods(p.ConsumedTotals); Goods(p.RecoveredTotals);
                 Require(p.Width > 0 && p.Height > 0 && p.Width <= 128 && p.Height <= 128, "Ungültige Oberflächengröße.");
                 Require(Enum.IsDefined(typeof(PlanetKind),p.Kind),"Ungültiger Planetentyp.");
+                Require(p.AtmosphericHydrogen>=0 && p.AtmosphericHydrogen<=PlanetEnvironment.InitialHydrogen(state.Seed,p),"Ungültiger atmosphärischer Fördervorrat.");
                 Require(Finite(p.OrbitRadius) && p.OrbitRadius > 0 && Finite(p.OrbitPeriodSeconds) &&
                     p.OrbitPeriodSeconds > 0 && Finite(p.OrbitPhase), "Ungültige Umlaufbahn.");
                 Require(Finite(p.OrbitEccentricity) && p.OrbitEccentricity >= 0 && p.OrbitEccentricity <= 0.6 &&
@@ -130,7 +132,7 @@ namespace PlanetOne.Core
                         HexGrid.Adjacent(new GridCell(trail.From%p.Width,trail.From/p.Width),new GridCell(trail.To%p.Width,trail.To/p.Width))&&
                         Finite(trail.Wear)&&trail.Wear>=0&&trail.Wear<=1&&trail.LastTick>=0&&trail.LastTick<=state.Tick&&
                         trailKeys.Add((long)trail.From*p.Terrain.Length+trail.To)&&!PlanetEnvironment.Airborne(p),"Beschädigte Fahrspur.");
-                Require(p.Buildings.Count <= p.Width * p.Height && p.Shipments.Count <= Definitions.CouriersPerColony,
+                Require(p.Buildings.Count <= p.Width * p.Height && p.Shipments.Count <= p.Width*p.Height*8,
                     "Zu viele Gebäude oder Transporte.");
                 var cells = new HashSet<int>();
                 var buildings = new Dictionary<long, BuildingState>();
@@ -141,9 +143,10 @@ namespace PlanetOne.Core
                     Require(b.X >= 0 && b.Y >= 0 && b.X < p.Width && b.Y < p.Height &&
                         cells.Add(b.Y * p.Width + b.X), "Überlappende oder ungültige Gebäude.");
                     Require(Enum.IsDefined(typeof(BuildingKind), b.Kind), "Unbekannter Gebäudetyp.");
-                    Require(PlanetEnvironment.AllowsBuilding(p.Kind,b.Kind),"Bodengebäude auf einem Gasriesen.");
+                    Require(PlanetEnvironment.AllowsBuilding(p.Kind,b.Kind),"Gebäude für diesen Planetentyp ungeeignet.");
                     Require(b.Priority >= 0 && b.Priority <= 2 && b.CapacityOverride >= 0 && b.CapacityOverride <= 4096 &&
                         b.ReservedReturnSpace >= 0 && b.LegacyCapacityAllowance >= 0 && b.LegacyCapacityAllowance <= 4096 &&
+                        b.NextCourierExitTick >= 0 && b.NextCourierExitTick-state.Tick <= Definitions.CourierExitIntervalTicks &&
                         Finite(b.EnergyStored) && b.EnergyStored >= 0 &&
                         b.EnergyStored <= Definitions.Get(b.Kind).EnergyStorageCapacity + 0.000001,
                         "Ungültige Betriebsdaten.");
@@ -152,7 +155,7 @@ namespace PlanetOne.Core
                     Require(Finite(b.BuildProgress) && b.BuildProgress >= 0 && Finite(b.CycleProgress) &&
                         b.CycleProgress >= 0 && b.ProductionReservedSpace >= 0, "Ungültiger Produktionsfortschritt.");
                     int used = b.ProductionReservedSpace + b.ReservedReturnSpace;
-                    for (int r = 0; r < 6; r++)
+                    for (int r = 0; r < Definitions.ResourceCount; r++)
                     {
                         Require(b.ReservedOutgoing[r] <= b.Inventory[r], "Überbuchter Quellbestand.");
                         used += b.Inventory[r] + b.ReservedIncoming[r];
@@ -164,7 +167,7 @@ namespace PlanetOne.Core
                 var expectedOutgoing = new Dictionary<long, int[]>();
                 var expectedIncoming = new Dictionary<long, int[]>();
                 var expectedReturn = new Dictionary<long, int>();
-                foreach (var b in p.Buildings) { expectedOutgoing[b.Id] = new int[6]; expectedIncoming[b.Id] = new int[6]; expectedReturn[b.Id] = 0; }
+                foreach (var b in p.Buildings) { expectedOutgoing[b.Id] = new int[Definitions.ResourceCount]; expectedIncoming[b.Id] = new int[Definitions.ResourceCount]; expectedReturn[b.Id] = 0; }
                 foreach (var delivery in p.Deliveries)
                 {
                     Require(delivery != null && delivery.Id > 0 && entityIds.Add(delivery.Id), "Ungültiger Lieferauftrag.");
@@ -172,12 +175,18 @@ namespace PlanetOne.Core
                     expectedOutgoing[delivery.SourceId][(int)delivery.Resource] += delivery.Amount;
                     expectedIncoming[delivery.TargetId][(int)delivery.Resource] += delivery.Amount;
                 }
+                var vehicles=new HashSet<long>();var deployed=new HashSet<long>();
+                foreach(var home in p.Buildings)if(home.Couriers!=null)foreach(long vehicle in home.Couriers)
+                    Require(vehicle>0 && vehicles.Add(vehicle) && entityIds.Add(vehicle),"Doppelte Fahrzeugkennung im Fuhrpark.");
                 int builders = 0;
                 var staffedSites = new HashSet<long>();
                 foreach (var shipment in p.Shipments)
                 {
                     Require(shipment != null && shipment.Id > 0 && entityIds.Add(shipment.Id) &&
                         Enum.IsDefined(typeof(ShipmentPhase), shipment.Phase), "Ungültiger Transport.");
+                    if(shipment.CourierId!=0)Require(deployed.Add(shipment.CourierId) && buildings.ContainsKey(shipment.HomeId) &&
+                        buildings[shipment.HomeId].Couriers!=null && buildings[shipment.HomeId].Couriers.Contains(shipment.CourierId),"Transporter ohne eindeutigen Heimatplatz.");
+                    Require(!shipment.ApproachingSource || shipment.Phase==ShipmentPhase.Loading,"Ungültige Abholfahrt.");
                     bool builder = GameSimulation.IsConstructionVehicle(shipment);
                     DeliveryReferences(buildings, shipment.SourceId, shipment.TargetId, shipment.Resource,
                         shipment.Phase == ShipmentPhase.Returning || builder ? 1 : shipment.Amount);
@@ -207,8 +216,7 @@ namespace PlanetOne.Core
                     }
                     var last = shipment.Path[shipment.Path.Count - 1];
                     Require(!shipment.BuilderTurnPending||shipment.Phase==ShipmentPhase.BuilderReturning,"Ungültiges Wendemanöver des Baufahrzeugs.");
-                    var destination = buildings[shipment.Phase == ShipmentPhase.Returning || shipment.Phase == ShipmentPhase.Recovering || shipment.Phase == ShipmentPhase.BuilderReturning&&!shipment.BuilderTurnPending
-                        ? shipment.SourceId : shipment.TargetId];
+                    var destination = buildings[GameSimulation.CourierDestination(shipment)];
                     Require(shipment.RouteBlocked || (last.X == destination.X && last.Y == destination.Y), "Transportweg passt nicht zum Auftrag.");
                     if (builder)
                     {
@@ -230,7 +238,7 @@ namespace PlanetOne.Core
                 foreach (var b in p.Buildings)
                 {
                     Require(expectedReturn[b.Id] == b.ReservedReturnSpace, "Falsche Rücknahmereservierung.");
-                    for (int r = 0; r < 6; r++)
+                    for (int r = 0; r < Definitions.ResourceCount; r++)
                         Require(expectedOutgoing[b.Id][r] == b.ReservedOutgoing[r] && expectedIncoming[b.Id][r] == b.ReservedIncoming[r],
                             "Verwaiste oder falsche Reservierung.");
                 }
@@ -270,7 +278,7 @@ namespace PlanetOne.Core
                     if (building != null && !building.Built && building.ConstructionStarted)
                         building.BuildProgress *= Definitions.ConstructionDurationMultiplier;
             }
-            state.Version = CurrentVersion;
+            state.Version = 13;
         }
 
         private static void DeliveryReferences(Dictionary<long, BuildingState> buildings, long source,
@@ -295,7 +303,7 @@ namespace PlanetOne.Core
                 p.Productivity = 1; p.FoodDebt = 0; p.FoodShortageSeconds = 0; p.PopulationGrowthProgress = 0;
                 p.FoodDemandPerMinute = p.Population * Definitions.FoodPerPersonPerSecond * 60;
                 p.FoodConsumedTotal = 0; p.FoodProducedTotal = 0; p.EnergyStored = 0; p.EnergyCapacity = 0;
-                p.ProducedTotals = new int[6]; p.ConsumedTotals = new int[6]; p.RecoveredTotals = new int[6];
+                p.ProducedTotals = new int[Definitions.ResourceCount]; p.ConsumedTotals = new int[Definitions.ResourceCount]; p.RecoveredTotals = new int[Definitions.ResourceCount];
                 foreach (var b in p.Buildings)
                 {
                     Require(b != null, "Altes Gebäude fehlt.");
@@ -340,7 +348,7 @@ namespace PlanetOne.Core
 
         private static void Goods(int[] goods)
         {
-            Require(goods != null && goods.Length == 6, "Unvollständiger Warenbestand.");
+            Require(goods != null && goods.Length == Definitions.ResourceCount, "Unvollständiger Warenbestand.");
             foreach (int value in goods) Require(value >= 0 && value <= 1000000, "Ungültige Warenmenge.");
         }
 

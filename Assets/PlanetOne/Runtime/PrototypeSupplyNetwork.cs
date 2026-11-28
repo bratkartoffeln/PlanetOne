@@ -100,15 +100,15 @@ namespace PlanetOne.Runtime
                     SupplyLine(shipment.Path,color,scale,true);
                     var at=ShipmentRoadPosition(shipment);
                     string label=GameSimulation.IsConstructionVehicle(shipment)?"Baufahrzeug":shipment.Amount>0?shipment.Amount+" "+Definitions.ResourceName(shipment.Resource):"Leerfahrt";
-                    SupplyLabel(at,label+(blocked?" · wartet":""),color,scale);
+                    if(showTerrainLabels)SupplyLabel(at,label+(blocked?" · wartet":""),color,scale);
                 }
-                if(shipment.Phase==ShipmentPhase.Loading||shipment.Phase==ShipmentPhase.Unloading)
+                if(shipment.Phase==ShipmentPhase.Loading&&!shipment.ApproachingSource||shipment.Phase==ShipmentPhase.Unloading)
                 {
                     var b=shipment.Phase==ShipmentPhase.Loading?source:target;
                     if(b!=null)
                     {
                         float progress=Mathf.Clamp01((float)(shipment.PhaseProgress/Definitions.TransferSeconds));
-                        SupplyLabel(SurfacePosition(b.X,.6f,b.Y),(shipment.Phase==ShipmentPhase.Loading?"↑ Lädt ":"↓ Entlädt ")+shipment.Amount,Amber,scale);
+                        if(showTerrainLabels)SupplyLabel(SurfacePosition(b.X,.6f,b.Y),(shipment.Phase==ShipmentPhase.Loading?"↑ Lädt ":"↓ Entlädt ")+shipment.Amount,Amber,scale);
                         var screen=sceneCamera.WorldToScreenPoint(SurfacePosition(b.X,.25f+.25f*(shipment.Phase==ShipmentPhase.Loading?progress:1-progress),b.Y));
                         if(screen.z>0&&IsWorldPoint(screen))Fill(new Rect(screen.x/scale-4,(Screen.height-screen.y)/scale-4,8,8),Amber);
                     }

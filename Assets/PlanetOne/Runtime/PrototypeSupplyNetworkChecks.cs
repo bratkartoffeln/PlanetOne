@@ -41,6 +41,16 @@ namespace PlanetOne.Runtime
             controller.SelectBuilding(cargo.TargetId);controller.CloseContextPanel();yield return null;yield return null;
             Require(controller.CourierView(cargo.Id)!=null&&controller.CourierView(cargo.Id).Find("Ladebehälter").gameObject.activeInHierarchy,"Actual moving courier shows its real loaded container");
             yield return Capture("supply-live-delivery.png");Require(captureFailure==null,"Selected delivery route and full-size loaded courier captured");
+            for(int i=0;i<1600 && cargo.Phase==ShipmentPhase.InTransit;i++)AdvanceSeconds(Definitions.TickSeconds);
+            Require(cargo.Phase==ShipmentPhase.Unloading,"Courier reached the construction apron");
+            yield return null;yield return null;
+            var unloading=controller.CourierView(cargo.Id);
+            var crate=unloading.Find("Ladebehälter");var bed=crate.localPosition;
+            AdvanceSeconds(Definitions.TransferSeconds*.5);yield return null;
+            Require(unloading.gameObject.activeInHierarchy && crate.gameObject.activeInHierarchy && (crate.localPosition-bed).magnitude>.12f,
+                "Unloading at a construction site moves the real cargo model while the courier stays visible");
+            controller.SetSurfaceFocus(unloading.position);
+            Camera.main.orthographicSize=1.6f;controller.CaptureWorld(System.IO.Path.Combine(outputDirectory,"construction-delivery.png"));
             for(int i=0;i<120 && !site.Built;i++)AdvanceSeconds(1);
             Require(site.Built && !p.Roads[ty*p.Width+tx],"Delivered materials and a builder finish the site without road construction");
             controller.SetView(0);

@@ -16,6 +16,12 @@ namespace PlanetOne.Runtime
                 controller.SetInterfaceLayout(layout);controller.SetView(1);controller.SelectUnit(third.Id);controller.CloseContextPanel();
                 var focus=HexGrid.ToWorld(13,15);controller.SetSurfaceFocus(new Vector3((float)focus.X,0,(float)focus.Y));yield return null;yield return null;
                 Vector2 a=controller.SurfaceScreenPoint(tank.X,tank.Y),b=controller.SurfaceScreenPoint(engineer.X,engineer.Y);
+                foreach(var delta in new[]{new Vector2(.33f,0),new Vector2(-.33f,0),new Vector2(0,.33f),new Vector2(0,-.33f)})
+                {
+                    var point=controller.SurfaceScreenPoint(tank.X+delta.x,tank.Y+delta.y);
+                    Require(controller.BeginSurfaceSelection(point) && controller.EndSurfaceSelection(point) && controller.SelectedUnitCount==1,
+                        "Every side of the occupied hex accepts a click: "+layout);
+                }
                 var start=Vector2.Min(a,b)-new Vector2(24,35);var end=Vector2.Max(a,b)+new Vector2(24,35);
                 Require(controller.BeginSurfaceSelection(start),"Ground selection drag starts in the world: "+layout);controller.ContinueSurfaceSelection(end);
                 yield return Capture("selection-rectangle-"+layout+".png");Require(captureFailure==null,"Selection rectangle captured: "+layout);

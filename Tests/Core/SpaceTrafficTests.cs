@@ -129,12 +129,12 @@ internal static class SpaceTrafficTests
     private static void SpawnAndReturn()
     {
         var s=World();var planet=s.FindPlanet(1);var center=s.GetOrbitPosition(1);
-        var port=InvasionFixture.AddBuilding(s,1,BuildingKind.Spaceport,9,5);port.Inventory=new[]{20,0,80,40,0,0};
+        var port=InvasionFixture.AddBuilding(s,1,BuildingKind.Spaceport,9,5);port.Inventory=new[]{20,0,80,40,0,0,0};
         var yard=Add(s,center.X,center.Y,ShipKind.OrbitalYard);yard.TargetPlanetId=1;
         var carrier=Add(s,center.X,center.Y,ShipKind.LandingTransport);carrier.TargetPlanetId=1;carrier.TransportPhase=TransportPhase.Ascending;
         carrier.LandingX=20;carrier.LandingY=20;carrier.ActionProgress=Definitions.TransitionSeconds-.01;
         var def=Definitions.Ships[(int)ShipKind.Scout];yard.ProductionKind=(int)ShipKind.Scout;yard.ProductionPaid=true;yard.ProductionProgress=def.Seconds-.01;
-        planet.Population-=def.Crew;for(int r=0;r<6;r++)planet.ConsumedTotals[r]+=def.Cost[r];
+        planet.Population-=def.Crew;for(int r=0;r<Definitions.ResourceCount;r++)planet.ConsumedTotals[r]+=def.Cost[r];
         CheckedStep(s);Check(s.State.Ships.Count==3 && carrier.TransportPhase==TransportPhase.Space,"Ready production or orbital return failed");
         for(int i=0;i<60;i++)CheckedStep(s);SaveCodec.Validate(s.State);
         Check(yard.ProductionKind==-1 && s.State.Ships.Count==3,"Paid ship was duplicated");
@@ -189,7 +189,7 @@ internal static class SpaceTrafficTests
         var s=World();var planet=s.FindPlanet(1);var center=s.GetOrbitPosition(1);
         var port=InvasionFixture.AddBuilding(s,1,BuildingKind.Spaceport,9,5);
         var def=Definitions.Ships[0];port.ShipBuildKind=0;port.ShipBuildPaid=true;port.ShipBuildProgress=def.Seconds-.001;
-        planet.Population-=def.Crew;for(int r=0;r<6;r++)planet.ConsumedTotals[r]+=def.Cost[r];
+        planet.Population-=def.Crew;for(int r=0;r<Definitions.ResourceCount;r++)planet.ConsumedTotals[r]+=def.Cost[r];
         for(int x=-4;x<=4;x++)for(int y=-4;y<=4;y++)Add(s,center.X+x*.70,center.Y+y*.70);
         int count=s.State.Ships.Count,population=planet.Population;CheckedStep(s);
         Check(s.State.Ships.Count==count && port.ShipBuildPaid && port.ShipBuildKind==0 && port.ShipBuildProgress==def.Seconds,"Occupied launch created overlapping ship or discarded paid production");
