@@ -71,8 +71,9 @@ namespace PlanetOne.Core
                     var a = u.Path[i]; var b = u.Path[Math.Min(i + 1, u.Path.Count - 1)]; double t = u.PathDistance - i;
                     if(u.DirectPath)
                     {
-                        var from=HexGrid.ToWorld(a.X,a.Y);var to=HexGrid.ToWorld(b.X,b.Y);var at=HexGrid.ToWorld(u.X,u.Y);
-                        Require(Math.Abs(at.X-(from.X+(to.X-from.X)*t))<.000001&&Math.Abs(at.Y-(from.Y+(to.Y-from.Y)*t))<.000001,"Direkter Bodenweg und Position widersprechen sich.");
+                        var expected=i+1<u.Path.Count?GameSimulation.DirectGroundPosition(u,i,t):HexGrid.ToWorld(a.X,a.Y);
+                        var at=HexGrid.ToWorld(u.X,u.Y);
+                        Require(Math.Abs(at.X-expected.X)<.000001&&Math.Abs(at.Y-expected.Y)<.000001,"Direkter Bodenweg und Position widersprechen sich.");
                     }
                     else Require(Math.Abs(u.X - (a.X + (b.X - a.X) * t)) < 0.000001 &&
                         Math.Abs(u.Y - (a.Y + (b.Y - a.Y) * t)) < 0.000001, "Bodenweg und Einheitenposition widersprechen sich.");

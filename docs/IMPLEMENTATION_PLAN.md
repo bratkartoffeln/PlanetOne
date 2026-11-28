@@ -460,3 +460,7 @@ D-049–053 / T-078–081 / LOG-017 / GUI-023 / SURFACE-012 / TEST-042 ergänzen
 ### Version 1.0.23 · Bodenverteidigung und Gebäudefuhrpark
 
 P06/P07, LOG-019, D-062–064 und TEST-046 ergänzen den laufenden Prototyp um zugeordnete Transporter, Werkstätten, Schadensstufen, Richtungstore und gemeinsame Infanteriestandplätze. `tools/Test-Core.ps1` bestand mit 232 Kernprüfungen einschließlich beider Referenzsiege. Der mit `tools/Unity.ps1 -Action Build` gebaute Windows-Player bestand `tools/Test-Presentation.ps1 -PolishOnly` auf einem isolierten Desktop. Die Aufnahmen `construction-delivery.png` und `damaged-tank-tracks.png` zeigen die Entladung am Bauplatz und den beschädigten Panzer in Fahrt.
+
+### Version 1.0.24 · Geschütztürme, Fahrkurven und Energiebalken
+
+SURFACE-012 und TEST-046: Alle vier Bodengeschütze stehen auf einem erhöhten Drehkranz. Bodeneinheiten runden Wegpunkte innerhalb der passierbaren Wabe ab. Beide Ketten schreiben ihre eigene Spur. Der Energiebalken folgt der zwischen den Simulationsticks dargestellten Einheit. `tools/Test-Core.ps1` bestand mit 233 Prüfungen, darunter Kurvenfahrt, Laden in der Kurve und Durchfahrten zwischen geparkten Fahrzeugen. Der mit `tools/Unity.ps1 -Action Build` gebaute Windows-Player bestand `tools/Test-Presentation.ps1 -PolishOnly` auf dem isolierten Desktop. Die Aufnahmen `tower-wall-clearance.png` und `tank-turn-tracks-hud.png` zeigen die geprüften Spielsituationen.

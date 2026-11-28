@@ -478,7 +478,8 @@ namespace PlanetOne.Core
                 if (!adjacent && GroundSegmentClear(p,u,GroundUnitPosition(u),HexGrid.ToWorld(destination.X,destination.Y),true))
                     u.Path = center.X == destination.X && center.Y == destination.Y ? new List<GridCell>{center} : new List<GridCell>{center,destination};
                 else
-                    u.Path = StraightenGroundPath(p,u,GroundPath(p, u, u.GoalX, u.GoalY, adjacent)) ?? new List<GridCell>(); u.PathDistance = 0;u.DirectPath=true;
+                    u.Path = StraightenGroundPath(p,u,GroundPath(p, u, u.GoalX, u.GoalY, adjacent)) ?? new List<GridCell>();
+                u.PathDistance=0;u.DirectPath=true;u.RoundedPath=true;
                 if (u.Path.Count == 0) { u.Status = "Weg blockiert; Durchbruch oder andere Route nötig"; return; }
                 if (u.Path.Count == 1)
                 { if (u.Order == UnitOrder.Move || u.Order == UnitOrder.Retreat) u.Order = UnitOrder.Hold; u.Status = "Ziel erreicht"; return; }
@@ -490,12 +491,12 @@ namespace PlanetOne.Core
             if(u.DirectPath)
             {
                 var previousCell=u.Path[index];var from=HexGrid.ToWorld(previousCell.X,previousCell.Y);var to=HexGrid.ToWorld(next.X,next.Y);
-                if(!GroundSegmentClear(p,u,GroundUnitPosition(u),to,false)){u.Path.Clear();u.PathDistance=0;u.RecenterToCell=true;u.Status="Weg geändert; zentriert sich";return;}
                 double distance=Distance(from.X,from.Y,to.X,to.Y);
                 double progress=Math.Min(index+1,u.PathDistance+speed*Definitions.TickSeconds/Math.Max(.000001,distance));
-                var position=GroundLerp(from,to,progress-index);
+                var position=DirectGroundPosition(u,index,progress-index);
+                if(!GroundSegmentClear(p,u,GroundUnitPosition(u),position,false)){u.Path.Clear();u.PathDistance=0;u.RecenterToCell=true;u.Status="Weg geändert; zentriert sich";return;}
                 if(MoveGroundTraffic(p,u,position))
-                {u.PathDistance=progress;SetGroundUnitPosition(u,position);if(progress==index+1){u.X=next.X;u.Y=next.Y;}u.Status="Unterwegs";}
+                {u.PathDistance=progress;SetGroundUnitPosition(u,position);if(progress==u.Path.Count-1){u.X=next.X;u.Y=next.Y;}u.Status="Unterwegs";}
                 return;
             }
             // Stop at each cell to revalidate obstacles before crossing another segment.

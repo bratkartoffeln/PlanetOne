@@ -9,6 +9,7 @@ internal static class GroundTrafficTests
     {
         run("Attack moves to firing range even when the enemy's adjacent cells are inaccessible",AttackApproach);
         run("Long free movement follows a world-space straight line at bounded speed",StraightMovement);
+        run("A tank rounds a parked vehicle with continuous heading and resumes a saved bend",RoundedDetour);
         run("Changing destination and holding first center the unit and preserve saved continuation",RecenterOrders);
         run("Tanks pass a one-hex gap horizontally vertically and diagonally",GapDirections);
         run("Nine units settle on separate destination hexes",LargeGroup);
@@ -158,6 +159,40 @@ internal static class GroundTrafficTests
         var sim=Fixture();var parked=Add(sim,22,20);var moving=Add(sim,18,20);Move(sim,moving,26,20);
         for(int i=0;i<900;i++){StepSafe(sim);Check(parked.X==22&&parked.Y==20,"Stationary tank moved despite an open detour");}
         Check(moving.Order==UnitOrder.Hold&&HexGrid.Distance(moving.X,moving.Y,26,20)<.001,"Detour never reached its goal");
+    }
+    private static void RoundedDetour()
+    {
+        var sim=Fixture();Add(sim,22,20);var tank=Add(sim,18,20);Move(sim,tank,26,20);
+        SimPoint previous=GameSimulation.GroundUnitPosition(tank),heading=new SimPoint();
+        bool saved=false;GameSimulation resumed=null;UnitState copy=null;
+        for(int tick=0;tick<400;tick++)
+        {
+            StepSafe(sim);var at=GameSimulation.GroundUnitPosition(tank);
+            if(resumed!=null)
+            {
+                resumed.Step();
+                Check(Separation(at,GameSimulation.GroundUnitPosition(copy))<.000001,"Loaded turn diverged");
+            }
+            double length=Separation(at,previous);
+            if(length>.000001)
+            {
+                var direction=new SimPoint((at.X-previous.X)/length,(at.Y-previous.Y)/length);
+                if(heading.X!=0||heading.Y!=0)
+                {
+                    double dot=heading.X*direction.X+heading.Y*direction.Y;
+                    Check(dot>Math.Cos(Math.PI/8),"Vehicle snapped to the next heading");
+                    if(!saved && dot<.99999)
+                    {
+                        resumed=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(sim.State)));
+                        copy=resumed.FindPlanet(1).Units.Find(u=>u.Id==tank.Id);saved=true;
+                    }
+                }
+                heading=direction;
+            }
+            previous=at;
+            if(tank.Order==UnitOrder.Hold)break;
+        }
+        Check(saved && tank.X==26 && tank.Y==20,"Expected a rounded detour ending at the exact ordered destination");
     }
     private static void SharedCourierPath()
     {

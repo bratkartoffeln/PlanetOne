@@ -7,6 +7,42 @@ namespace PlanetOne.Runtime
 {
     public sealed partial class PrototypeSmokeRunner
     {
+        private IEnumerator RunGroundTurnChecks()
+        {
+            controller.StartMilitaryFixture();controller.SetSimulationPaused(true);
+            var sim=controller.Simulation;var planet=sim.FindPlanet(1);
+            sim.State.Relations[0].Relation=RelationKind.Peace;
+            var tank=planet.Units.Find(u=>u.Kind==UnitKind.Tank && u.OwnerId==1);
+            var parked=planet.Units.Find(u=>u.Kind==UnitKind.Tank && u.OwnerId==2);
+            tank.X=tank.GoalX=18;tank.Y=tank.GoalY=20;parked.X=parked.GoalX=22;parked.Y=parked.GoalY=20;
+            for(int y=18;y<=22;y++)for(int x=17;x<=27;x++)planet.Terrain[y*planet.Width+x]=0;
+            var center=HexGrid.ToWorld(22,20);
+            controller.SetSurfaceFocus(new Vector3((float)center.X,0,(float)center.Y));controller.SetOrbitCamera(-30,65);
+            Camera.main.orthographicSize=3.8f;
+            controller.SelectUnit(tank.Id);controller.CloseContextPanel();
+            yield return null;yield return null;
+            controller.RequestUnitOrder(tank.Id,CommandKind.MoveUnit,26,20);
+            controller.SetSimulationPaused(false);
+            float deadline=Time.realtimeSinceStartup+16;
+            bool rounded=false,interpolated=false;
+            while(Time.realtimeSinceStartup<deadline && tank.X<25.98)
+            {
+                yield return null;
+                var view=controller.UnitView(tank.Id);var at=GameSimulation.GroundUnitPosition(tank);
+                if(tank.Path.Count>2 && tank.PathDistance>.6)rounded=true;
+                Vector3 bar;
+                if(controller.TryUnitBarAnchor(tank.Id,out bar) &&
+                    Vector2.Distance(new Vector2((float)at.X,(float)at.Y),new Vector2(view.position.x,view.position.z))>.003f &&
+                    Vector3.Distance(bar,Camera.main.WorldToScreenPoint(view.position+Vector3.up*.6f))<.01f)
+                    interpolated=true;
+            }
+            controller.SetSimulationPaused(true);
+            var tracks=controller.UnitView(tank.Id).parent.GetComponentInChildren<TrackField>();
+            Require(rounded && tank.X>=25.98 && tracks.GetComponent<MeshFilter>().sharedMesh.vertexCount>=80,"Tank leaves paired tread marks along its completed detour");
+            Require(interpolated,"Health bar follows the rendered tank between simulation ticks");
+            yield return Capture("tank-turn-tracks-hud.png");Require(captureFailure==null,"Rounded tank tracks and selected unit HUD captured");
+        }
+
         private IEnumerator RunCombatVisualChecks()
         {
             if(!controller.HasActiveSession)controller.RequestNewSession(0,"918");
@@ -91,6 +127,7 @@ namespace PlanetOne.Runtime
             yield return null;yield return null;
             Require(tracks.GetComponent<MeshFilter>().sharedMesh.vertexCount==0,"Old track impressions have faded from the terrain");
 
+            var turn=RunGroundTurnChecks();while(turn.MoveNext())yield return turn.Current;
             controller.StartAsteroidFixture();controller.SetSimulationPaused(true);controller.CloseContextPanel();yield return null;
             var space=controller.Simulation;
             foreach(var asteroid in space.State.Asteroids)

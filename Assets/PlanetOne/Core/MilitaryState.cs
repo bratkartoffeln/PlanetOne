@@ -32,6 +32,7 @@ namespace PlanetOne.Core
         [DataMember] public List<GridCell> Path = new List<GridCell>();
         [DataMember] public double PathDistance;
         [DataMember] public bool DirectPath;
+        [DataMember(EmitDefaultValue=false)] public bool RoundedPath;
         [DataMember] public bool RecenterToCell;
         [DataMember] public string Status = "Hält Stellung";
         // P12 will supply real carriers. Only explicitly marked fixtures may create these targets now.

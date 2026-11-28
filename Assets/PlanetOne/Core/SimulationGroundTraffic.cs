@@ -454,7 +454,7 @@ namespace PlanetOne.Core
                     bool adjacent=unit.Order!=UnitOrder.Move&&unit.Order!=UnitOrder.Retreat;
                     var detour=GroundPath(planet,unit,unit.GoalX,unit.GoalY,adjacent,true,false);
                     if(detour!=null&&detour.Count>1)
-                    {unit.Path=offset<.000001?StraightenGroundPath(planet,unit,detour):new List<GridCell>();unit.DirectPath=true;unit.PathDistance=0;unit.Status="Umfährt belegten Weg";return false;}
+                    {unit.Path=offset<.000001?StraightenGroundPath(planet,unit,detour):new List<GridCell>();unit.DirectPath=true;unit.RoundedPath=true;unit.PathDistance=0;unit.Status="Umfährt belegten Weg";return false;}
                 }
                 GroundWait(planet,agent,blocker);unit.Status="Wartet auf freien Weg";return false;
             }

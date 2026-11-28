@@ -153,6 +153,14 @@ namespace PlanetOne.Runtime
             selectedUnits.RemoveAll(id => !p.Units.Exists(u => u.Id == id && !u.Destroyed));
         }
 
+        internal bool TryUnitBarAnchor(long id,out Vector3 screen)
+        {
+            screen=Vector3.zero;
+            if(!unitViews.TryGetValue(id,out var view) || !view.gameObject.activeInHierarchy)return false;
+            screen=sceneCamera.WorldToScreenPoint(view.position+Vector3.up*.6f);
+            return screen.z>0 && sceneCamera.pixelRect.Contains(screen);
+        }
+
         private void DrawMilitaryLabels(float scale)
         {
             var p = simulation.FindPlanet(openPlanetId);
@@ -168,9 +176,7 @@ namespace PlanetOne.Runtime
             }
             foreach (var u in p.Units)
             {
-                if (u.Destroyed || !simulation.CanSeeEntity(p, PlayerFactionId, u.Id) || !IsSurfacePointVisible(u.X,u.Y,0.6f)) continue;
-                var screen = sceneCamera.WorldToScreenPoint(SurfacePosition(u.X, 0.6f, u.Y));
-                if (!sceneCamera.pixelRect.Contains(screen)) continue;
+                if (u.Destroyed || !simulation.CanSeeEntity(p, PlayerFactionId, u.Id) || !TryUnitBarAnchor(u.Id,out var screen)) continue;
                 float x = screen.x / scale, y = (Screen.height - screen.y) / scale;
                 if(showTerrainLabels)
                 {

@@ -264,7 +264,22 @@ namespace PlanetOne.Runtime
             bool heavy=kind==BuildingKind.ArtilleryTower||kind==BuildingKind.OrbitalBattery;
             Part(root,"Geschützfundament",new Vector3(0,.12f,0),new Vector3(heavy?.7f:.56f,.075f,heavy?.7f:.56f),Hull,PrimitiveType.Cylinder);
             for(int i=0;i<4;i++){float a=i*Mathf.PI*.5f;Part(root,"Feste Geschützstütze",new Vector3(Mathf.Cos(a)*.29f,.10f,Mathf.Sin(a)*.29f),new Vector3(.14f,.12f,.14f),Steel);}
-            var turret=ColonyGroup(root,"Turret",new Vector3(0,.25f,0));
+            float pivotHeight=.25f;
+            if(Definitions.IsTower(kind))
+            {
+                // Walls meet the fixed drum. Only the assembly above the bearing turns and recoils.
+                pivotHeight=.88f;
+                const float foot=.17f,bearingHeight=.08f;
+                float drumTop=pivotHeight-bearingHeight;
+                float diameter=heavy?.70f:.60f;
+                Part(root,"Gepanzerter Turmschaft",Vector3.up*((foot+drumTop)*.5f),
+                    new Vector3(diameter,(drumTop-foot)*.5f,diameter),Hull,PrimitiveType.Cylinder);
+                Part(root,"Drehkranz",Vector3.up*(pivotHeight-bearingHeight*.5f),
+                    new Vector3(diameter*.88f,bearingHeight*.5f,diameter*.88f),Steel,PrimitiveType.Cylinder);
+            }
+            var turret=ColonyGroup(root,"Turret",Vector3.up*pivotHeight);
+            if(Definitions.IsTower(kind))
+                Part(turret,"Drehteller",Vector3.up*.02f,new Vector3(heavy?.51f:.44f,.02f,heavy?.51f:.44f),Trim,PrimitiveType.Cylinder);
             Vector3 muzzle;
             if(kind==BuildingKind.FlakTower)
             {

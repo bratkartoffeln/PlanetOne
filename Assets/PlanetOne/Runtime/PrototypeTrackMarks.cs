@@ -15,28 +15,42 @@ namespace PlanetOne.Runtime
                 trackField=root.gameObject.AddComponent<TrackField>();trackField.Initialize();
             }
             if(!vehicle.TryGetComponent<FootprintSample>(out var sample))sample=vehicle.gameObject.AddComponent<FootprintSample>();
-            var at=vehicle.position;var delta=Vector3.ProjectOnPlane(at-sample.Last,Vector3.up);
-            if(!sample.Ready || delta.magnitude>1 || AnimationDelta==0){sample.Ready=true;sample.Last=at;return;}
-            float scale=vehicle.lossyScale.x, step=Mathf.Max(.08f,scale*.16f);
-            if(delta.magnitude<step)return;
-            var forward=delta.normalized;
+            var at=vehicle.position;
+            float scale=vehicle.lossyScale.x,step=Mathf.Max(.08f,scale*.16f);
             var right=Vector3.ProjectOnPlane(vehicle.right,Vector3.up).normalized;
-            int count=Mathf.FloorToInt(delta.magnitude/step);
-            for(int i=0;i<count;i++)
+            var offset=right*(.26f*scale);
+            bool reset=!sample.Ready || (at-sample.Last).sqrMagnitude>1 || AnimationDelta==0;
+            StampTread(at-offset,ref sample.Left,ref sample.LeftTravel,reset,scale,step);
+            StampTread(at+offset,ref sample.Right,ref sample.RightTravel,reset,scale,step);
+            sample.Last=at;sample.Ready=true;
+        }
+        private void StampTread(Vector3 contact,ref Vector3 previous,ref float travel,bool reset,float scale,float step)
+        {
+            var delta=Vector3.ProjectOnPlane(contact-previous,Vector3.up);
+            float length=delta.magnitude;
+            if(reset)travel=0;
+            else if(length>.000001f)
             {
-                sample.Last+=forward*step;
-                for(int side=-1;side<=1;side+=2)
+                var forward=delta/length;
+                var w=Vector3.Cross(Vector3.up,forward)*(.067f*scale);
+                var h=forward*(step*.39f);
+                for(float d=step-travel;d<=length;d+=step)
                 {
-                    var center=sample.Last+right*(side*.26f*scale);
-                    var w=right*.067f*scale;var h=forward*step*.39f;
+                    var center=previous+forward*d;
                     trackField.Add(TrackContact(center-w-h),TrackContact(center-w+h),TrackContact(center+w+h),TrackContact(center+w-h),SurfaceClock);
                 }
+                travel=(travel+length)%step;
             }
-            sample.Last.y=at.y;
+            previous=contact;
         }
         private Vector3 TrackContact(Vector3 point){point.y=ReliefHeight(point.x,point.z)+.009f;return point;}
     }
-    internal sealed class FootprintSample:MonoBehaviour {internal bool Ready;internal Vector3 Last;}
+    internal sealed class FootprintSample:MonoBehaviour
+    {
+        internal bool Ready;
+        internal Vector3 Last,Left,Right;
+        internal float LeftTravel,RightTravel;
+    }
     internal sealed class TrackField:MonoBehaviour
     {
         private struct Mark {internal Vector3 A,B,C,D;internal float Born;}

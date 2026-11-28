@@ -5,6 +5,33 @@ namespace PlanetOne.Core
 {
     public sealed partial class GameSimulation
     {
+        internal static SimPoint DirectGroundPosition(UnitState unit,int segment,double fraction)
+        {
+            var path=unit.Path;
+            var a=HexGrid.ToWorld(path[segment].X,path[segment].Y);
+            var b=HexGrid.ToWorld(path[segment+1].X,path[segment+1].Y);
+            if(unit.RoundedPath && path.Count>2)
+            {
+                // The entry, control point and exit all lie inside the waypoint hex.
+                // This preserves the planned gate crossings and the straight sections between bends.
+                const double lead=.48;
+                double length=Distance(a.X,a.Y,b.X,b.Y);
+                bool entering=fraction>=.5;
+                int corner=entering?segment+1:segment;
+                double offset=(entering?fraction-1:fraction)*length;
+                if(corner>0 && corner<path.Count-1 && Math.Abs(offset)<lead)
+                {
+                    var center=entering?b:a;
+                    var before=HexGrid.ToWorld(path[corner-1].X,path[corner-1].Y);
+                    var after=HexGrid.ToWorld(path[corner+1].X,path[corner+1].Y);
+                    var entry=GroundLerp(center,before,lead/Distance(center.X,center.Y,before.X,before.Y));
+                    var exit=GroundLerp(center,after,lead/Distance(center.X,center.Y,after.X,after.Y));
+                    double t=(offset+lead)/(2*lead);
+                    return GroundLerp(GroundLerp(entry,center,t),GroundLerp(center,exit,t),t);
+                }
+            }
+            return GroundLerp(a,b,fraction);
+        }
         private bool GroundSegmentClear(PlanetState p,UnitState unit,SimPoint from,SimPoint to,bool traffic)
         {
             int steps=Math.Max(1,(int)Math.Ceiling(Distance(from.X,from.Y,to.X,to.Y)*8));
