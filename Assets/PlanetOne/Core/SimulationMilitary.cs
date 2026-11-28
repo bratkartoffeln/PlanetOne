@@ -356,9 +356,9 @@ namespace PlanetOne.Core
                 // Leave the emergency workforce in the colony. Recruitment consumes population once.
                 if (p.Population - d.Crew < 4) { b.Status = "Zu wenig Bevölkerung für Rekrutierung"; return; }
                 var cost = d.Cost;
-                for (int r = 0; r < 6; r++) if (b.Inventory[r] - b.ReservedOutgoing[r] < cost[r])
+                for (int r = 0; r < Definitions.ResourceCount; r++) if (b.Inventory[r] - b.ReservedOutgoing[r] < cost[r])
                 { b.Status = "Wartet auf Rekrutierungsmaterial"; return; }
-                for (int r = 0; r < 6; r++) { b.Inventory[r] -= cost[r]; p.ConsumedTotals[r] += cost[r]; }
+                for (int r = 0; r < Definitions.ResourceCount; r++) { b.Inventory[r] -= cost[r]; p.ConsumedTotals[r] += cost[r]; }
                 p.Population -= d.Crew; p.WorkersTotal = Math.Min(p.WorkersTotal, p.Population);
                 p.WorkersUsed = Math.Min(p.WorkersUsed, p.WorkersTotal); b.RecruitPaid = true;
             }
@@ -602,7 +602,7 @@ namespace PlanetOne.Core
             b.Destroyed = true; BeginDeconstruction(p, b);
             p.Population -= recruits;
             p.OreRemaining[b.Y * p.Width + b.X] -= minedOre;
-            for (int r = 0; r < 6; r++)
+            for (int r = 0; r < Definitions.ResourceCount; r++)
             {
                 p.RecoveredTotals[r] -= b.Inventory[r] - stock[r];
                 p.LostTotals[r] += stock[r]; b.Inventory[r] = 0;

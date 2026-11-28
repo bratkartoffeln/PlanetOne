@@ -23,11 +23,11 @@ namespace PlanetOne.Core
             double cycleSeconds = 0, int[] inputs = null, int[] outputs = null,
             int housingCapacity = 0, double energyStorageCapacity = 0)
         {
-            Kind = kind; Name = name; Cost = new int[6];
+            Kind = kind; Name = name; Cost = new int[Definitions.ResourceCount];
             Cost[(int)ResourceKind.Metal] = metal; Cost[(int)ResourceKind.Parts] = parts;
             BuildSeconds = buildSeconds * Definitions.ConstructionDurationMultiplier; EnergyUse = energyUse; EnergyProduced = energyProduced;
             WorkerUse = workerUse; Capacity = capacity; CycleSeconds = cycleSeconds;
-            Inputs = inputs ?? new int[6]; Outputs = outputs ?? new int[6];
+            Inputs = inputs ?? new int[Definitions.ResourceCount]; Outputs = outputs ?? new int[Definitions.ResourceCount];
             HousingCapacity = housingCapacity; EnergyStorageCapacity = energyStorageCapacity;
         }
     }
@@ -35,9 +35,11 @@ namespace PlanetOne.Core
     public static partial class Definitions
     {
         public const double TickSeconds = 0.05;
+        public const int ResourceCount = (int)ResourceKind.Hydrogen + 1;
         public const int CourierCapacity = 8;
         public const int CouriersPerColony = 4;
         public const double CourierSpeed = 3;
+        public const int CourierExitIntervalTicks = 6;
         public const double TransferSeconds = 0.5;
         public const double FoodPerPersonPerSecond = 1.0 / 120;
         public const double PopulationGrowthSeconds = 45;
@@ -54,7 +56,7 @@ namespace PlanetOne.Core
 
         private static int[] Goods(ResourceKind resource, int amount)
         {
-            var result = new int[6]; result[(int)resource] = amount; return result;
+            var result = new int[Definitions.ResourceCount]; result[(int)resource] = amount; return result;
         }
 
         // Initial prototype balance. Rules live in GameSimulation, numerical values here.
@@ -87,10 +89,12 @@ namespace PlanetOne.Core
             new BuildingDefinition(BuildingKind.Spaceport, "Raumhafen", 18, 5, 8, 2, 0, 2, 240),
             new BuildingDefinition(BuildingKind.Laboratory, "Forschungslabor", 12, 4, 6, 2, 0, 2, 40),
             new BuildingDefinition(BuildingKind.CrystalMine, "Kristallmine", 12, 4, 6, 2, 0, 2, 40, 5, null, Goods(ResourceKind.Crystals, 1)),
-            new BuildingDefinition(BuildingKind.ElectronicsFactory, "Elektronikwerk", 16, 6, 8, 3, 0, 3, 50, 6, new[] {0,0,2,0,1,0}, Goods(ResourceKind.Electronics, 1)),
+            new BuildingDefinition(BuildingKind.ElectronicsFactory, "Elektronikwerk", 16, 6, 8, 3, 0, 3, 50, 6, new[] {0,0,2,0,1,0,0}, Goods(ResourceKind.Electronics, 1)),
             new BuildingDefinition(BuildingKind.ShieldGenerator, "Lokaler Schild", 24, 10, 12, 6, 0, 2, 40),
             new BuildingDefinition(BuildingKind.OrbitalBattery, "Planetare Abwehrbatterie", 28, 12, 12, 4, 0, 2, 40),
-            new BuildingDefinition(BuildingKind.JumpGate, "Interstellares Sprungtor", 40, 16, 30, 8, 0, 4, 160)
+            new BuildingDefinition(BuildingKind.JumpGate, "Interstellares Sprungtor", 40, 16, 30, 8, 0, 4, 160),
+            new BuildingDefinition(BuildingKind.GasExtractor, "Gasförderer", 16, 4, 8, 3, 0, 2, 24,
+                6, null, Goods(ResourceKind.Hydrogen, 2))
         };
 
         public static BuildingDefinition Get(BuildingKind kind)
@@ -109,6 +113,7 @@ namespace PlanetOne.Core
                 case ResourceKind.Parts: return "Bauteile";
                 case ResourceKind.Crystals: return "Kristalle";
                 case ResourceKind.Electronics: return "Elektronik";
+                case ResourceKind.Hydrogen: return "Wasserstoff";
                 default: return "Unbekannt";
             }
         }

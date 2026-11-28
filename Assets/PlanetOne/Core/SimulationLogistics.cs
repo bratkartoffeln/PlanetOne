@@ -16,18 +16,18 @@ namespace PlanetOne.Core
                 if (BuildingOwner(p,target)!=p.OwnerId || !target.Built || !target.Enabled || target.Deconstructing) continue;
                 var definition = Definitions.Get(target.Kind);
                 PlanSpaceInputs(p, target);
-                if(target.Kind==BuildingKind.JumpGate && !State.GateProjects.Exists(g=>g.BuildingId==target.Id&&g.Complete)) for(int r=0;r<6;r++) if(Definitions.GateComponents[r]>0)PlanInput(p,target,r,Definitions.GateComponents[r]);
+                if(target.Kind==BuildingKind.JumpGate && !State.GateProjects.Exists(g=>g.BuildingId==target.Id&&g.Complete)) for(int r=0;r<Definitions.ResourceCount;r++) if(Definitions.GateComponents[r]>0)PlanInput(p,target,r,Definitions.GateComponents[r]);
                 if (target.RecruitKind >= 0)
                 {
                     var cost = Definitions.Get((UnitKind)target.RecruitKind).Cost;
-                    if (!target.RecruitPaid) for (int r = 0; r < 6; r++) if (cost[r] > 0) PlanInput(p, target, r, cost[r]);
+                    if (!target.RecruitPaid) for (int r = 0; r < Definitions.ResourceCount; r++) if (cost[r] > 0) PlanInput(p, target, r, cost[r]);
                 }
                 if (target.Kind == BuildingKind.MilitaryDepot || target.Kind == BuildingKind.OrbitalBattery || Definitions.IsTower(target.Kind))
                 {
                     PlanInput(p, target, (int)ResourceKind.Food, 8);
                     PlanInput(p, target, (int)ResourceKind.Parts, target.Kind == BuildingKind.MilitaryDepot ? 24 : 8);
                 }
-                for (int r = 0; r < 6; r++)
+                for (int r = 0; r < Definitions.ResourceCount; r++)
                     if (definition.Inputs[r] > 0) PlanInput(p, target, r, definition.Inputs[r] * 3);
             }
             foreach (var source in p.Buildings)
@@ -35,11 +35,12 @@ namespace PlanetOne.Core
                 if (source.Kind==BuildingKind.JumpGate && !source.Deconstructing) continue;
                 if (BuildingOwner(p,source)!=p.OwnerId || !source.Deconstructing && (!source.Built || IsStorage(source))) continue;
                 var definition = Definitions.Get(source.Kind);
-                for (int r = 0; r < 6; r++)
+                for (int r = 0; r < Definitions.ResourceCount; r++)
                 {
                     if (!source.Deconstructing && definition.Outputs[r] == 0) continue;
                     int amount = Math.Min(Definitions.CourierCapacity, source.Inventory[r] - source.ReservedOutgoing[r]);
-                    if (amount < (source.Deconstructing ? 1 : 4)) continue;
+                    bool lastGasBatch=source.Kind==BuildingKind.GasExtractor && p.AtmosphericHydrogen==0 && !source.CycleActive;
+                    if (amount < (source.Deconstructing || lastGasBatch ? 1 : 4)) continue;
                     foreach (var target in p.Buildings)
                     {
                         if (BuildingOwner(p,target)!=p.OwnerId || !target.Built || target.Deconstructing || !IsStorage(target) || target.Id == source.Id ||
@@ -220,6 +221,13 @@ namespace PlanetOne.Core
         private void MoveShipment(PlanetState planet,ShipmentState shipment)
         {
             if(shipment.Traffic==null)shipment.Traffic=new GroundTrafficState();
+            BuildingState exit=null;
+            if(shipment.Traffic.Docked && shipment.DistanceTravelled==0 && shipment.Path.Count>1)
+            {
+                var first=shipment.Path[0];
+                exit=planet.Buildings.Find(b=>b.X==first.X && b.Y==first.Y && !b.Destroyed);
+                if(exit!=null && State.Tick<exit.NextCourierExitTick)return;
+            }
             double next=Math.Min(ShipmentArrivalDistance(shipment),shipment.DistanceTravelled+Definitions.CourierSpeed*Definitions.TickSeconds);
             double desired=!shipment.Airborne && PassingTraffic(planet,shipment)?RoadLaneOffset:0;
             double lateralStep=Definitions.CourierSpeed*Definitions.TickSeconds*.5;
@@ -240,6 +248,8 @@ namespace PlanetOne.Core
                 return;
             }
             RecordGroundTrail(planet,shipment,next,Distance(mover.Position.X,mover.Position.Y,target.X,target.Y));
+            // Reserve only a short launch interval. Traffic already on the route cannot hold this exit.
+            if(exit!=null && next>0)exit.NextCourierExitTick=State.Tick+Definitions.CourierExitIntervalTicks;
             RecordGroundMove(planet,mover,target);shipment.Traffic.Docked=false;shipment.DistanceTravelled=next;
             shipment.PassingOffset=lane;
         }

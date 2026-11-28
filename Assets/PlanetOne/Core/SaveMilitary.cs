@@ -12,7 +12,7 @@ namespace PlanetOne.Core
             {
                 Require(p != null && p.Buildings != null, "Alter Koloniezustand fehlt.");
                 p.Units = new List<UnitState>(); p.Sightings = new List<SightingState>();
-                p.GatePermissions = new List<GatePermission>(); p.LostTotals = new int[6];
+                p.GatePermissions = new List<GatePermission>(); p.LostTotals = new int[Definitions.ResourceCount];
                 foreach (var b in p.Buildings)
                 {
                     b.Health = Definitions.BuildingHealth(b.Kind); b.Destroyed = false;

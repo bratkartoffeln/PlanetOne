@@ -8,7 +8,7 @@ namespace PlanetOne.Core
         private static void MigrateSpace(GameState state)
         {
             state.Ships = new List<ShipState>(); state.Routes = new List<TradeRoute>();
-            state.SpaceSightings = new List<SpaceSighting>(); state.SpaceLostTotals = new int[6]; state.SpaceTestFixture = false;
+            state.SpaceSightings = new List<SpaceSighting>(); state.SpaceLostTotals = new int[Definitions.ResourceCount]; state.SpaceTestFixture = false;
             foreach (var f in state.Factions) f.Research = new ResearchState();
             foreach (var p in state.Planets)
             {
@@ -43,8 +43,8 @@ namespace PlanetOne.Core
                 Require(b.ShipBuildKind < 0 ? !b.ShipBuildPaid && b.ShipBuildProgress == 0 : b.Kind == BuildingKind.Spaceport && b.Built && !b.Deconstructing, "Schiffsbau ohne Raumhafen.");
                 if (b.ShipBuildKind >= 0) Require(b.ShipBuildProgress <= Definitions.Ships[b.ShipBuildKind].Seconds && (b.ShipBuildProgress == 0 || b.ShipBuildPaid), "Ungültiger bezahlter Baufortschritt.");
                 Require(b.Supply != null, "Versorgungsregeln fehlen."); Goods(b.Supply.Minimum); Goods(b.Supply.Target); Goods(b.Supply.ExportReserve); Goods(b.Supply.Priority);
-                Require(b.Supply.Replenishing != null && b.Supply.Replenishing.Length == 6, "Nachfüllzustand fehlt.");
-                for (int r = 0; r < 6; r++) Require(b.Supply.Minimum[r] <= b.Supply.Target[r] && b.Supply.Target[r] <= 200 && b.Supply.ExportReserve[r] <= 200 && b.Supply.Priority[r] <= 2, "Ungültige Versorgungsregel.");
+                Require(b.Supply.Replenishing != null && b.Supply.Replenishing.Length == Definitions.ResourceCount, "Nachfüllzustand fehlt.");
+                for (int r = 0; r < Definitions.ResourceCount; r++) Require(b.Supply.Minimum[r] <= b.Supply.Target[r] && b.Supply.Target[r] <= 200 && b.Supply.ExportReserve[r] <= 200 && b.Supply.Priority[r] <= 2, "Ungültige Versorgungsregel.");
             }
             foreach (var f in state.Factions)
             {

@@ -77,7 +77,7 @@ namespace PlanetOne.Core
             else if(c.Kind==CommandKind.LoadShipSupplies)
             {
                 var port=FindBuilding(c.TargetId);
-                if(c.IntValue<0 || c.IntValue>=6 || c.Amount>24 || c.Amount<=0 || s.Kind!=ShipKind.LandingTransport || !PortOwned(port,c.IssuerId) || !port.Operational || s.TransportPhase!=TransportPhase.Space || !AtPlanetDock(s,port.PlanetId)) error="Träger am betriebsfähigen eigenen Hafen und gültige Menge benötigt.";
+                if(c.IntValue<0 || c.IntValue>=Definitions.ResourceCount || c.Amount>24 || c.Amount<=0 || s.Kind!=ShipKind.LandingTransport || !PortOwned(port,c.IssuerId) || !port.Operational || s.TransportPhase!=TransportPhase.Space || !AtPlanetDock(s,port.PlanetId)) error="Träger am betriebsfähigen eigenen Hafen und gültige Menge benötigt.";
                 else if(Total(s.Cargo)+c.Amount>Definitions.Ships[(int)s.Kind].Capacity || port.Inventory[c.IntValue]-port.ReservedOutgoing[c.IntValue]<c.Amount) error="Frachtraum oder freie Hafenware fehlt.";
                 else { port.Inventory[c.IntValue]-=c.Amount; s.Cargo[c.IntValue]+=c.Amount; }
             }
@@ -175,7 +175,7 @@ namespace PlanetOne.Core
             if(yard.ActionProgress>=Definitions.SpaceTransferSeconds)
             {
                 yard.ActionProgress=0;
-                for(int r=0;r<6;r++)
+                for(int r=0;r<Definitions.ResourceCount;r++)
                 { int desired=yard.ProductionKind>=0 && !yard.ProductionPaid?Definitions.Ships[yard.ProductionKind].Cost[r]:0; if(r==3) desired=Math.Max(desired,8);
                   if(yard.Cargo[r]<desired && Total(yard.Cargo)<Definitions.Ships[(int)yard.Kind].Capacity && port.Inventory[r]-port.ReservedOutgoing[r]>0) { port.Inventory[r]--; yard.Cargo[r]++; break; } }
             }
@@ -183,9 +183,9 @@ namespace PlanetOne.Core
             var d=Definitions.Ships[yard.ProductionKind];
             if(!yard.ProductionPaid)
             {
-                for(int r=0;r<6;r++) if(yard.Cargo[r]<d.Cost[r]) { yard.Status="Werft wartet auf Hafentransfer"; return; }
+                for(int r=0;r<Definitions.ResourceCount;r++) if(yard.Cargo[r]<d.Cost[r]) { yard.Status="Werft wartet auf Hafentransfer"; return; }
                 if(p.Population-d.Crew<4) { yard.Status="Werft wartet auf Besatzung"; return; }
-                for(int r=0;r<6;r++) { yard.Cargo[r]-=d.Cost[r]; p.ConsumedTotals[r]+=d.Cost[r]; }
+                for(int r=0;r<Definitions.ResourceCount;r++) { yard.Cargo[r]-=d.Cost[r]; p.ConsumedTotals[r]+=d.Cost[r]; }
                 p.Population-=d.Crew; p.WorkersTotal=Math.Min(p.WorkersTotal,p.Population); p.WorkersUsed=Math.Min(p.WorkersUsed,p.WorkersTotal); yard.ProductionPaid=true;
             }
             yard.ProductionProgress+=Definitions.TickSeconds;

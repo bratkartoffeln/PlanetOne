@@ -27,7 +27,7 @@ namespace PlanetOne.Runtime
             MeshPart("Fahrbahn",root,mesh,Vector3.zero,Vector3.one,new Color(.27f,.25f,.22f));root.gameObject.AddComponent<OwnedSurfaceMesh>().Mesh=mesh;
             return root;
         }
-        private void AddCurvedRibbon(List<Vector3> vertices,List<int> indices,Vector3 a,Vector3 center,Vector3 b,float width)
+        private void AddCurvedRibbon(List<Vector3> vertices,List<int> indices,Vector3 a,Vector3 center,Vector3 b,float width,float clearance=.045f)
         {
             int first=vertices.Count;const int segments=18;
             for(int i=0;i<=segments;i++)
@@ -35,7 +35,7 @@ namespace PlanetOne.Runtime
                 float t=i/(float)segments;Vector3 point=RoadBend(a,center,b,t);
                 Vector3 tangent=2*((1-t)*(center-a)+t*(b-center));if(tangent.sqrMagnitude<.00001f)tangent=b-a;
                 var side=Vector3.Cross(Vector3.up,tangent.normalized)*width;Vector3 left=point-side,right=point+side;
-                left.y=ReliefHeight(left.x,left.z)+.045f;right.y=ReliefHeight(right.x,right.z)+.045f;vertices.Add(left);vertices.Add(right);
+                left.y=ReliefHeight(left.x,left.z)+clearance;right.y=ReliefHeight(right.x,right.z)+clearance;vertices.Add(left);vertices.Add(right);
                 if(i<segments){int n=first+i*2;indices.AddRange(new[]{n,n+2,n+1,n+1,n+2,n+3});}
             }
         }
@@ -54,7 +54,13 @@ namespace PlanetOne.Runtime
         // ends of a tick do not guarantee clear models halfway through the frame.
         private void SeparateCourierModels()
         {
-            visibleCouriers.Sort((a,b)=>{int priority=(b.Phase==ShipmentPhase.Building).CompareTo(a.Phase==ShipmentPhase.Building);return priority!=0?priority:a.Id.CompareTo(b.Id);});
+            visibleCouriers.Sort((a,b)=>
+            {
+                int priority=(b.Phase==ShipmentPhase.Building).CompareTo(a.Phase==ShipmentPhase.Building);
+                if(priority!=0)return priority;
+                int progress=b.DistanceTravelled.CompareTo(a.DistanceTravelled);
+                return progress!=0?progress:a.Id.CompareTo(b.Id);
+            });
             drawnCouriers.Clear();
             foreach (var shipment in visibleCouriers)
             {
@@ -77,15 +83,18 @@ namespace PlanetOne.Runtime
                     if ((center-other.Center).sqrMagnitude>=gap*gap) continue;
                     // Queue behind a vehicle travelling in the same direction. At crossings
                     // and in counterflow, keep the route heading and separate sideways.
-                    var axis=Vector2.Dot(heading,other.Heading)>.85f ? -heading : new Vector2(heading.y,-heading.x);
+                    bool following=Vector2.Dot(heading,other.Heading)>.85f;
+                    var axis=following ? -heading : new Vector2(heading.y,-heading.x);
+                    if(following)desired=basePosition+heading*Vector2.Dot(desired-basePosition,heading);
                     float positive=ClearanceAlong(desired,axis,size.VisualRadius);
                     float negative=ClearanceAlong(desired,-axis,size.VisualRadius);
-                    center=desired+(positive<=negative+.001f ? axis*positive : -axis*negative);
+                    center=desired+(following || positive<=negative+.001f ? axis*positive : -axis*negative);
                     break;
                 }
                 size.DisplayOffset=center-basePosition;
                 if(size.DisplayOffset.sqrMagnitude>.00000001f)
                     view.position=new Vector3(center.x,ReliefHeight(center.x,center.y)+(AtmosphereSurface?.55f:.055f),center.y);
+                if(!AtmosphereSurface)SeatOnTerrain(view,false);
                 drawnCouriers.Add(new CourierFootprint{Center=center,Heading=heading,Radius=size.VisualRadius});
             }
         }
@@ -130,11 +139,28 @@ namespace PlanetOne.Runtime
         }
         private void UpdateSurfaceMotion(Transform view,Vector3 position)
         {
-            float dx=ReliefHeight(position.x+.12f,position.z)-ReliefHeight(position.x-.12f,position.z);
-            float dz=ReliefHeight(position.x,position.z+.12f)-ReliefHeight(position.x,position.z-.12f);
             var facing=view.GetComponent<MotionFacing>();if(facing==null)facing=view.gameObject.AddComponent<MotionFacing>();
-            facing.MoveTick(position,0,AtmosphereSurface?Vector3.up:new Vector3(-dx,.24f,-dz).normalized,simulation.State.Tick,MovementInterpolation);
+            facing.MoveTick(position,0,Vector3.up,simulation.State.Tick,MovementInterpolation);
         }
+        private void SeatOnTerrain(Transform view,bool onFoot)
+        {
+            var p=view.position;
+            var forward=Vector3.ProjectOnPlane(view.forward,Vector3.up).normalized;
+            var right=Vector3.Cross(Vector3.up,forward);
+            float scale=view.lossyScale.x;
+            var axle=forward*(scale*(onFoot?.065f:.25f));
+            var track=right*(scale*(onFoot?.065f:.25f));
+            float fl=GroundAt(p+axle-track),fr=GroundAt(p+axle+track);
+            float rl=GroundAt(p-axle-track),rr=GroundAt(p-axle+track);
+            var pitch=2*axle+Vector3.up*((fl+fr-rl-rr)*.5f);
+            var roll=2*track+Vector3.up*((fr+rr-fl-rl)*.5f);
+            var normal=Vector3.Cross(pitch,roll).normalized;
+            view.rotation=Quaternion.LookRotation(pitch,normal);
+            // The underside of the track is 0.031 model units above its origin.
+            p.y=(fl+fr+rl+rr)*.25f-(onFoot?0:.031f)*scale*normal.y;
+            view.position=p;
+        }
+        private float GroundAt(Vector3 p){return ReliefHeight(p.x,p.z);}
     }
     internal sealed class ConstructionArmPose:MonoBehaviour
     {

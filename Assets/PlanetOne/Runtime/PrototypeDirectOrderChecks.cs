@@ -140,7 +140,7 @@ namespace PlanetOne.Runtime
             int count=0;bool encloses=true;
             foreach(var part in model.GetComponentsInChildren<Renderer>())
             {
-                if(part is LineRenderer||!part.enabled||!part.gameObject.activeInHierarchy)continue;count++;
+                if(part is LineRenderer||part is ParticleSystemRenderer||!part.enabled||!part.gameObject.activeInHierarchy)continue;count++;
                 Bounds bounds=part.bounds;
                 for(int corner=0;corner<8;corner++)
                 {
@@ -149,6 +149,17 @@ namespace PlanetOne.Runtime
                 }
             }
             Require(count>1&&encloses,"Selection frame encloses every visible part of the actual multipart model");
+            if(space)
+            {
+                var exhaust=model.GetComponentInChildren<ParticleSystemRenderer>();
+                var original=exhaust.localBounds;
+                try
+                {
+                    exhaust.localBounds=new Bounds(Vector3.back*8,Vector3.one*10);
+                    Require(controller.UnitSelectionScreenRect(id,true)==frame,"Engine plume extent cannot move or enlarge the ship selection target");
+                }
+                finally{exhaust.localBounds=original;exhaust.ResetLocalBounds();}
+            }
         }
         private void CheckAttackPointerPixels(string file,Vector2 center)
         {

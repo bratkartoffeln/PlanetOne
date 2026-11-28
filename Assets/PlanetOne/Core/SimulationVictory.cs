@@ -20,7 +20,7 @@ namespace PlanetOne.Core
             var b=FindBuilding(c.TargetId);string error=GateError(b,c.IssuerId);if(error!=null)return error;
             var gate=State.GateProjects.Find(g=>g.BuildingId==b.Id);
             if(gate!=null&&(gate.Activating||gate.Complete))return "Tor ist bereits aktiv oder abgeschlossen.";
-            for(int r=0;r<6;r++)if(b.Inventory[r]-b.ReservedOutgoing[r]<Definitions.GateComponents[r])return "Alle Projektkomponenten müssen physisch am Tor eingetroffen sein.";
+            for(int r=0;r<Definitions.ResourceCount;r++)if(b.Inventory[r]-b.ReservedOutgoing[r]<Definitions.GateComponents[r])return "Alle Projektkomponenten müssen physisch am Tor eingetroffen sein.";
             if(gate==null){gate=new GateProject{BuildingId=b.Id};State.GateProjects.Add(gate);}
             gate.OwnerId=c.IssuerId;gate.Participants=GateParticipants(c.IssuerId);gate.Activating=true;gate.SecureTicks=0;gate.Reason="Öffentliche Sicherungsphase läuft";
             foreach(var f in State.Factions)Emit(f.Id,b.PlanetId,b.Id,"GateActivation","Sprungtor auf "+FindPlanet(b.PlanetId).Name+": Betreiber "+c.IssuerId+", Teilnehmer "+string.Join(",",gate.Participants)+", Sicherung "+Definitions.GateSecureTicks*Definitions.TickSeconds+" Sekunden");
@@ -34,11 +34,11 @@ namespace PlanetOne.Core
                 if(!gate.Activating||gate.Complete)continue;
                 var b=FindBuilding(gate.BuildingId);string error=GateError(b,gate.OwnerId);var participants=GateParticipants(gate.OwnerId);
                 if(error==null&&(participants.Count!=gate.Participants.Count||participants.Exists(f=>!gate.Participants.Contains(f)||!FactionActive(f))))error="Teilnehmerliste geändert; Sicherung neu beginnen";
-                if(error==null)for(int r=0;r<6;r++)if(b.Inventory[r]-b.ReservedOutgoing[r]<Definitions.GateComponents[r]){error="Projektkomponenten fehlen";break;}
+                if(error==null)for(int r=0;r<Definitions.ResourceCount;r++)if(b.Inventory[r]-b.ReservedOutgoing[r]<Definitions.GateComponents[r]){error="Projektkomponenten fehlen";break;}
                 if(error!=null){gate.Activating=false;gate.SecureTicks=0;gate.Reason=error;Emit(gate.OwnerId,b==null?0:b.PlanetId,gate.BuildingId,"GateInterrupted",error);continue;}
                 gate.SecureTicks++;
                 if(gate.SecureTicks<Definitions.GateSecureTicks)continue;
-                for(int r=0;r<6;r++){b.Inventory[r]-=Definitions.GateComponents[r];FindPlanet(b.PlanetId).ConsumedTotals[r]+=Definitions.GateComponents[r];}
+                for(int r=0;r<Definitions.ResourceCount;r++){b.Inventory[r]-=Definitions.GateComponents[r];FindPlanet(b.PlanetId).ConsumedTotals[r]+=Definitions.GateComponents[r];}
                 gate.Activating=false;gate.Complete=true;gate.Reason="Gemeinsamer Szenarioerfolg";
                 foreach(int f in gate.Participants)if(!State.Winners.Contains(f))State.Winners.Add(f);
                 foreach(var f in State.Factions)Emit(f.Id,b.PlanetId,b.Id,"Victory","Sprungtor abgeschlossen; Sieger: "+string.Join(",",gate.Participants));
@@ -49,7 +49,7 @@ namespace PlanetOne.Core
             if(State.Planets.Exists(p=>p.OwnerId==faction))return true;
             foreach(var ship in State.Ships)if(ship.OwnerId==faction&&ship.Kind==ShipKind.ColonyShip&&!ship.Destroyed&&!ship.Consumed&&ship.Crew==Definitions.Ships[(int)ShipKind.ColonyShip].Crew)
             {
-                bool loaded=true;for(int r=0;r<6;r++)if(ship.Cargo[r]<Definitions.Ships[(int)ShipKind.ColonyShip].ColonyCargo[r])loaded=false;
+                bool loaded=true;for(int r=0;r<Definitions.ResourceCount;r++)if(ship.Cargo[r]<Definitions.Ships[(int)ShipKind.ColonyShip].ColonyCargo[r])loaded=false;
                 if(loaded&&State.Planets.Exists(p=>p.OwnerId==0&&p.Buildings.Count==0&&p.Terrain[6*p.Width+8]==0))return true;
             }
             return false;
