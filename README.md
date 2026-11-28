@@ -1,5 +1,7 @@
 # PlanetOne
 
+**Modelle in 1.0.21.** Das Fahrzeugwerk hat ein oranges Montageportal, Frachter tragen einzeln verzurrte Container und Aufklärer haben gepfeilte Flügel. Die Baumenüs zeigen dieselben texturierten 3D-Modelle wie die Spielwelt. [Vorher-nachher-Vergleich aus dem Windows-Player](docs/MODELLE_1_0_21.png)
+
 **M11 · Wasserstoff auf Gasriesen.** Im Szenario „Gegen einen Computer“ kannst du Zephyr mit einem Kolonieschiff besiedeln. Öffne dort **Bauen → Industrie → Gasförderer**. Für 16 Metall und 4 Bauteile entsteht eine schwebende Station. Drohnen liefern den gewonnenen Wasserstoff an Lager und Raumhafen. Der Zielbestand am Hafen ist einstellbar. Für einen schnellen Einstieg zeigt die Prüfkarte „Planetentypen und Luftfracht“ Zephyr mit einer bestehenden Kolonie. [Spielregeln](docs/GAME_DESIGN.md#eco-009--atmosphärische-rohstoffgewinnung)
 
 Die [Roadmap ab M10](docs/IMPLEMENTATION_PLAN.md#roadmap-ab-m10) führt von der Kolonielogistik über Gasförderung und weitere Sternsysteme bis zu Kampagnen und Plattformabnahme. M10 prüft, dass eine Kolonie über frei befahrbares Gelände bauen, produzieren und eine vollständige Referenzpartie bestreiten kann.

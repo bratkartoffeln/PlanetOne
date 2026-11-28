@@ -429,6 +429,10 @@ Manuelle Prüfungen beurteilen Bedienbarkeit, Warnungen, räumliche Lesbarkeit, 
 
 Leistungsmessungen verwenden ein festgehaltenes Szenario und Hardwareprofil. Ein schneller leerer Prototyp beweist keine ausreichende Leistung bei mehreren Kolonien, KI und gleichzeitigen Gefechten. Umfang und Grenzwerte werden vor der jeweiligen Messung festgelegt.
 
+## Modellgestaltung in 1.0.21
+
+Die grafische Überarbeitung von Kolonie und Flotte betrifft die Darstellung bestehender Spielinhalte aus Aufbau, Logistik und Militär. [Modellgestaltung und Windows-Prüfung](MODELLE_1_0_21.md)
+
 ## Ergänzung 1.0.18: Zweispurige Straßen und Priorität stehender Einheiten
 
 - **Umfang:** D-045–047 / LOG-015, SURFACE-011, GUI-022 und TEST-040; Core-Fahrspurpositionen, Vorfahrt, Bau-Rückfahrt, freie Umwege, passende Fahrzeughüllen sowie rein darstellende Zielpfeile.

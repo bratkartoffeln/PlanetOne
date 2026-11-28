@@ -251,7 +251,7 @@ namespace PlanetOne.Runtime
             float spin=Quaternion.Angle(PrototypeController.PlanetAxialRotation(1,0),PrototypeController.PlanetAxialRotation(1,30));
             Require(spin>15 && spin<20,"Axial rotation is clearly visible but remains slower than the camera");
             Require(controller.HasSurfaceAtlas,"Authored material atlas loaded in the Windows player");
-            controller.ExportBuildingCatalogue(outputDirectory);
+            controller.ExportModelCatalogue(outputDirectory);
             Require(File.Exists(Path.Combine(outputDirectory,"building-Headquarters.png")),"Building catalogue renders actual textured models");
             controller.SetInterfaceLayout(InterfaceLayout.CommandCenter);
             controller.SetView(0);
