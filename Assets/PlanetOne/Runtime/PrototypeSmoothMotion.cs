@@ -42,9 +42,75 @@ namespace PlanetOne.Runtime
         private Transform BuildPreviewRoadMesh(int x,int y){return BuildCurvedRoad(x,y,simulation.FindPlanet(openPlanetId));}
         internal Vector3 ShipmentRoadPosition(ShipmentState shipment)
         {
-            var point=GameSimulation.GroundCourierPosition(shipment);
+            var point=GameSimulation.CourierDisplayPosition(shipment);
             Vector3 position=new Vector3((float)point.X,0,(float)point.Y);
             position.y=ReliefHeight(position.x,position.z)+(AtmosphereSurface?.55f:.055f);return position;
+        }
+        private readonly List<ShipmentState> visibleCouriers=new List<ShipmentState>();
+        private readonly List<CourierFootprint> drawnCouriers=new List<CourierFootprint>();
+        private struct CourierFootprint { public Vector2 Center, Heading; public float Radius; }
+
+        // Solve on the interpolated render positions. Clear simulation positions at the two
+        // ends of a tick do not guarantee clear models halfway through the frame.
+        private void SeparateCourierModels()
+        {
+            visibleCouriers.Sort((a,b)=>{int priority=(b.Phase==ShipmentPhase.Building).CompareTo(a.Phase==ShipmentPhase.Building);return priority!=0?priority:a.Id.CompareTo(b.Id);});
+            drawnCouriers.Clear();
+            foreach (var shipment in visibleCouriers)
+            {
+                var view=shipmentViews[shipment.Id];
+                var size=view.GetComponent<VehicleModelSize>();
+                var basePosition=new Vector2(view.position.x,view.position.z);
+                var desired=shipment.Phase==ShipmentPhase.Building ? basePosition : basePosition+size.DisplayOffset*Mathf.Exp(-10*Time.unscaledDeltaTime);
+                int edge=Mathf.Clamp((int)shipment.DistanceTravelled,0,shipment.Path.Count-2);
+                Vector2 heading=Vector2.up;
+                if (shipment.Path.Count>=2)
+                {
+                    var a=shipment.Path[edge]; var b=shipment.Path[edge+1];
+                    var start=HexGrid.ToWorld(a.X,a.Y);var end=HexGrid.ToWorld(b.X,b.Y);
+                    heading=new Vector2((float)(end.X-start.X),(float)(end.Y-start.Y)).normalized;
+                }
+                var center=desired;
+                foreach (var other in drawnCouriers)
+                {
+                    float gap=size.VisualRadius+other.Radius+.02f;
+                    if ((center-other.Center).sqrMagnitude>=gap*gap) continue;
+                    // Queue behind a vehicle travelling in the same direction. At crossings
+                    // and in counterflow, keep the route heading and separate sideways.
+                    var axis=Vector2.Dot(heading,other.Heading)>.85f ? -heading : new Vector2(heading.y,-heading.x);
+                    float positive=ClearanceAlong(desired,axis,size.VisualRadius);
+                    float negative=ClearanceAlong(desired,-axis,size.VisualRadius);
+                    center=desired+(positive<=negative+.001f ? axis*positive : -axis*negative);
+                    break;
+                }
+                size.DisplayOffset=center-basePosition;
+                if(size.DisplayOffset.sqrMagnitude>.00000001f)
+                    view.position=new Vector3(center.x,ReliefHeight(center.x,center.y)+(AtmosphereSurface?.55f:.055f),center.y);
+                drawnCouriers.Add(new CourierFootprint{Center=center,Heading=heading,Radius=size.VisualRadius});
+            }
+        }
+
+        private float ClearanceAlong(Vector2 origin,Vector2 axis,float radius)
+        {
+            // Move to the end of any overlapping model footprint on this ray. Each
+            // move clears at least one circle permanently (at most four couriers).
+            float offset=0;
+            for(int pass=0;pass<drawnCouriers.Count;pass++)
+            {
+                float before=offset;
+                foreach(var other in drawnCouriers)
+                {
+                    var delta=other.Center-origin;
+                    float along=Vector2.Dot(delta,axis);
+                    float gap=radius+other.Radius+.021f;
+                    float square=gap*gap-(delta.sqrMagnitude-along*along);
+                    if(square<=0) continue;
+                    float half=Mathf.Sqrt(square);
+                    if(offset>along-half && offset<along+half) offset=along+half;
+                }
+                if(offset==before) break;
+            }
+            return offset;
         }
         private void UpdateShipmentPose(Transform view,ShipmentState shipment)
         {

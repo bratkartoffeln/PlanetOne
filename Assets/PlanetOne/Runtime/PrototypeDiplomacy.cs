@@ -37,7 +37,19 @@ namespace PlanetOne.Runtime
                 return "Szenario abgeschlossen · Sieg: "+string.Join(", ",winners);
             }
         }
-        private Color DiplomaticColor(int owner) {return owner==PlayerFactionId?Cyan:simulation.AtWar(PlayerFactionId,owner)?Danger:simulation.SharesSensors(PlayerFactionId,owner)?new Color(0.48f,0.72f,0.52f):Muted;}
+        private Color DiplomaticColor(int owner)
+        {
+            if(owner==PlayerFactionId)return Cyan;
+            if(!simulation.AtWar(PlayerFactionId,owner))
+                return simulation.SharesSensors(PlayerFactionId,owner)?new Color(.48f,.72f,.52f):Muted;
+            int index=0;
+            foreach(var faction in simulation.State.Factions)
+                if(faction.Id<owner && simulation.AtWar(PlayerFactionId,faction.Id))index++;
+            if(index==0)return Danger;
+            if(index==1)return new Color(.85f,.44f,1f);
+            if(index==2)return new Color(1f,.65f,.14f);
+            return Color.HSVToRGB(Mathf.Repeat(.1f+.618034f*index,1),.72f,1);
+        }
         public void StartDiplomacyScenario()
         {
             if(!simulation.State.AiScenario&&!simulation.State.InvasionTestFixture&&!simulation.State.SpaceTestFixture&&!simulation.State.MilitaryTestFixture)priorSession=simulation;
@@ -62,13 +74,8 @@ namespace PlanetOne.Runtime
             if(diplomacyUiSession!=simulation)
             {diplomacyUiSession=simulation;expandedDiplomacyTreaty=0;confirmDiplomaticRisk=false;diplomacyDangerOpen=false;Array.Clear(diplomacyScrolls,0,diplomacyScrolls.Length);}
             GUILayout.Label("DIPLOMATIE",headingStyle);
-            for(int start=0;start<DiplomacySectionNames.Length;start+=3)
-            {
-                GUILayout.BeginHorizontal();
-                for(int i=start;i<Math.Min(start+3,DiplomacySectionNames.Length);i++)
-                    if(GUILayout.Button(DiplomacySectionNames[i],diplomacySection==i?selectedButtonStyle:buttonStyle,GUILayout.MinHeight(UiRowHeight(42))))OpenDiplomacySection(i);
-                GUILayout.EndHorizontal();
-            }
+            int section=DrawWorkspaceTabs(diplomacySection,DiplomacySectionNames);
+            if(section!=diplomacySection)OpenDiplomacySection(section);
             GUILayout.Space(12);
             if(diplomacySection<4)DrawDiplomacyPartner();
             switch(diplomacySection)
@@ -133,7 +140,7 @@ namespace PlanetOne.Runtime
         private void DrawDiplomacyContracts()
         {
             GUILayout.Label("VERTRÄGE UND ZUSAGEN",headingStyle);
-            diplomacyContractFilter=GUILayout.SelectionGrid(diplomacyContractFilter,new[]{"Aktuell","Angebote","Archiv"},3,buttonStyle,GUILayout.MinHeight(UiRowHeight(42)));
+            diplomacyContractFilter=DrawWorkspaceTabs(diplomacyContractFilter,new[]{"Aktuell","Angebote","Archiv"});
             diplomacyOnlyPartner=GUILayout.Toggle(diplomacyOnlyPartner,"Nur den gewählten Partner anzeigen",GUILayout.MinHeight(UiRowHeight(36)));
             GUILayout.Space(10);bool any=false;
             foreach(var treaty in simulation.State.Treaties)

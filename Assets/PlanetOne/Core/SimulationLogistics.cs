@@ -67,16 +67,32 @@ namespace PlanetOne.Core
             }
         }
 
+        public static int FreeSupplyStock(PlanetState planet, int owner, BuildingState source, int resource)
+        {
+            if (source.Destroyed || BuildingOwner(planet,source) != owner || (!source.Built && !source.Deconstructing)) return 0;
+            if (!source.Deconstructing && !IsStorage(source) && source.Kind != BuildingKind.Spaceport &&
+                Definitions.Get(source.Kind).Outputs[resource] == 0) return 0;
+            return Math.Max(0, source.Inventory[resource] - source.ReservedOutgoing[resource]);
+        }
+
+        public static int FreeBuildingStock(PlanetState planet, int owner, int resource, BuildingState site = null)
+        {
+            int available = 0;
+            foreach (var source in planet.Buildings)
+                if (IsStorage(source) && source.Built && !source.Deconstructing &&
+                    (site == null || FindPath(planet,source,site) != null))
+                    available += FreeSupplyStock(planet,owner,source,resource);
+            return available;
+        }
+
         private void PlanInput(PlanetState p, BuildingState target, int resource, int desired)
         {
             int needed = Math.Min(desired - target.Inventory[resource] - target.ReservedIncoming[resource], FreeSpace(target));
             if (needed <= 0) return;
             foreach (var source in p.Buildings)
             {
-                if (BuildingOwner(p,source)!=BuildingOwner(p,target) || (!source.Built && !source.Deconstructing) || source.Id == target.Id ||
-                    (!source.Deconstructing && !IsStorage(source) && source.Kind != BuildingKind.Spaceport && Definitions.Get(source.Kind).Outputs[resource] == 0)) continue;
-                // Local factories may use every uncommitted item; export reserves do not apply here.
-                int available = source.Inventory[resource] - source.ReservedOutgoing[resource];
+                if (source.Id == target.Id) continue;
+                int available = FreeSupplyStock(p, BuildingOwner(p,target), source, resource);
                 int amount = Math.Min(needed, Math.Min(available, Definitions.CourierCapacity));
                 if (amount <= 0 || FindPath(p, source, target) == null) continue;
                 ReserveDelivery(p, source, target, resource, amount);
@@ -148,7 +164,7 @@ namespace PlanetOne.Core
                     if(shipment.BuilderTurnPending)
                     {shipment.Path.Reverse();shipment.DistanceTravelled=0;shipment.RoadEntryCentered=false;shipment.BuilderTurnPending=false;shipment.Traffic.Docked=true;shipment.RouteBlocked=true;}
                     else if (shipment.Phase == ShipmentPhase.BuilderReturning) p.Shipments.RemoveAt(i);
-                    else shipment.Phase = ShipmentPhase.Building;
+                    else {shipment.Phase = ShipmentPhase.Building;shipment.PassingOffset=0;}
                     continue;
                 }
                 int resource = (int)shipment.Resource;
@@ -178,7 +194,7 @@ namespace PlanetOne.Core
                         source.ReservedReturnSpace -= shipment.Amount;
                         shipment.Amount = 0; shipment.Phase = ShipmentPhase.Returning;
                         shipment.Path.Reverse(); shipment.DistanceTravelled = 0; shipment.PhaseProgress = 0;
-                        shipment.RoadEntryCentered=false;
+                        shipment.PassingOffset=0;shipment.RoadEntryCentered=false;
                         // A give-way maneuver may have joined the outbound route halfway along.
                         // The reversed suffix need not end at the original source depot.
                         shipment.RouteBlocked = true;
@@ -204,15 +220,17 @@ namespace PlanetOne.Core
         private void MoveShipment(PlanetState planet,ShipmentState shipment)
         {
             if(shipment.Traffic==null)shipment.Traffic=new GroundTrafficState();
-            if(!shipment.Airborne&&shipment.Traffic.Docked&&!RoadDepartureFree(planet,shipment))return;
             double next=Math.Min(ShipmentArrivalDistance(shipment),shipment.DistanceTravelled+Definitions.CourierSpeed*Definitions.TickSeconds);
-            var mover=CourierAgent(planet,shipment);var target=CourierPathPosition(shipment,next);GroundAgent blocker;
+            double desired=!shipment.Airborne && PassingTraffic(planet,shipment)?RoadLaneOffset:0;
+            double lateralStep=Definitions.CourierSpeed*Definitions.TickSeconds*.5;
+            double lane=shipment.PassingOffset+Math.Max(-lateralStep,Math.Min(lateralStep,desired-shipment.PassingOffset));
+            var mover=CourierAgent(planet,shipment);var target=CourierPathPosition(shipment,next,0);GroundAgent blocker;
             double budget=Definitions.CourierSpeed*Definitions.TickSeconds;
             if(Distance(mover.Position.X,mover.Position.Y,target.X,target.Y)>budget)
             {
                 double low=shipment.DistanceTravelled,high=next;
-                for(int i=0;i<18;i++){double middle=(low+high)*.5;var point=CourierPathPosition(shipment,middle);if(Distance(mover.Position.X,mover.Position.Y,point.X,point.Y)>budget)high=middle;else low=middle;}
-                next=low;target=CourierPathPosition(shipment,next);
+                for(int i=0;i<18;i++){double middle=(low+high)*.5;var point=CourierPathPosition(shipment,middle,0);if(Distance(mover.Position.X,mover.Position.Y,point.X,point.Y)>budget)high=middle;else low=middle;}
+                next=low;target=CourierPathPosition(shipment,next,0);
             }
             if(!GroundMoveFree(planet,mover,target,out blocker))
             {
@@ -221,7 +239,9 @@ namespace PlanetOne.Core
                 else GroundWait(planet,mover,blocker);
                 return;
             }
+            RecordGroundTrail(planet,shipment,next,Distance(mover.Position.X,mover.Position.Y,target.X,target.Y));
             RecordGroundMove(planet,mover,target);shipment.Traffic.Docked=false;shipment.DistanceTravelled=next;
+            shipment.PassingOffset=lane;
         }
 
         private static bool AtRouteEnd(ShipmentState shipment)
@@ -248,7 +268,7 @@ namespace PlanetOne.Core
             if (last.X != destination.X || last.Y != destination.Y) routeValid = false;
             int currentIndex = Math.Min((int)shipment.DistanceTravelled, shipment.Path.Count - 1);
             for (int i = currentIndex + 1; i < shipment.Path.Count - 1; i++)
-                if (!PlanetEnvironment.Airborne(planet) && !planet.Roads[shipment.Path[i].Y * planet.Width + shipment.Path[i].X]) routeValid = false;
+                if (!PlanetEnvironment.Airborne(planet) && !CargoCellOpen(planet,shipment.Path[i].X,shipment.Path[i].Y)) routeValid = false;
             if (!routeValid)
             {
                 // Curved movement also depends on the next/previous segment. Preserve the exact world
@@ -266,7 +286,7 @@ namespace PlanetOne.Core
                 }
                 else
                 {
-                    replacement = FindPath(planet, new BuildingState { X = b.X, Y = b.Y }, destination);
+                    replacement = CargoCellOpen(planet,b.X,b.Y)?FindPath(planet, new BuildingState { X = b.X, Y = b.Y }, destination):null;
                     if (replacement != null) anchor=b;
                     else
                     {
@@ -282,7 +302,7 @@ namespace PlanetOne.Core
                     return false;
                 }
                 shipment.Path = replacement; shipment.DistanceTravelled = 0;
-                shipment.RoadEntryCentered=!insideDepot;
+                shipment.PassingOffset=0;shipment.RoadEntryCentered=!insideDepot;
                 var anchorPosition=HexGrid.ToWorld(anchor.X,anchor.Y);
                 if(!insideDepot&&Distance(originalPosition.X,originalPosition.Y,anchorPosition.X,anchorPosition.Y)>GroundTrafficTolerance)
                 {

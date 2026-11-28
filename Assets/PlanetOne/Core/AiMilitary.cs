@@ -61,6 +61,7 @@ namespace PlanetOne.Core
         private static bool ChooseLanding(AiObservation v,AiState ai,AiWorld target)
         {
             double best=double.MaxValue;GridCell? chosen=null;
+            var headquarters=target.Buildings.Find(b=>b.Kind==BuildingKind.Headquarters && v.Enemies.Contains(b.OwnerId));
             for(int y=1;y<target.Height-1;y++)for(int x=1;x<target.Width-1;x++)
             {
                 if(ai.Operation.RejectedLandings.Exists(c=>c.X==x&&c.Y==y))continue;
@@ -73,7 +74,9 @@ namespace PlanetOne.Core
                     if(Definitions.IsTower(c.Kind)&&distance<=Definitions.GetTower(c.Kind).Range+2)risk+=100;
                     if(c.Kind==BuildingKind.ShieldGenerator&&distance<=Definitions.ShieldRadius+1)risk+=1000;
                 }
-                double score=risk+HexGrid.Distance(x,y,8,6);
+                // Stage outside the colony center while the surface defenses are still unknown.
+                double approach=HexGrid.Distance(x,y,headquarters==null?8:headquarters.X,headquarters==null?6:headquarters.Y);
+                double score=risk+Math.Abs(approach-5);
                 if(ai.Operation.LandingChosen&&x==ai.Operation.LandingX&&y==ai.Operation.LandingY)score-=0.1;
                 if(score<best){best=score;chosen=new GridCell(x,y);}
             }

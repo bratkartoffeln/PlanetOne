@@ -42,7 +42,7 @@ namespace PlanetOne.Runtime
             catch (Exception exception) { setupFailure = exception; }
             if (setupFailure != null) { Complete(false, setupFailure); yield break; }
 
-            IEnumerator run = Array.IndexOf(Environment.GetCommandLineArgs(),"-interactionOnly")>=0?RunInteractionChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-polishOnly")>=0?RunPolishChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-sessionUiOnly")>=0?RunSessionChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-commandUiOnly")>=0?RunCommandChecks():RunChecks();
+            IEnumerator run = Array.IndexOf(Environment.GetCommandLineArgs(),"-supplyNetworkOnly")>=0?RunSupplyNetworkChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-surfaceEdgeOnly")>=0?RunSurfaceEdgeChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-buildSidebarOnly")>=0?RunBuildSidebarChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-courierSpacingOnly")>=0?RunCourierSpacingChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-interactionOnly")>=0?RunInteractionChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-polishOnly")>=0?RunPolishChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-sessionUiOnly")>=0?RunSessionChecks():Array.IndexOf(Environment.GetCommandLineArgs(),"-commandUiOnly")>=0?RunCommandChecks():RunChecks();
             while (true)
             {
                 bool hasNext = false;
@@ -56,6 +56,112 @@ namespace PlanetOne.Runtime
             Complete(true, null);
         }
 
+        private IEnumerator RunSurfaceEdgeChecks()
+        {
+            controller.SetMenuVisible(false);controller.StartPlanetEnvironmentFixture();
+            controller.SetOrbitCamera(17,47);
+            controller.SetView(1);
+            Require(Mathf.Abs(Mathf.DeltaAngle(controller.CameraYaw,-60))<.01f,"Colony opens at minus sixty degrees");
+            controller.SetOrbitCamera(120,65);controller.ResetCameraView();
+            yield return null;
+            Require(Mathf.Abs(Mathf.DeltaAngle(controller.CameraYaw,-60))<.01f,"Camera reset restores minus sixty degrees");
+            // At this bearing the edge from the 150-degree corner to the 90-degree corner runs left to right.
+            var left=Camera.main.WorldToScreenPoint(new Vector3(7.5f,1,6+.288675f));
+            var right=Camera.main.WorldToScreenPoint(new Vector3(8,1,6+.577350f));
+            Require(Mathf.Abs(left.y-right.y)<.01f && right.x>left.x+1,"Default camera projects the expected hex edge horizontally from left to right");
+            yield return Capture("surface-default-bearing.png");
+            foreach(int world in new[]{1,6,7})
+            {
+                controller.SetView(world);controller.SetSurfaceFocus(Vector3.zero);
+                yield return null;
+                yield return Capture("surface-edge-"+world+".png");
+            }
+            controller.SetView(0);
+            Require(controller.CameraYaw==17,"System camera keeps its independent bearing");
+        }
+
+        private IEnumerator RunBuildSidebarChecks()
+        {
+            controller.SetMenuVisible(false);
+            controller.StartMilitaryFixture();
+            controller.SetInterfaceLayout(InterfaceLayout.CommandCenter,false);
+            controller.OpenPresentationSection(1);
+            yield return null;yield return null;
+            yield return Capture("build-sidebar.png");
+            Require(captureFailure==null && ScreenshotExists(Path.Combine(outputDirectory,"build-sidebar.png")),"Rendered construction sidebar");
+            var sim=controller.Simulation;var planet=sim.FindPlanet(1);
+            var hq=planet.Buildings.Find(b=>b.Kind==BuildingKind.Headquarters);
+            int oldParts=hq.Inventory[3];hq.Inventory[3]=0;
+            yield return null;yield return Capture("build-shortage.png");
+            hq.Inventory[3]=oldParts;
+            controller.SelectBuildCategory(1);
+            yield return null;yield return Capture("build-industry.png");
+            controller.SelectBuildCategory(0);
+            var barracks=planet.Buildings.Find(b=>b.Kind==BuildingKind.Barracks);
+            controller.SelectBuilding(barracks.Id);
+            yield return null;yield return Capture("infantry-production.png");
+            var factory=planet.Buildings.Find(b=>b.Kind==BuildingKind.VehicleFactory);
+            // Production fixture with enough local inventory to fund three sequential jobs.
+            factory.Inventory[0]=6;factory.Inventory[2]=34;factory.Inventory[3]=12;
+            controller.SetSimulationPaused(false);
+            Require(controller.SelectBuilding(factory.Id),"Single selection opens the producer");
+            foreach(var kind in new[]{UnitKind.Tank,UnitKind.Artillery,UnitKind.Tank})
+                Require(controller.RequestRecruitment(factory.Id,kind),"Submitted sequential production click");
+            sim.Step(22);controller.SetSimulationPaused(true);
+            Require(factory.RecruitKind==(int)UnitKind.Tank && factory.RecruitQueue.Count==2 && factory.RecruitPaid,"One paid tank and two future jobs");
+            yield return null;yield return Capture("vehicle-production-queue.png");
+            controller.SetSimulationPaused(false);
+            controller.RequestBuildingOperation(1,factory.Id,CommandKind.SetBuildingEnabled,0,false);
+            sim.Step();double held=factory.RecruitProgress;sim.Step(12);
+            Require(factory.RecruitProgress==held,"Pause retains unit progress and future orders");
+            controller.SetSimulationPaused(true);
+            yield return null;yield return Capture("vehicle-production-paused.png");
+            controller.SetSimulationPaused(false);
+            controller.RequestBuildingOperation(1,factory.Id,CommandKind.SetBuildingEnabled,0,true);sim.Step();
+            var copy=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(sim.State)));copy.State.Paused=false;
+            var copyPlanet=copy.FindPlanet(1);var copyFactory=copyPlanet.Buildings.Find(b=>b.Id==factory.Id);
+            int start=copyPlanet.Units.Count;
+            for(int tick=0;tick<1200 && copyFactory.RecruitKind>=0;tick++)copy.Step();
+            Require(copyFactory.RecruitQueue==null && copyFactory.RecruitKind<0 && copyPlanet.Units.Count==start+3 &&
+                copyPlanet.Units[start].Kind==UnitKind.Tank && copyPlanet.Units[start+1].Kind==UnitKind.Artillery &&
+                copyPlanet.Units[start+2].Kind==UnitKind.Tank,"Saved FIFO produces exactly the three ordered units");
+            controller.SetSimulationPaused(false);
+            Require(controller.RequestConstruction(1,BuildingKind.SolarPlant,4,6),"Submitted solar construction");
+            sim.Step();
+            var site=planet.Buildings.Find(b=>b.X==4 && b.Y==6 && !b.Built);
+            Require(site!=null,"Construction placed at chosen hex");
+            Require(controller.RequestBuildingOperation(1,site.Id,CommandKind.SetBuildingEnabled,0,false),"Submitted hold");
+            sim.Step(80);
+            Require(!site.Enabled && site.BuildProgress==0,"Held construction stays paused");
+            controller.RequestBuildingOperation(1,site.Id,CommandKind.SetBuildingEnabled,0,true);sim.Step();
+            Require(site.Enabled,"Construction resumes");
+            controller.RequestBuildingOperation(1,site.Id,CommandKind.SetBuildingEnabled,0,false);sim.Step();
+            controller.RequestBuildingOperation(1,site.Id,CommandKind.CancelConstruction);sim.Step();
+            Require(site.Deconstructing || !planet.Buildings.Contains(site),"Cancellation invokes material recovery");
+            controller.SetSimulationPaused(true);
+            sim.State.Factions.Add(new FactionState {Id=3,Name="Radar-Prüffraktion"});
+            sim.State.Relations.Add(new FactionRelation {FirstId=1,SecondId=3,Relation=RelationKind.War});
+            var contacts=planet.Units.FindAll(u=>u.OwnerId==2 && !u.Destroyed);
+            contacts[0].X=5;contacts[0].Y=2;
+            contacts[1].X=10;contacts[1].Y=11;contacts[1].OwnerId=3;
+            Require(sim.IsCellVisible(planet,1,5,2) && sim.IsCellVisible(planet,1,10,11),"Two different hostile factions in radar range");
+            yield return null;yield return Capture("radar-teams.png");
+            sim.State.Ships.Add(new ShipState {Id=sim.State.NextEntityId++,Kind=ShipKind.Scout,OwnerId=1,X=0,Y=7});
+            var red=new ShipState {Id=sim.State.NextEntityId++,Kind=ShipKind.Corvette,OwnerId=2,X=-10,Y=7};
+            var violet=new ShipState {Id=sim.State.NextEntityId++,Kind=ShipKind.Corvette,OwnerId=3,X=10,Y=7};
+            sim.State.Ships.Add(red);sim.State.Ships.Add(violet);
+            controller.SetView(0);
+            Require(sim.IsShipVisible(1,red) && sim.IsShipVisible(1,violet),"Two hostile fleets within scout range");
+            yield return null;yield return Capture("radar-space-teams.png");
+            controller.ConfigurePresentationTestPath(Path.Combine(outputDirectory,"tab-settings.json"));
+            controller.SetTextScale(1.4f,false);
+            controller.ShowSpacePanel(0);
+            yield return null;yield return Capture("fleet-tabs-large.png");
+            controller.OpenDiplomacySection(1);
+            yield return null;yield return Capture("diplomacy-tabs-large.png");
+            controller.ShowSettingsPage(1);
+            yield return null;yield return Capture("settings-tabs-large.png");
+        }
         private IEnumerator RunChecks()
         {
             GameSimulation original = controller.Simulation;
@@ -288,35 +394,28 @@ namespace PlanetOne.Runtime
             ShipmentState tracked = WaitForFreshShipment(planet, mine.Id);
             long trackedId = tracked.Id;
             int trackedAmount = tracked.Amount;
-            Require(controller.RequestRoadChange(1, 4, 5, true), "Road removal uses the same controller adapter as pointer input");
+            // The fixture temporarily closes the six exits around the producing mine.
+            var terrainBefore=(int[])planet.Terrain.Clone();
+            foreach(var cell in HexGrid.LandingCells(mine.X,mine.Y))
+                if(cell.X!=mine.X || cell.Y!=mine.Y)planet.Terrain[cell.Y*planet.Width+cell.X]=1;
             AdvanceSeconds(3);
-            tracked = planet.Shipments.Find(s => s.Id == trackedId);
-            Require(!planet.Roads[5 * planet.Width + 4], "The selected road is removed from the simulation");
-            Require(tracked != null && tracked.Amount == trackedAmount, "Loaded goods stay with the interrupted courier");
-            SimPoint stopped = original.GetShipmentPosition(tracked);
+            Require(tracked.RouteBlocked && tracked.Amount==trackedAmount,"Isolated cargo stays with its courier");
+            SimPoint stopped=original.GetShipmentPosition(tracked);
             AdvanceSeconds(3);
-            tracked = planet.Shipments.Find(s => s.Id == trackedId);
-            Require(tracked != null && tracked.Amount == trackedAmount && SamePosition(stopped, original.GetShipmentPosition(tracked)), "Blocked cargo waits without disappearing or moving through the missing road");
-            yield return null;
-            Require(!controller.IsRoadRendered(4, 5), "Removed road also disappears from the rendered surface");
-            Require(controller.RequestRoadChange(1, 4, 5, false), "Road repair can be queued while paused");
-            string expected = SaveCodec.ToJson(controller.Simulation.State);
-            long saveTick = controller.Simulation.State.Tick;
-            Require(controller.SaveGame(), "Runtime save adapter writes a validated file");
-            Require(File.Exists(controller.ActiveSavePath), "Smoke save exists at isolated path");
+            Require(SamePosition(stopped,original.GetShipmentPosition(tracked)),"Blocked cargo waits at its physical location");
+            string expected=SaveCodec.ToJson(original.State);
+            Require(controller.SaveGame() && File.Exists(controller.ActiveSavePath),"Runtime save records the interrupted delivery");
+            Array.Copy(terrainBefore,planet.Terrain,terrainBefore.Length);
             AdvanceSeconds(2);
-            Require(controller.Simulation.State.Tick > saveTick && planet.Roads[5 * planet.Width + 4], "Live simulation executes pending road repair after save");
-            Require(controller.LoadGame(), "Runtime load adapter restores the saved state");
-            Require(SaveCodec.ToJson(controller.Simulation.State) == expected, "Save/load preserves population, cargo, production and pending road repair exactly");
-            Require(controller.OpenPlanetId == 1, "Surface remains selected after loading");
-            GameSimulation restored = controller.Simulation;
-            planet = restored.FindPlanet(1);
-            Require(!planet.Roads[5 * planet.Width + 4] && planet.Shipments.Exists(s => s.Id == trackedId && s.Amount == trackedAmount), "Load restores the interrupted road and its physical cargo");
+            Require(controller.LoadGame() && SaveCodec.ToJson(controller.Simulation.State)==expected,"Load restores blocked cargo, terrain and reservations exactly");
+            Require(controller.OpenPlanetId==1,"Surface remains selected after loading");
+            GameSimulation restored=controller.Simulation;
+            planet=restored.FindPlanet(1);
+            Array.Copy(terrainBefore,planet.Terrain,terrainBefore.Length);
             AdvanceSeconds(90);
-            Require(planet.Roads[5 * planet.Width + 4], "Restored pending repair rebuilds the road");
-            Require(!planet.Shipments.Exists(s => s.Id == trackedId && s.Amount > 0), "Previously blocked cargo is delivered after road repair");
+            Require(!planet.Shipments.Exists(s=>s.Id==trackedId && s.Amount>0),"Reopening the terrain lets the original cargo arrive");
             yield return null;
-            Require(controller.IsRoadRendered(4, 5), "Repaired supply connection renders its narrow road again");
+            Require(controller.RenderedTrailCount>0,"Resumed traffic leaves visible ground traces");
 
             // Exercise cancellation and real salvage through the inspector's own command adapter.
             QueueBuild(1, BuildingKind.Warehouse, 7, 5);
@@ -410,7 +509,12 @@ namespace PlanetOne.Runtime
             {
                 controller.SetInterfaceLayout(layout);controller.SelectShip(colonyShip.Id);controller.BeginShipMove();
                 Require(!controller.RequestShipMoveAtScreen(new Vector2(20,Screen.height-20)) && controller.IsShipMovePending,"Header click cannot issue or consume a flight command: "+layout);
-                if(layout!=InterfaceLayout.CommandCenter)Require(!controller.RequestShipMoveAtScreen(controller.ContextCardScreenRect.center) && controller.IsShipMovePending,"Selection card cannot issue or consume a flight command: "+layout);
+                if(layout==InterfaceLayout.OrbitalBridge)
+                {
+                    var bottomCommands=new Vector2(Screen.width*.5f,controller.WorldViewport.yMin*.5f);
+                    Require(!controller.IsContextCardOpen && !controller.RequestShipMoveAtScreen(bottomCommands) && controller.IsShipMovePending,"Bottom fleet commands protect the pending flight target: "+layout);
+                }
+                if(layout==InterfaceLayout.OpenSpace)Require(controller.IsContextCardOpen && !controller.RequestShipMoveAtScreen(controller.ContextCardScreenRect.center) && controller.IsShipMovePending,"Selection card protects the pending flight target: "+layout);
                 controller.SetSettingsVisible(true);
                 Require(!controller.RequestShipMoveAtScreen(controller.WorldViewport.center),"Modal settings block flight orders: "+layout);
                 controller.SetSettingsVisible(false);

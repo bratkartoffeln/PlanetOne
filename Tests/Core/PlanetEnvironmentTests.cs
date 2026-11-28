@@ -101,6 +101,7 @@ internal static class PlanetEnvironmentTests
         Check(old.Version==9,"Not a genuine V9 fixture");var migrated=SaveCodec.FromJson(json);
         Check(migrated.Version==SaveCodec.CurrentVersion && migrated.Planets[0].Kind==PlanetKind.Temperate,"No migration");
         migrated.Asteroids=null;migrated.AsteroidBelts=null;migrated.Version=9;for(int i=0;i<old.Planets.Count;i++)migrated.Planets[i].Kind=old.Planets[i].Kind;
+        foreach(var planet in migrated.Planets){Check(planet.Trails.Count==0,"Migration invented trail wear");planet.Trails=null;}
         Check(Raw(old)==Raw(migrated),"Legacy world resized or existing state changed");
     }
     private static void Showcase()

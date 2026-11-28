@@ -14,6 +14,7 @@ namespace PlanetOne.Runtime
         private CommandKind? militaryTargetMode;
         private GameSimulation priorSession;
         private Vector2? selectionStart;
+        private Vector2 selectionCurrent;
         private int militaryTask;
         private bool militaryHelpOpen;
         public int MilitaryWorkspace {get{return militaryTask;}}
@@ -44,8 +45,8 @@ namespace PlanetOne.Runtime
 
         public bool RequestUnitOrder(long unitId, CommandKind kind, int x = 0, int y = 0, long target = 0)
         { return SubmitIntent(new SimCommand { PlanetId = openPlanetId, ActorId = unitId, Kind = kind, X = x, Y = y, TargetId = target }); }
-        public bool RequestRecruitment(long buildingId, UnitKind kind)
-        { return SubmitIntent(new SimCommand { PlanetId = openPlanetId, TargetId = buildingId, Kind = CommandKind.RecruitUnit, IntValue = (int)kind }); }
+        public bool RequestRecruitment(long buildingId, UnitKind kind, bool cancel=false)
+        { return SubmitIntent(new SimCommand { PlanetId = openPlanetId, TargetId = buildingId, Kind = cancel?CommandKind.CancelRecruitUnit:CommandKind.RecruitUnit, IntValue = (int)kind }); }
 
         private void HandleMilitaryKeyboard()
         {
@@ -82,11 +83,6 @@ namespace PlanetOne.Runtime
                 foreach (long id in selectedUnits) RequestUnitOrder(id, militaryTargetMode.Value, hoverX, hoverY, target);
                 militaryTargetMode = null; return true;
             }
-            if (Input.GetMouseButtonDown(0))
-            {
-                if (nearest != null && nearest.OwnerId == PlayerFactionId)
-                { SelectUnit(nearest.Id, Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)); return true; }
-            }
             return false;
         }
 
@@ -114,25 +110,34 @@ namespace PlanetOne.Runtime
             // Read queued mouse-event positions instead of the frame's final pointer position.
             // Very short drags can deliver down and up within the same rendered frame.
             Vector2 point = new Vector2(e.mousePosition.x, Screen.height - e.mousePosition.y);
-            if (e.type == EventType.MouseDown && IsWorldPoint(point)) selectionStart = point;
+            if (e.type == EventType.MouseDown && IsWorldPoint(point)) BeginSurfaceSelection(point);
+            if(e.type==EventType.MouseDrag&&selectionStart.HasValue){ContinueSurfaceSelection(point);e.Use();}
             if (e.type == EventType.MouseUp && selectionStart.HasValue)
             {
-                Vector2 start = selectionStart.Value, end = point; selectionStart = null;
-                if(!IsWorldPoint(end))return;
-                if (Vector2.Distance(start, end) > 12)
-                {
-                    if (!e.shift) selectedUnits.Clear();
-                    var p = simulation.FindPlanet(openPlanetId);
-                    foreach (var u in p.Units)
-                    {
-                        if(!IsSurfacePointVisible(u.X,u.Y,0.3f))continue;
-                        var screen = sceneCamera.WorldToScreenPoint(SurfacePosition(u.X, 0.3f, u.Y));
-                        if (screen.x >= Math.Min(start.x, end.x) && screen.x <= Math.Max(start.x, end.x) &&
-                            screen.y >= Math.Min(start.y, end.y) && screen.y <= Math.Max(start.y, end.y)) SelectUnit(u.Id, true);
-                    }
-                    e.Use();
-                }
+                EndSurfaceSelection(point,e.shift);e.Use();
             }
+        }
+        internal bool BeginSurfaceSelection(Vector2 point)
+        {if(openPlanetId==0||!IsWorldPoint(point))return false;selectionStart=point;selectionCurrent=point;return true;}
+        internal void ContinueSurfaceSelection(Vector2 point){if(selectionStart.HasValue)selectionCurrent=point;}
+        internal bool EndSurfaceSelection(Vector2 point,bool additive=false)
+        {
+            if(!selectionStart.HasValue)return false;var start=selectionStart.Value;selectionStart=null;
+            if(!IsWorldPoint(point))return false;var p=simulation.FindPlanet(openPlanetId);
+            bool drag=Vector2.Distance(start,point)>12;
+            if(!additive)selectedUnits.Clear();
+            foreach(var u in p.Units)
+            {
+                if(u.Destroyed||u.OwnerId!=PlayerFactionId||!IsSurfacePointVisible(u.X,u.Y,.3f))continue;
+                Vector2 screen=sceneCamera.WorldToScreenPoint(SurfacePosition(u.X,.3f,u.Y));
+                bool hit=drag?screen.x>=Math.Min(start.x,point.x)&&screen.x<=Math.Max(start.x,point.x)&&screen.y>=Math.Min(start.y,point.y)&&screen.y<=Math.Max(start.y,point.y):Vector2.Distance(screen,point)<24;
+                if(hit){SelectUnit(u.Id,true);if(!drag)return true;}
+            }
+            if(drag){if(selectedUnits.Count==0&&!additive)SelectBuilding(0);return true;}
+            if(additive)return true;
+            RaycastHit hitBuilding;long id;
+            if(Physics.Raycast(sceneCamera.ScreenPointToRay(point),out hitBuilding,300f)&&buildingPickIds.TryGetValue(hitBuilding.collider.GetInstanceID(),out id))return SelectBuilding(id);
+            var cell=SurfaceCellAtScreen(point);var building=BuildingAt(p,cell.X,cell.Y);return SelectBuilding(building==null?0:building.Id);
         }
 
         private void UpdateMilitaryViews(PlanetState p)
@@ -194,9 +199,9 @@ namespace PlanetOne.Runtime
                     var point = sceneCamera.WorldToScreenPoint(SurfacePosition(s.X, 0.2f, s.Y));
                     if (IsWorldPoint(point)) GUI.Label(new Rect(point.x / scale - 38, (Screen.height - point.y) / scale, 240,UiRowHeight(30)), "? Letzte Sichtung", smallStyle);
                 }
-            if (selectionStart.HasValue && Input.GetMouseButton(0))
+            if (selectionStart.HasValue)
             {
-                var a = selectionStart.Value; Vector2 b = Input.mousePosition;
+                var a = selectionStart.Value; Vector2 b = selectionCurrent;
                 var rect = new Rect(Math.Min(a.x, b.x) / scale, (Screen.height - Math.Max(a.y, b.y)) / scale,
                     Math.Abs(a.x - b.x) / scale, Math.Abs(a.y - b.y) / scale);
                 Fill(rect, new Color(0.3f, 0.8f, 0.8f, 0.15f));
@@ -259,20 +264,71 @@ namespace PlanetOne.Runtime
         private void TargetButton(string label, CommandKind kind)
         { if (WorkspaceButton(label,militaryTargetMode==kind)) militaryTargetMode = kind; }
 
+        private void DrawMaterialNeeds(BuildingState building, int[] cost)
+        {
+            var missing = new int[cost.Length];
+            var planned = new int[cost.Length];
+            for (int r=0; r<cost.Length; r++)
+            {
+                int local = Math.Max(0,building.Inventory[r]-building.ReservedOutgoing[r]);
+                int needed = Math.Max(0,cost[r]-local);
+                planned[r] = Math.Min(needed,building.ReservedIncoming[r]);
+                missing[r] = needed-planned[r];
+            }
+            if (Array.Exists(missing,n=>n>0))
+                GUILayout.Label("Fehlt: "+GoodsText(missing),headingStyle);
+            if (Array.Exists(planned,n=>n>0))
+                GUILayout.Label("Lieferung eingeplant: "+GoodsText(planned),smallStyle);
+        }
+
         private void DrawRecruitment(BuildingState b)
         {
             if (Definitions.IsTower(b.Kind)) GUILayout.Label("Munition: " + b.Ammunition + " / " + Definitions.TowerAmmoCapacity +
                 "\nÖrtlicher Energiepuffer: " + b.EnergyStored.ToString("0.0") + " / " + Definitions.Get(b.Kind).EnergyStorageCapacity +
                 "\nReichweite: " + Definitions.GetTower(b.Kind).Range, smallStyle);
             if (!b.Built || b.Deconstructing || (b.Kind != BuildingKind.Barracks && b.Kind != BuildingKind.VehicleFactory)) return;
-            GUILayout.Label(Definitions.Get(b.Kind).Name + " · " + b.Status, smallStyle);
-            if (b.RecruitKind >= 0) { GUILayout.Label("Auftrag: " + Definitions.Get((UnitKind)b.RecruitKind).Name, smallStyle); return; }
-            foreach (UnitKind kind in Enum.GetValues(typeof(UnitKind)))
+            GUILayout.Label(Definitions.Get(b.Kind).Name.ToUpperInvariant(),headingStyle);
+            int used=GameSimulation.RecruitmentCount(simulation.FindPlanet(b.PlanetId),b.Kind,PlayerFactionId);
+            bool full=used>=Definitions.PlanetRecruitmentLimit;
+            GUILayout.Label((b.Kind==BuildingKind.Barracks?"Fußtruppen":"Fahrzeuge")+" · "+used+" / "+Definitions.PlanetRecruitmentLimit+" Aufträge auf diesem Planeten"+(full?" · voll":""),smallStyle);
+            int columns=ProductionColumns, index=0;
+            foreach(UnitKind kind in Enum.GetValues(typeof(UnitKind)))
             {
-                if (Definitions.Producer(kind) != b.Kind) continue;
-                var d = Definitions.Get(kind);
-                if (WorkspaceButton(d.Name + " · " + d.Metal + " Metall / " + d.Parts + " Bauteile")) RequestRecruitment(b.Id, kind);
-                GUILayout.Label(d.Food + " Nahrung · " + d.Crew + " Bewohner · " + d.Seconds + " s", smallStyle);
+                if(Definitions.Producer(kind)!=b.Kind)continue;
+                if(index%columns==0)GUILayout.BeginHorizontal();
+                var def=Definitions.Get(kind);
+                bool active=b.RecruitKind==(int)kind;
+                int waiting=b.RecruitQueue==null?0:b.RecruitQueue.FindAll(v=>v==kind).Count;
+                var missing=LocalShortfall(b,def.Cost,active && b.RecruitPaid);
+                float progress=active?Mathf.Clamp01((float)(b.RecruitProgress/def.Seconds)):0;
+                bool stopped=active && (!b.Operational || !b.Enabled || Array.Exists(missing,n=>n>0) ||
+                    (!b.RecruitPaid && simulation.FindPlanet(b.PlanetId).Population-def.Crew<4) || progress>=1);
+                var tile=ProductionRect(columns);
+                string detail=def.Crew+" Bewohner · "+def.Seconds+" s"+(active?"\n"+b.Status:"");
+                detail+="\nLinksklick: +1 · Rechtsklick: −1";
+                if(productionPointerInContent && Event.current.type==EventType.MouseDown && Event.current.button==1 && tile.Contains(Event.current.mousePosition))
+                {
+                    RequestRecruitment(b.Id,kind,true);
+                    Event.current.Use();
+                }
+                if(ProductionTile(tile,def.Name,UnitPortrait(kind),def.Cost,missing,detail,false,waiting+(active?1:0),
+                    active?(stopped?"Wartet":Mathf.FloorToInt(progress*100)+" %"):"Wartet",progress,stopped,false))
+                    RequestRecruitment(b.Id,kind);
+                if(++index%columns==0)GUILayout.EndHorizontal();
+            }
+            if(index%columns!=0)GUILayout.EndHorizontal();
+            if(b.RecruitKind>=0)
+            {
+                GUILayout.Label("In Produktion · "+Definitions.Get((UnitKind)b.RecruitKind).Name,headingStyle);
+                GUILayout.Label(b.Status,smallStyle);
+                if(b.RecruitQueue!=null && b.RecruitQueue.Count>0)
+                {
+                    var names=new List<string>();
+                    foreach(var kind in b.RecruitQueue)names.Add(Definitions.Get(kind).Name);
+                    GUILayout.Label("Danach · "+string.Join(" → ",names.ToArray()),smallStyle);
+                }
+                if(GUILayout.Button(b.Enabled?"Produktion anhalten":"Produktion fortsetzen",buttonStyle))
+                    RequestBuildingOperation(b.PlanetId,b.Id,CommandKind.SetBuildingEnabled,0,!b.Enabled);
             }
         }
     }

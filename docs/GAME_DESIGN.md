@@ -335,3 +335,6 @@ LOG-015 wird in der Darstellung durch ein Versorgungsnetz ersetzt: keine dauerha
 ### LOG-017 / GUI-023 / SURFACE-012 – aktuelle Ergänzung
 
 Transportverbindungen erscheinen als schmale, gerundete Straßenmarkierungen. Endpunktplanung und optionale Logistikansicht bleiben erhalten. Angriffsbefehle führen zur erreichbaren Schussposition und anschließend zum Beschuss. Zielbögen sind transparenter und nur bei ausgewählten Akteuren sichtbar. Mauern und Tore verbinden benachbarte Waben zu schmalen zusammenhängenden Befestigungen, einschließlich Ecken und umlaufender Anlagen (D-049–051, TEST-042).
+### LOG-018 – Freie Wege und Nutzungsspuren
+
+Auf festem Boden können Kuriere und Baufahrzeuge ohne Straßenausbau zwischen erreichbaren Gebäuden fahren. Wiederholte Fahrten verstärken sichtbare Spuren entlang der tatsächlich befahrenen Wabenkanten. Ungenutzte Spuren verblassen. Eine Spur reserviert kein Feld und gewährt keine Bau- oder Lieferberechtigung. Auf Gasplaneten nutzt die Kolonie Luftlogistik. Diese Regel ersetzt die Straßenplanung aus LOG-017. Lagerzugriff und Baukosten richten sich weiterhin nach tatsächlich verfügbaren und erreichbaren Gütern.

@@ -10,6 +10,44 @@ namespace PlanetOne.Runtime
 {
     public sealed partial class PrototypeSmokeRunner
     {
+        private IEnumerator RunCourierSpacingChecks()
+        {
+            controller.StartMilitaryFixture();controller.SetSimulationPaused(true);
+            controller.SetView(1);controller.CloseContextPanel();
+            var planet=controller.Simulation.FindPlanet(1);
+            planet.Shipments.Clear();
+            var fleet=new List<ShipmentState>();
+            for(int i=0;i<4;i++)
+            {
+                var vehicle=new ShipmentState{Id=controller.Simulation.State.NextEntityId++,SourceId=planet.Buildings[0].Id,
+                    TargetId=planet.Buildings[1].Id,Phase=i==0?ShipmentPhase.BuilderOutbound:ShipmentPhase.InTransit};
+                for(int x=16;x<=24;x++) vehicle.Path.Add(new GridCell(i==3?40-x:x,16));
+                fleet.Add(vehicle);planet.Shipments.Add(vehicle);
+            }
+            controller.SetSurfaceFocus(new Vector3(20,0,16*(float)HexGrid.RowHeight));
+            for(int frame=0;frame<=30;frame++)
+            {
+                foreach(var vehicle in fleet)vehicle.DistanceTravelled=2.5+frame*.1;
+                yield return null;
+                for(int i=0;i<fleet.Count;i++)
+                {
+                    var first=controller.ShipmentModel(fleet[i].Id);
+                    for(int j=i+1;j<fleet.Count;j++)
+                    {
+                        var second=controller.ShipmentModel(fleet[j].Id);
+                        var delta=first.position-second.position;
+                        float gap=first.GetComponent<VehicleModelSize>().VisualRadius+second.GetComponent<VehicleModelSize>().VisualRadius;
+                        Require(delta.x*delta.x+delta.z*delta.z>=gap*gap,"Rendered vehicles keep model clearance at frame "+frame+" pair "+i+"/"+j);
+                    }
+                }
+                if(frame==15) {Camera.main.orthographicSize=2;controller.CaptureWorld(Path.Combine(outputDirectory,"courier-spacing.png"));}
+            }
+            planet.Shipments.RemoveRange(1,3);
+            fleet[0].PassingOffset=0;
+            yield return null;yield return null;
+            var display=controller.ShipmentModel(fleet[0].Id).position;
+            Require(Mathf.Abs(display.z-16*(float)HexGrid.RowHeight)<.001f,"Lone builder follows the route centre");
+        }
         private IEnumerator RunGroundModelRadiusChecks()
         {
             controller.StartPlanetEnvironmentFixture();controller.SetSimulationPaused(true);
@@ -29,19 +67,19 @@ namespace PlanetOne.Runtime
                 {
                     var model=models[i];var size=model.GetComponent<VehicleModelSize>();
                     float yawRadius=ModelYawRadius(model,true),envelope=PrototypeController.ModelMotionRadius(model,true,!gas);
-                    Require(size!=null && yawRadius>0 && envelope<=size.PhysicalRadius+.00001f,"Real "+(gas?"gas":"land")+" model including moving parts fits its core body: "+names[i]);
+                    Require(size!=null && yawRadius>0 && envelope<=size.VisualRadius+.00001f,"Real "+(gas?"gas":"land")+" model including moving parts fits its visual envelope: "+names[i]);
                     if(!gas&&(names[i]=="Kurier"||names[i]=="Baufahrzeug"))
-                        Require(envelope<GameSimulation.RoadLaneOffset&&size.PhysicalRadius>.2f,
+                        Require(envelope<GameSimulation.RoadLaneOffset&&size.VisualRadius>.2f,
                             "Restored full-size model leaves space for opposing traffic: "+names[i]);
                     report.Add((gas?"Gas":"Land")+" / "+names[i]+": scale "+size.PreferredScale.ToString("F5",CultureInfo.InvariantCulture)+" -> "+size.AppliedScale.ToString("F5",CultureInfo.InvariantCulture)+
-                        "; envelope "+size.BeforeRadius.ToString("F5",CultureInfo.InvariantCulture)+" -> "+envelope.ToString("F5",CultureInfo.InvariantCulture)+"; yaw="+yawRadius.ToString("F5",CultureInfo.InvariantCulture)+"; core="+size.PhysicalRadius.ToString("F5",CultureInfo.InvariantCulture));
+                        "; envelope "+size.BeforeRadius.ToString("F5",CultureInfo.InvariantCulture)+" -> "+envelope.ToString("F5",CultureInfo.InvariantCulture)+"; yaw="+yawRadius.ToString("F5",CultureInfo.InvariantCulture)+"; visual="+size.VisualRadius.ToString("F5",CultureInfo.InvariantCulture));
                     var turret=model.Find("Turret");var crane=model.Find("Kranarm");Quaternion craneRest=crane==null?Quaternion.identity:crane.localRotation;
                     for(int heading=0;heading<4;heading++)
                     {
                         model.rotation=Quaternion.Euler(gas?0:37,heading*90+19,gas?0:23);
                         if(turret!=null)turret.localRotation=Quaternion.Euler(0,heading*90+31,0);
                         if(crane!=null)crane.localRotation=Quaternion.AngleAxis(heading%2==0?22:-22,Vector3.up)*craneRest;
-                        Require(ActualHorizontalMeshRadius(model)<=size.PhysicalRadius+.0001f,"Rotated/tilted actual mesh remains within physical footprint: "+names[i]+" / "+heading+" / "+gas);
+                        Require(ActualHorizontalMeshRadius(model)<=size.VisualRadius+.0001f,"Rotated/tilted actual mesh remains within visual footprint: "+names[i]+" / "+heading+" / "+gas);
                     }
                     model.rotation=Quaternion.Euler(0,180,0);if(turret!=null)turret.localRotation=Quaternion.identity;if(crane!=null)crane.localRotation=craneRest;
                 }

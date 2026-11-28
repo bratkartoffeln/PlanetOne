@@ -120,6 +120,7 @@ namespace PlanetOne.Core
         { return kind >= BuildingKind.GunTower && kind <= BuildingKind.ArtilleryTower; }
         public static BuildingKind Producer(UnitKind kind)
         { return kind == UnitKind.Infantry || kind == UnitKind.AntiTank ? BuildingKind.Barracks : BuildingKind.VehicleFactory; }
+        public const int PlanetRecruitmentLimit = 20;
         public static double BuildingHealth(BuildingKind kind)
         { return kind == BuildingKind.Wall ? 200 : kind == BuildingKind.Gate ? 160 : 160; }
     }

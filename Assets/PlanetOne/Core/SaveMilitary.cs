@@ -37,6 +37,8 @@ namespace PlanetOne.Core
                 Require(b.RecruitKind == -1 || (Enum.IsDefined(typeof(UnitKind), b.RecruitKind) &&
                     Definitions.Producer((UnitKind)b.RecruitKind) == b.Kind && b.Built && !b.Deconstructing &&
                     b.RecruitProgress <= Definitions.Get((UnitKind)b.RecruitKind).Seconds), "Ungültiger Rekrutierungsauftrag.");
+                Require(b.RecruitQueue==null || b.RecruitKind>=0 && b.RecruitQueue.TrueForAll(kind=>
+                    Enum.IsDefined(typeof(UnitKind),kind) && Definitions.Producer(kind)==b.Kind),"Ungültige Ausbildungswarteschlange.");
                 Require(b.RecruitKind != -1 || (!b.RecruitPaid && b.RecruitProgress == 0), "Verwaiste Rekrutierung.");
             }
             foreach (var u in p.Units)
@@ -83,7 +85,7 @@ namespace PlanetOne.Core
             }
             if(p.Id>0)
             {
-                var positions=new List<SimPoint>();var radii=new List<double>();
+                var cargoIndices=new HashSet<int>();var positions=new List<SimPoint>();var radii=new List<double>();
                 foreach(var unit in p.Units)if(!unit.Destroyed&&unit.Layer==TargetLayer.Ground){positions.Add(GameSimulation.GroundUnitPosition(unit));radii.Add(GameSimulation.GroundUnitRadius(unit.Kind));}
                 foreach(var shipment in p.Shipments)
                 {
@@ -93,10 +95,10 @@ namespace PlanetOne.Core
                         var at=GameSimulation.GroundCourierPosition(shipment);
                         Require(p.Buildings.Exists(b=>(b.Id==shipment.SourceId||b.Id==shipment.TargetId)&&GroundAtBuilding(at,b)),"Innenfahrzeug steht außerhalb seines tatsächlichen Gebäudes.");
                     }
-                    else {positions.Add(GameSimulation.GroundCourierPosition(shipment));radii.Add(GameSimulation.GroundCourierRadius(shipment));}
+                    else {cargoIndices.Add(positions.Count);positions.Add(GameSimulation.GroundCourierPosition(shipment));radii.Add(GameSimulation.GroundCourierRadius(shipment));}
                 }
                 for(int i=0;i<positions.Count;i++)for(int j=i+1;j<positions.Count;j++)
-                {double dx=positions[i].X-positions[j].X,dy=positions[i].Y-positions[j].Y;double radius=radii[i]+radii[j]-GameSimulation.GroundTrafficTolerance;Require(dx*dx+dy*dy>=radius*radius,"Bodeneinheiten oder Fahrzeuge überlagern sich.");}
+                {if(cargoIndices.Contains(i)&&cargoIndices.Contains(j)) continue;double dx=positions[i].X-positions[j].X,dy=positions[i].Y-positions[j].Y;double radius=radii[i]+radii[j]-GameSimulation.GroundTrafficTolerance;Require(dx*dx+dy*dy>=radius*radius,"Bodeneinheiten oder Fahrzeuge überlagern sich.");}
             }
             var sightings = new HashSet<string>();
             foreach (var s in p.Sightings)

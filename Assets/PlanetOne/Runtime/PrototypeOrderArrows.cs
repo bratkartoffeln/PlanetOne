@@ -82,14 +82,14 @@ namespace PlanetOne.Runtime
                 VisibleOrderArrowCount++;
                 Transform view;
                 if((arrow.Space?shipViews:unitViews).TryGetValue(entry.Key,out view)&&view!=null)start=view.position+Vector3.up*.15f;
-                DrawBallisticOrderArrow(start,end,arrow.Attack?new Color(1,.16f,.12f,.3f):new Color(.2f,1,.38f,.28f),scale);
+                DrawBallisticOrderArrow(start,end,arrow.Attack?new Color(1,.16f,.12f,.3f):new Color(.2f,1,.38f,.28f),scale,arrow.Space);
             }
             foreach(long id in expiredOrderArrows)orderArrows.Remove(id);
         }
 
-        private void DrawBallisticOrderArrow(Vector3 from,Vector3 to,Color color,float scale)
+        private void DrawBallisticOrderArrow(Vector3 from,Vector3 to,Color color,float scale,bool straight=false)
         {
-            float height=Mathf.Clamp(Vector3.Distance(from,to)*.22f,.65f,8);
+            float height=straight?0:Mathf.Clamp(Vector3.Distance(from,to)*.22f,.65f,8);
             Vector2 previous=Vector2.zero,last=Vector2.zero;bool previousVisible=false;
             for(int i=0;i<=40;i++)
             {

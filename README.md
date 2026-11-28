@@ -1,5 +1,7 @@
 # PlanetOne
 
+Die [Roadmap ab M10](docs/IMPLEMENTATION_PLAN.md#roadmap-ab-m10) führt von der Kolonielogistik über Gasförderung und weitere Sternsysteme bis zu Kampagnen und Plattformabnahme. M10 prüft, dass eine Kolonie über frei befahrbares Gelände bauen, produzieren und eine vollständige Referenzpartie bestreiten kann.
+
 PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, physischer Warenlogistik, Raumgefechten, steuerbaren Bodeninvasionen, vorbereiteten Verteidigungsstellungen und diplomatisch handelnden Computerfraktionen.
 
 Der erste Prototyp läuft mit **Unity 6000.3.29f1 und C#** als Windows-Anwendung. Er verbindet ein Sonnensystem mit bebaubaren Kolonieoberflächen über eine gemeinsame Simulation. Die Gestaltung verbindet klare Geometrie mit texturierten Oberflächen und dunklem Weltraum. Einrichtung und geprüfte Start- und Buildschritte stehen im [Entscheidungsstand](docs/DECISIONS.md).

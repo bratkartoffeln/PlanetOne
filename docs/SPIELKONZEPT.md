@@ -233,6 +233,8 @@ Kosten, Produktionsraten, Reichweiten, Schaden, Schildstärke, Vorräte, Sicheru
 
 ## 17 Entwicklungsstand und Reihenfolge
 
+Ab 1.0.19 bildet M10 die freie Kolonielogistik mit sichtbaren Nutzungsspuren und den regulären Referenzpartien ab. Die geplanten Erweiterungen aus Abschnitt 16 sind den Paketen M11–M15 mit Abhängigkeiten und spielbaren Abnahmeszenarien zugeordnet. [Aktuelle Roadmap](IMPLEMENTATION_PLAN.md#roadmap-ab-m10).
+
 Aktualisierung **1.0.17**: M8/F05 und die Befehlsoberfläche 1.0.16 sind integriert. M9/P22 ergänzt Startmenü, acht getrennte Speicherplätze und Starthilfe. [M9_NACHWEIS](M9_NACHWEIS.md) trennt die lokalen Prüfungen von Git-Integration und verbleibenden Bedienungsgrenzen. Die nachfolgenden Meilensteinangaben dokumentieren den historischen Ausbau.
 
 Historischer Stand: M7 ist in 1.0.8 lokal umgesetzt und automatisiert geprüft; siehe [M7_NACHWEIS](M7_NACHWEIS.md). Historischer Nachweis zu M4: **M4 ist in Produktversion 1.0.3 abgeschlossen.** Schiffsbau, freie Erkundung, bewegte Ziele, Eskorte, bezahlte Koloniegründung, physische Frachter, automatische Hafenversorgung, feste Routen, Kristalle, Elektronik und fünf verzweigte Technologien sind vorhanden. 58 Core-Tests, Windows-Build, 91 grafische Einzelprüfungen, elf kontrollierte Renderbilder und gezielte native Eingaben sind nachgewiesen. [M4_NACHWEIS](M4_NACHWEIS.md) unterscheidet Bedienprüfung, automatisierten Wirtschaftsdurchlauf und verbleibende Grenzen. Die folgenden Angaben zu M3 und 1.0.1 bleiben historisch.

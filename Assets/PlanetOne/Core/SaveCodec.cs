@@ -45,6 +45,7 @@ namespace PlanetOne.Core
                     if(state!=null && state.Version==10) MigrateAsteroids(state);
                     if(state!=null && state.Version==11) MigrateConstructionVehicles(state);
                     if(state!=null && state.Version==12) state.Version=CurrentVersion;
+                    if(state!=null&&state.Planets!=null)foreach(var planet in state.Planets)if(planet.Trails==null)planet.Trails=new List<GroundTrailState>();
                     Validate(state);
                     return state;
                 }
@@ -120,9 +121,15 @@ namespace PlanetOne.Core
                     p.Roads.Length == p.Terrain.Length, "Unvollständiges Gelände.");
                 for (int i = 0; i < p.Terrain.Length; i++)
                     Require(p.Terrain[i] >= 0 && p.Terrain[i] <= 4 && p.OreRemaining[i] >= 0 &&
-                        !(p.Roads[i] && PlanetEnvironment.BlocksGround(p.Terrain[i])) &&
                         (!PlanetEnvironment.Airborne(p) || (!p.Roads[i] && p.Terrain[i]==0 && p.OreRemaining[i]==0)), "Ungültiger Geländezustand.");
                 Require(p.Buildings != null && p.Deliveries != null && p.Shipments != null, "Koloniezustand fehlt.");
+                Require(p.Trails!=null&&p.Trails.Count<=p.Terrain.Length*3,"Ungültige Fahrspuren.");
+                var trailKeys=new HashSet<long>();
+                foreach(var trail in p.Trails)
+                    Require(trail!=null&&trail.From>=0&&trail.To>trail.From&&trail.To<p.Terrain.Length&&
+                        HexGrid.Adjacent(new GridCell(trail.From%p.Width,trail.From/p.Width),new GridCell(trail.To%p.Width,trail.To/p.Width))&&
+                        Finite(trail.Wear)&&trail.Wear>=0&&trail.Wear<=1&&trail.LastTick>=0&&trail.LastTick<=state.Tick&&
+                        trailKeys.Add((long)trail.From*p.Terrain.Length+trail.To)&&!PlanetEnvironment.Airborne(p),"Beschädigte Fahrspur.");
                 Require(p.Buildings.Count <= p.Width * p.Height && p.Shipments.Count <= Definitions.CouriersPerColony,
                     "Zu viele Gebäude oder Transporte.");
                 var cells = new HashSet<int>();
@@ -187,6 +194,7 @@ namespace PlanetOne.Core
                     Require(shipment.Phase != ShipmentPhase.Returning || shipment.Amount == 0, "Rückfahrt enthält duplizierte Ladung.");
                     Require(shipment.Amount <= Definitions.CourierCapacity && shipment.Path != null && shipment.Path.Count > 0,
                         "Ungültige Fracht oder Strecke.");
+                    Require(Finite(shipment.PassingOffset) && shipment.PassingOffset>=0 && shipment.PassingOffset<=GameSimulation.RoadLaneOffset,"Ungültiger Ausweichabstand.");
                     Require(Finite(shipment.DistanceTravelled) && shipment.DistanceTravelled >= 0 &&
                         shipment.DistanceTravelled <= shipment.Path.Count - 1 && Finite(shipment.PhaseProgress) &&
                         shipment.PhaseProgress >= 0, "Ungültiger Transportfortschritt.");

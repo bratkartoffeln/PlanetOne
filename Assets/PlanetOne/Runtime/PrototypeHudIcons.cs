@@ -4,7 +4,7 @@ namespace PlanetOne.Runtime
 {
     public sealed partial class PrototypeController
     {
-        private enum HudIcon { Build,Fleet,Research,Diplomacy,Planet,Energy,Food,Metal,Parts,Crystal,Menu,Settings,Play,Pause,Back,Close,Units,Supply,Stop,Info }
+        private enum HudIcon { Build,Fleet,Research,Diplomacy,Planet,Energy,Food,Metal,Parts,Crystal,Menu,Settings,Play,Pause,Back,Close,Units,Supply,Stop,Info,Ore,Electronics }
         private readonly Dictionary<HudIcon,Texture2D> hudIcons=new Dictionary<HudIcon,Texture2D>();
         private Texture2D HudSymbol(HudIcon kind)
         {
@@ -21,6 +21,8 @@ namespace PlanetOne.Runtime
                 case HudIcon.Planet:circle(16,16,10);line(3,8,29,24);line(3,8,9,8);line(29,24,23,24);break;
                 case HudIcon.Energy:line(19,29,8,15);line(8,15,17,15);line(17,15,12,3);line(12,3,26,20);line(26,20,17,20);line(17,20,19,29);break;
                 case HudIcon.Food:circle(16,15,9);line(16,24,21,29);line(11,18,16,21);break;
+                case HudIcon.Ore:line(4,12,12,23);line(12,23,23,25);line(23,25,29,13);line(29,13,20,6);line(20,6,4,12);break;
+                case HudIcon.Electronics:line(9,9,23,9);line(23,9,23,23);line(23,23,9,23);line(9,23,9,9);for(int i=11;i<=21;i+=5){line(i,5,i,9);line(i,23,i,27);line(5,i,9,i);line(23,i,27,i);}break;
                 case HudIcon.Metal:line(5,6,27,6);line(27,6,23,18);line(23,18,9,18);line(9,18,5,6);line(9,18,13,25);line(13,25,23,18);break;
                 case HudIcon.Parts:circle(16,16,5);circle(16,16,10);for(int i=0;i<8;i++){float a=i*Mathf.PI/4;line(16+Mathf.Cos(a)*10,16+Mathf.Sin(a)*10,16+Mathf.Cos(a)*14,16+Mathf.Sin(a)*14);}break;
                 case HudIcon.Crystal:line(16,29,7,19);line(7,19,12,4);line(12,4,23,11);line(23,11,24,22);line(24,22,16,29);line(16,29,15,13);line(15,13,12,4);line(15,13,24,22);break;

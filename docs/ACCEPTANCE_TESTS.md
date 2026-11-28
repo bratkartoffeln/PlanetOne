@@ -423,3 +423,6 @@ Aktuelle Laufdaten und verbleibende Integrationsprüfungen stehen in [GUI_BEWEGU
 
 - Freie Fahrt über mehrere Waben bleibt auf einer geraden Weltstrecke bei unveränderter Geschwindigkeit. Hindernisse erfordern weiter einen befahrbaren Korridor. Bei Zielwechsel/Halt wird die aktuelle Wabenmitte ohne Teleportation erreicht; Save/Load setzt denselben Verlauf fort.
 - Linksklick auf Landschaft hebt Einheitenauswahl und sichtbare Bögen auf, ohne einen Haltbefehl zu erfinden; Auswahl eines anderen Objekts wechselt die Markierung.
+## TEST-043 · Freie Kolonielogistik bis zum Spielende
+
+**Grundlage** M10/P23, LOG-018 und F05. Ohne vorgebaute Straße einen erreichbaren Bauplatz beauftragen. Verladung, sichtbaren Kurier, Nutzungsspur und Fertigstellung beobachten. Eine durch unpassierbares Gelände abgetrennte Quelle darf keinen Bau finanzieren. Nach Wiederherstellung der Verbindung wird der tatsächliche Bestand genau einmal verbraucht. Bei Save/Load müssen Reservierungen, Fracht und Nutzungsspuren erhalten bleiben. In beiden regulären F05-Verläufen müssen die Ressourcenbilanzen bis zum Einzel- bzw. Koalitionssieg aufgehen. Bei Gaswelten dürfen Lieferungen keine Bodenspuren erzeugen.

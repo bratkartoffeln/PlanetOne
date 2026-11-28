@@ -10,7 +10,7 @@ namespace PlanetOne.Core
     public enum CommandKind { PlaceBuilding, PlaceRoad, RemoveRoad, CancelConstruction, DemolishBuilding,
         SetBuildingEnabled, SetBuildingPriority, SetPaused, SetTimeScale,
         RecruitUnit, MoveUnit, AttackTarget, HoldPosition, RetreatUnit, AttackPosition, ResupplyUnit, RepairTarget, BuildShip, FlyShip, GuardPlanet, EscortShip, Colonize, StartResearch, SetSupplyPolicy, AssignFreight, CancelFreight, SetAutoSupply, SetTradeRoute, MoveShipPosition,
-        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters, ProposeTreaty, AcceptTreaty, RejectTreaty, WithdrawTreaty, TerminateTreaty, BreachTreaty, DeclareWar, DispatchTrade, PledgeShip, StartJointOperation, CancelJointOperation, ActivateGate, Surrender, MineAsteroid, ConnectSupply }
+        AttackShip, RetreatShip, RepairShip, BuildWarship, LoadTroop, UnloadTroop, LandTransport, LaunchTransport, LoadShipSupplies, EstablishBeachhead, CaptureBuilding, OrbitalBombard, RestoreHeadquarters, ProposeTreaty, AcceptTreaty, RejectTreaty, WithdrawTreaty, TerminateTreaty, BreachTreaty, DeclareWar, DispatchTrade, PledgeShip, StartJointOperation, CancelJointOperation, ActivateGate, Surrender, MineAsteroid, ConnectSupply, CancelRecruitUnit }
     public enum ShipmentPhase { Loading, InTransit, Unloading, Returning, Recovering,
         BuilderOutbound, Building, BuilderReturning }
     public enum RelationKind { Peace, War }
@@ -128,7 +128,7 @@ namespace PlanetOne.Core
         [DataMember] public List<PlanetState> Planets = new List<PlanetState>();
         [DataMember] public List<SimCommand> PendingCommands = new List<SimCommand>();
         [DataMember] public List<long> ProcessedCommandIds = new List<long>();
-        [DataMember] public string LastMessage = "Kolonie bereit. Plane Versorgungsverbindungen und baue Energieversorgung und Erzverarbeitung.";
+        [DataMember] public string LastMessage = "Kolonie bereit. Transporter suchen selbst ihren Weg. Baue Energieversorgung und Erzverarbeitung.";
     }
 
     [DataContract, Serializable]
@@ -153,6 +153,7 @@ namespace PlanetOne.Core
         [DataMember] public List<BuildingState> Buildings = new List<BuildingState>();
         [DataMember] public List<DeliveryOrder> Deliveries = new List<DeliveryOrder>();
         [DataMember] public List<ShipmentState> Shipments = new List<ShipmentState>();
+        [DataMember] public List<GroundTrailState> Trails = new List<GroundTrailState>();
         [DataMember] public int EnergyProduced;
         [DataMember] public int EnergyUsed;
         [DataMember] public int WorkersTotal = 16;
@@ -215,6 +216,7 @@ namespace PlanetOne.Core
         [DataMember] public int Ammunition;
         [DataMember] public double FireCooldown;
         [DataMember] public int RecruitKind = -1;
+        [DataMember(EmitDefaultValue=false)] public List<UnitKind> RecruitQueue;
         [DataMember] public bool RecruitPaid;
         [DataMember] public double RecruitProgress;
         [DataMember] public int ShipBuildKind = -1;
@@ -251,5 +253,6 @@ namespace PlanetOne.Core
         [DataMember] public bool Airborne;
         [DataMember] public bool BuilderTurnPending;
         [DataMember] public bool RoadEntryCentered;
+        [DataMember] public double PassingOffset;
     }
 }

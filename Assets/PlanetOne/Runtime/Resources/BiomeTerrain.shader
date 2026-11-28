@@ -2,7 +2,7 @@ Shader "PlanetOne/BiomeTerrain" {
  Properties {_MainTex("Biome atlas",2D)="white"{} _RockTex("Rock atlas",2D)="white"{} _Biome("Biome",Float)=0}
  SubShader {Tags {"RenderType"="Opaque"}
  CGPROGRAM
- #pragma surface surf Standard fullforwardshadows addshadow
+ #pragma surface surf Standard finalcolor:ApplySurfaceEdgeFog fullforwardshadows addshadow
  #pragma target 3.0
  sampler2D _MainTex,_RockTex;float _Biome,_PlanetOneSeconds;
  struct Input {float3 worldPos;float3 worldNormal;};
@@ -10,6 +10,7 @@ Shader "PlanetOne/BiomeTerrain" {
  float3 sampleBiome(float2 uv,float2 cell){return tex2D(_MainTex,(cell+tile(uv))*.5).rgb;}
  float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
  float noise(float2 p){float2 q=floor(p),f=frac(p);f=f*f*(3-2*f);return lerp(lerp(hash(q),hash(q+float2(1,0)),f.x),lerp(hash(q+float2(0,1)),hash(q+1),f.x),f.y);}
+ #include "SurfaceEdgeFog.cginc"
  void surf(Input i,inout SurfaceOutputStandard o) {
    float3 n=abs(normalize(i.worldNormal));float2 uv=i.worldPos.xz;
    float3 weights=pow(n,4);weights/=max(.001,weights.x+weights.y+weights.z);

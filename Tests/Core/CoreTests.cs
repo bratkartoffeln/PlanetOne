@@ -18,7 +18,7 @@ internal static class CoreTests
         Run("Pause preserves world and queues commands", Pause);
         Run("Invalid ownership, terrain and overlap reject builds", InvalidBuilds);
         Run("Duplicate commands spend materials once", DuplicateCommands);
-        Run("Construction requires delivered materials and roads", PhysicalConstruction);
+        Run("Road-free construction still requires real material and builder delivery", PhysicalConstruction);
         Run("Unreachable construction never reserves local stock", UnreachableConstruction);
         Run("Concurrent construction cannot overbook materials", ReservationBounds);
         Run("Ore becomes metal through real local deliveries", ProductionChain);
@@ -35,8 +35,8 @@ internal static class CoreTests
         SupplyNetworkTests.Register(Run);
         Run("Food shortage recovers without free rations or worker extinction", FoodShortageRecovery);
         Run("Priorities and enabled state control scarce energy and workers", OperatingPriorities);
-        Run("Road removal holds real loaded cargo until reconnection", RoadInterruption);
-        Run("Alternate road rerouting preserves the courier position", AlternateRoute);
+        Run("Terrain isolation holds real loaded cargo until access is restored", RoadInterruption);
+        Run("Automatic terrain rerouting preserves the courier position", AlternateRoute);
         Run("Cancellation before collection releases every reservation", CancelUnloadedConstruction);
         Run("Cancellation returns loaded cargo physically and survives save load", CancelLoadedConstruction);
         Run("Demolition recovers declared material without teleportation", DemolitionRecovery);
@@ -134,12 +134,8 @@ internal static class CoreTests
     private static void PhysicalConstruction()
     {
         var sim = GameSimulation.CreateDefault();
-        Build(sim, BuildingKind.SolarPlant, 2, 2); sim.Step(400);
         var p = sim.FindPlanet(1);
-        Assert(p.Buildings.Count == 1, "Disconnected site was accepted.");
-        Assert(p.Buildings[0].Inventory[(int)ResourceKind.Metal] == 100, "Rejected site consumed stock.");
-        Assert(p.Buildings[0].ReservedOutgoing[(int)ResourceKind.Metal] == 0, "Rejected site reserved materials.");
-        Road(sim, 2, 3); Road(sim, 2, 4); Road(sim, 2, 5); sim.Step();
+        Array.Clear(p.Roads,0,p.Roads.Length);
         Build(sim, BuildingKind.SolarPlant, 2, 2); sim.Step();
         var site = p.Buildings[1];
         Assert(site.BuildProgress == 0 && p.Buildings[0].Inventory[(int)ResourceKind.Metal] == 100,
@@ -155,8 +151,9 @@ internal static class CoreTests
     {
         var sim = GameSimulation.CreateDefault();
         var planet = sim.FindPlanet(1);
+        LogisticsBarrier.Column(planet,2);
         string preview = sim.ValidatePlacement(1, BuildingKind.Warehouse, 1, 3);
-        Assert(preview != null && preview.Contains("Versorgungsverbindung"), "Preview did not explain required supply access.");
+        Assert(preview != null && preview.Contains("befahrbarer Weg"), "Preview did not explain blocked terrain access.");
         Build(sim, BuildingKind.Warehouse, 1, 3);
         Build(sim, BuildingKind.Warehouse, 0, 4);
         Build(sim, BuildingKind.Warehouse, 0, 3);
@@ -169,7 +166,7 @@ internal static class CoreTests
         foreach (int amount in headquarters.ReservedOutgoing) Assert(amount == 0, "Unreachable site retained a reservation.");
         // Revalidation is essential: a preview/queued order may become unreachable before execution.
         Build(sim, BuildingKind.SolarPlant, 10, 5);
-        planet.Roads[6 * planet.Width + 10] = false;
+        LogisticsBarrier.Column(planet,9);
         sim.Step();
         Assert(planet.Buildings.Count == 1 && headquarters.ReservedOutgoing[(int)ResourceKind.Metal] == 0,
             "Command execution did not revalidate its route.");
@@ -256,7 +253,7 @@ internal static class CoreTests
         }
         Assert(smelter != null && smelter.CycleActive, "No active recipe found.");
         // Isolate solar supply without altering production or inventory values.
-        p.Roads[6 * p.Width + 10] = false;
+        p.Buildings.Find(b=>b.Kind==BuildingKind.SolarPlant).Enabled=false;
         sim.Step(1000); // The real energy buffer must discharge before the shortage stops production.
         int pausedTicks = 0;
         for (int i = 0; i < 200; i++)
@@ -270,7 +267,7 @@ internal static class CoreTests
             Assert(p.ConsumedTotals[(int)ResourceKind.Ore] == consumed, "Paused recipe consumed inputs again.");
         }
         Assert(pausedTicks > 0, "Energy shortage was entirely ignored.");
-        p.Roads[6 * p.Width + 10] = true;
+        p.Buildings.Find(b=>b.Kind==BuildingKind.SolarPlant).Enabled=true;
         sim.Step(300);
         Assert(smelter.Status != "Zu wenig Energie", "Restored energy was ignored.");
         SaveCodec.Validate(sim.State);
@@ -453,12 +450,12 @@ internal static class CoreTests
             return cargo != null;
         });
         int amount = cargo.Amount; var position = sim.GetShipmentPosition(cargo);
-        Command(sim, CommandKind.RemoveRoad, x: 4, y: 5); sim.Step(120);
+        var terrain=LogisticsBarrier.Ring(p,4,4);sim.Step(120);
         var held = sim.GetShipmentPosition(cargo);
         Assert(cargo.Amount == amount && cargo.RouteBlocked && held.X == position.X && held.Y == position.Y,
             "Disconnected loaded courier lost cargo or moved through the break.");
         Assert(sim.State.Events.Exists(e => e.Code == "DeliveryBlocked"), "Blocked delivery event missing.");
-        Road(sim, 4, 5);
+        LogisticsBarrier.Restore(p,terrain);
         var restored = new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(sim.State)));
         sim.Step(1800); restored.Step(1800);
         Assert(SaveCodec.ToJson(sim.State) == SaveCodec.ToJson(restored.State), "Road repair continuation differs after reload.");
@@ -471,11 +468,11 @@ internal static class CoreTests
         var p = sim.FindPlanet(1); ShipmentState cargo = null;
         WaitFor(sim, () => { cargo = p.Shipments.Find(s => s.Phase == ShipmentPhase.InTransit && s.DistanceTravelled > 0.5); return cargo != null; });
         var before = sim.GetShipmentPosition(cargo);
-        Command(sim, CommandKind.RemoveRoad, x: 10, y: 6); sim.Step();
+        var blocked=cargo.Path[Math.Min((int)cargo.DistanceTravelled+1,cargo.Path.Count-2)];p.Terrain[blocked.Y*p.Width+blocked.X]=1;sim.Step();
         var after = sim.GetShipmentPosition(cargo);
         double movement = Math.Sqrt((after.X - before.X) * (after.X - before.X) + (after.Y - before.Y) * (after.Y - before.Y));
         Assert(movement <= Definitions.CourierSpeed * Definitions.TickSeconds + 0.000001, "Rerouting teleported the courier.");
-        Assert(!cargo.Path.Exists(cell => cell.X == 10 && cell.Y == 6), "Reroute still crosses removed road.");
+        Assert(!cargo.Path.Exists(cell => cell.X == blocked.X && cell.Y == blocked.Y), "Reroute still crosses the new terrain obstacle.");
         sim.Step(500);
         Assert(p.Buildings[1].Built, "Alternative road did not deliver construction supplies.");
         SaveCodec.Validate(sim.State);

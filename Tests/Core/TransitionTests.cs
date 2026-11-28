@@ -52,11 +52,12 @@ internal static class TransitionTests
         var s=GameSimulation.CreateDefault();s.State.SpaceTestFixture=true;
         var p=s.FindPlanet(1);p.Buildings[0].Inventory[3]=0;
         var store=InvasionFixture.AddBuilding(s,1,BuildingKind.Warehouse,14,5);store.Inventory[3]=5;
+        var terrain=LogisticsBarrier.Column(p,12);
         string reason=s.ValidatePlacement(1,BuildingKind.SolarPlant,5,5);
         ReferenceTests.Check(reason!=null&&reason.Contains("erreichbar"),"Disconnected stock counted as buildable material");
         long id=s.NextCommandId();s.Enqueue(new SimCommand {Id=id,Kind=CommandKind.PlaceBuilding,PlanetId=1,Building=BuildingKind.SolarPlant,X=5,Y=5});s.Step();
         ReferenceTests.Check(!s.State.CommandResults.Find(r=>r.CommandId==id).Success&&store.ReservedOutgoing[3]==0&&!p.Buildings.Exists(b=>b.X==5&&b.Y==5),"Unreachable parts were reserved anyway");
-        ReferenceTests.Command(s,new SimCommand {Kind=CommandKind.PlaceRoad,PlanetId=1,X=7,Y=5});
+        LogisticsBarrier.Restore(p,terrain);
         ReferenceTests.Build(s,1,BuildingKind.SolarPlant,5,5);
         ReferenceTests.Check(store.Inventory[3]==3&&store.ReservedOutgoing[3]==0,"Reconnected actual stock was not delivered exactly once");
     }

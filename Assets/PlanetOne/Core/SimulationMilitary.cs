@@ -63,6 +63,44 @@ namespace PlanetOne.Core
                 building.Kind < BuildingKind.Barracks;
         }
 
+        // Consecutive move orders to the same hex claim separate arrival cells.
+        // Search over walkable terrain so an adjacent slot behind a wall is not assigned.
+        private GridCell FormationDestination(PlanetState planet, UnitState unit, int x, int y)
+        {
+            var claimed = new HashSet<int>();
+            foreach (var other in planet.Units)
+            {
+                if (other.Id == unit.Id || other.Destroyed || other.OwnerId != unit.OwnerId || other.Layer != TargetLayer.Ground) continue;
+                if (other.Order == UnitOrder.Move)
+                    claimed.Add(other.GoalY * planet.Width + other.GoalX);
+            }
+            if (!claimed.Contains(y * planet.Width + x)) return new GridCell(x,y);
+            var start = HexGrid.CellAt(unit.X,unit.Y);
+            var queue = new Queue<GridCell>();
+            var seen = new HashSet<int> {start.Y * planet.Width + start.X};
+            queue.Enqueue(start);
+            var best = start;
+            int bestDistance = int.MaxValue;
+            while (queue.Count > 0)
+            {
+                var cell = queue.Dequeue();
+                int distance = HexGrid.Steps(cell.X,cell.Y,x,y);
+                if (distance < bestDistance && !claimed.Contains(cell.Y * planet.Width + cell.X) &&
+                    GroundKnownCellFree(planet,unit,cell.X,cell.Y))
+                {
+                    best = cell;
+                    bestDistance = distance;
+                    if (distance == 1) break;
+                }
+                for (int d=0; d<6; d++)
+                {
+                    var next = HexGrid.Neighbor(cell.X,cell.Y,d);
+                    if (Inside(planet,next.X,next.Y) && seen.Add(next.Y * planet.Width + next.X) &&
+                        CanTraverse(planet,unit.OwnerId,unit.Kind,next.X,next.Y,unit.Id)) queue.Enqueue(next);
+                }
+            }
+            return best;
+        }
         private List<GridCell> GroundPath(PlanetState p, UnitState u, int x, int y, bool adjacent,bool avoidTraffic=true,bool allowFallback=true)
         {
             var startCell = HexGrid.CellAt(u.X, u.Y); int sx = startCell.X, sy = startCell.Y;
@@ -81,26 +119,42 @@ namespace PlanetOne.Core
                 if(other.Id!=u.Id&&!other.Destroyed&&other.Layer==TargetLayer.Ground&&other.Order==UnitOrder.Hold&&(other.OwnerId==u.OwnerId||CanSeeEntity(p,u.OwnerId,other.Id))&&HexGrid.Distance(other.X,other.Y,x,y)<GroundUnitRadius(u.Kind)+GroundUnitRadius(other.Kind))
                     arrivalRadius=Math.Max(arrivalRadius,(int)Math.Ceiling(GroundUnitRadius(u.Kind)+GroundUnitRadius(other.Kind)));
 
+            // Positions and visibility cannot change during this search. Snapshot them once.
+            var occupied = new HashSet<int>();
+            var traffic = new List<GroundAgent>();
+            if (avoidTraffic)
+                foreach (var agent in GroundAgents(p))
+                {
+                    if (agent.Id == u.Id) continue;
+                    var at = HexGrid.FromWorld(agent.Position.X,agent.Position.Y);
+                    if (agent.Owner != u.OwnerId && !(agent.Unit != null ? CanSeeEntity(p,u.OwnerId,agent.Id) : IsCellVisible(p,u.OwnerId,at.X,at.Y))) continue;
+                    occupied.Add(at.Y*p.Width+at.X);
+                    traffic.Add(agent);
+                }
+            var probe = UnitAgent(u);
             while (queue.Count > 0)
             {
                 int cell = queue.Dequeue(), cx = cell % p.Width, cy = cell / p.Width;
                 bool arrived=firingPosition?
                     HexGrid.Distance(cx,cy,targetX,targetY)<=weapon.Range&&(weapon.Indirect||HasLineOfSight(p,cx,cy,targetX,targetY)):
                     HexGrid.Steps(cx,cy,x,y)<=arrivalRadius;
-                if (arrived && (!avoidTraffic||GroundKnownCellFree(p,u,cx,cy)))
+                if (arrived && !occupied.Contains(cell))
                 { finish = cell; break; }
                 for (int d = 0; d < 6; d++)
                 {
                     var neighbor = HexGrid.Neighbor(cx, cy, d); int nx = neighbor.X, ny = neighbor.Y;
-                    if (!CanTraverse(p, u.OwnerId, u.Kind, nx, ny,u.Id)) continue;
-                    if(avoidTraffic&&!GroundKnownCellFree(p,u,nx,ny))continue;
-                    if(avoidTraffic)
+                    if (!Inside(p,nx,ny)) continue;
+                    int next = ny*p.Width+nx;
+                    if (previous[next]>=0 || occupied.Contains(next) || !CanTraverse(p,u.OwnerId,u.Kind,nx,ny,u.Id)) continue;
+                    if (avoidTraffic)
                     {
-                        var probe=UnitAgent(u);probe.Position=HexGrid.ToWorld(cx,cy);
-                        if(GroundBlocker(p,probe,HexGrid.ToWorld(nx,ny),true)!=null)continue;
+                        probe.Position=HexGrid.ToWorld(cx,cy);
+                        var destination=HexGrid.ToWorld(nx,ny);
+                        bool blocked=false;
+                        foreach (var other in traffic)
+                            if (BlocksGroundSegment(probe,destination,other)) {blocked=true;break;}
+                        if (blocked) continue;
                     }
-                    int next = ny * p.Width + nx;
-                    if (previous[next] >= 0) continue;
                     previous[next] = cell; queue.Enqueue(next);
                 }
             }
@@ -111,16 +165,77 @@ namespace PlanetOne.Core
             result.Reverse(); return result;
         }
 
+        public static int RecruitmentCount(PlanetState planet, BuildingKind producer, int owner)
+        {
+            int count = 0;
+            foreach (var building in planet.Buildings)
+                if (building.Kind == producer && BuildingOwner(planet,building) == owner && building.RecruitKind >= 0 && !building.Destroyed && !building.Deconstructing)
+                    count += 1 + (building.RecruitQueue == null ? 0 : building.RecruitQueue.Count);
+            return count;
+        }
+
+        private static void AdvanceRecruitment(BuildingState b)
+        {
+            b.RecruitKind = -1;
+            b.RecruitPaid = false;
+            b.RecruitProgress = 0;
+            if (b.RecruitQueue == null || b.RecruitQueue.Count == 0) return;
+            b.RecruitKind = (int)b.RecruitQueue[0];
+            b.RecruitQueue.RemoveAt(0);
+            if (b.RecruitQueue.Count == 0) b.RecruitQueue = null;
+        }
+
+        private void CancelRecruitOrder(PlanetState p, BuildingState b, SimCommand c)
+        {
+            var kind = (UnitKind)c.IntValue;
+            int index = b.RecruitQueue == null ? -1 : b.RecruitQueue.LastIndexOf(kind);
+            if (index >= 0)
+            {
+                b.RecruitQueue.RemoveAt(index);
+                if (b.RecruitQueue.Count == 0) b.RecruitQueue = null;
+            }
+            else if (b.RecruitKind == c.IntValue)
+            {
+                if (b.RecruitPaid) RefundRecruitment(p,b);
+                AdvanceRecruitment(b);
+                b.Status = b.RecruitKind < 0 ? "Bereit" : "Rekrutierung bestellt";
+            }
+            else { Report(c,false,"NoRecruitment","Kein Auftrag dieses Typs vorhanden."); return; }
+            Report(c,true,"RecruitmentCancelled","Ein Auftrag entfernt.");
+        }
+
+        private static void RefundRecruitment(PlanetState p, BuildingState b)
+        {
+            var recruit = Definitions.Get((UnitKind)b.RecruitKind);
+            p.Population += recruit.Crew;
+            var cost = recruit.Cost;
+            for (int r = 0; r < cost.Length; r++)
+            {
+                b.Inventory[r] += cost[r];
+                p.ConsumedTotals[r] -= cost[r];
+            }
+            int required = Total(b.Inventory) + Total(b.ReservedIncoming) + b.ReservedReturnSpace + b.ProductionReservedSpace;
+            if(required>StorageCapacity(b)) b.CapacityOverride=required-b.LegacyCapacityAllowance;
+        }
+
         private void ApplyMilitary(PlanetState p, SimCommand c)
         {
-            if (c.Kind == CommandKind.RecruitUnit)
+            if (c.Kind == CommandKind.RecruitUnit || c.Kind == CommandKind.CancelRecruitUnit)
             {
                 var b = p.Buildings.Find(v => v.Id == c.TargetId);
                 if (b == null || BuildingOwner(p,b) != c.IssuerId || !b.Built || b.Destroyed || b.Deconstructing)
                 { Report(c, false, "PermissionDenied", "Keine eigene betriebsfähige Produktionsstätte."); return; }
                 if (!Enum.IsDefined(typeof(UnitKind), c.IntValue) || Definitions.Producer((UnitKind)c.IntValue) != b.Kind)
                 { Report(c, false, "InvalidUnit", "Dieser Einheitentyp benötigt eine andere Produktionsstätte."); return; }
-                if (b.RecruitKind >= 0) { Report(c, false, "QueueFull", "Die Produktionsstätte hat bereits einen Auftrag."); return; }
+                if (c.Kind == CommandKind.CancelRecruitUnit) { CancelRecruitOrder(p,b,c); return; }
+                if (RecruitmentCount(p,b.Kind,c.IssuerId) >= Definitions.PlanetRecruitmentLimit)
+                { Report(c,false,"RecruitmentQueueFull","Alle 20 Produktionsplätze dieser Kategorie sind belegt."); return; }
+                if (b.RecruitKind >= 0)
+                {
+                    if (b.RecruitQueue==null) b.RecruitQueue=new List<UnitKind>();
+                    b.RecruitQueue.Add((UnitKind)c.IntValue);
+                    Report(c,true,"RecruitmentQueued","Auftrag eingereiht.");return;
+                }
                 b.RecruitKind = c.IntValue; b.RecruitProgress = 0; b.RecruitPaid = false;
                 Report(c, true, "RecruitmentQueued", "Rekrutierung bestellt; Material wird physisch angeliefert."); return;
             }
@@ -179,6 +294,7 @@ namespace PlanetOne.Core
             if(u.Traffic!=null&&u.Traffic.Yielding){u.Traffic.Yielding=false;u.Traffic.YieldForId=0;u.Traffic.Progress=0;}
             u.Path.Clear(); u.PathDistance = 0; u.Order = order; u.TargetId = c.TargetId;
             var currentCell=HexGrid.CellAt(u.X,u.Y);u.RecenterToCell=HexGrid.Distance(u.X,u.Y,currentCell.X,currentCell.Y)>.000001;
+            if (order == UnitOrder.Move) { var slot = FormationDestination(p,u,x,y); x = slot.X; y = slot.Y; }
             u.GoalX = x; u.GoalY = y; u.Status = "Befehl übernommen";
             Report(c, true, "UnitOrderAccepted", "Einheitenbefehl übernommen.");
         }
@@ -256,7 +372,7 @@ namespace PlanetOne.Core
                 if (!GroundCellAvailable(p,p.OwnerId,kind,x,y)) continue;
                 p.Units.Add(new UnitState { Id = State.NextEntityId++, OwnerId = p.OwnerId, Kind = kind,
                     X = x, Y = y, Health = d.Health, Ammunition = d.Ammo, Food = d.Food, GoalX = x, GoalY = y });
-                b.RecruitKind = -1; b.RecruitPaid = false; b.RecruitProgress = 0;
+                AdvanceRecruitment(b);
                 Emit(p.OwnerId, p.Id, b.Id, "UnitProduced", d.Name + " einsatzbereit."); return;
             }
             b.Status = "Ausgang durch Einheiten oder Gebäude blockiert";
@@ -332,7 +448,11 @@ namespace PlanetOne.Core
                     CenterGroundUnit(p,u);
                     return;
                 }
-                u.Path = StraightenGroundPath(p,u,GroundPath(p, u, u.GoalX, u.GoalY, adjacent)) ?? new List<GridCell>(); u.PathDistance = 0;u.DirectPath=true;
+                var destination = new GridCell(u.GoalX,u.GoalY);
+                if (!adjacent && GroundSegmentClear(p,u,GroundUnitPosition(u),HexGrid.ToWorld(destination.X,destination.Y),true))
+                    u.Path = center.X == destination.X && center.Y == destination.Y ? new List<GridCell>{center} : new List<GridCell>{center,destination};
+                else
+                    u.Path = StraightenGroundPath(p,u,GroundPath(p, u, u.GoalX, u.GoalY, adjacent)) ?? new List<GridCell>(); u.PathDistance = 0;u.DirectPath=true;
                 if (u.Path.Count == 0) { u.Status = "Weg blockiert; Durchbruch oder andere Route nötig"; return; }
                 if (u.Path.Count == 1)
                 { if (u.Order == UnitOrder.Move || u.Order == UnitOrder.Retreat) u.Order = UnitOrder.Hold; u.Status = "Ziel erreicht"; return; }

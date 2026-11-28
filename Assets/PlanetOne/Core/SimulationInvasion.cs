@@ -297,11 +297,8 @@ namespace PlanetOne.Core
                 if(b.Kind==BuildingKind.Headquarters && !HasInvasionSupply(p,infantry)) { b.CaptureProgress=Definitions.CaptureSeconds; b.Status="Verwaltung gesichert; erreichbarer Versorgungspunkt fehlt"; continue; }
                 CancelPortWork(p,b);
                 if(b.RecruitPaid && b.RecruitKind>=0)
-                {
-                    var recruit=Definitions.Get((UnitKind)b.RecruitKind);p.Population+=recruit.Crew;
-                    for(int r=0;r<6;r++){b.Inventory[r]+=recruit.Cost[r];p.ConsumedTotals[r]-=recruit.Cost[r];}
-                }
-                b.RecruitKind=-1;b.RecruitPaid=false;b.RecruitProgress=0;
+                    RefundRecruitment(p,b);
+                b.RecruitQueue=null;b.RecruitKind=-1;b.RecruitPaid=false;b.RecruitProgress=0;
                 b.CapacityOverride=Math.Max(StorageCapacity(b),Total(b.Inventory)+Total(b.ReservedIncoming)+b.ReservedReturnSpace+b.ProductionReservedSpace);
                 if(b.Kind==BuildingKind.Headquarters)
                 {

@@ -2,7 +2,22 @@
 
 Dieser Plan zerlegt das Spielkonzept in ausführbare Codex-Arbeitspakete. Unity und C# sind eingerichtet; M0 bis M4 sind umgesetzt und abgenommen. Für M1/M2 dokumentiert T-006 in DECISIONS die konkret verwendete Prüfmethode und den noch offenen vollständigen zusätzlichen Maustest. M3 ist mit Core-Tests, Windows-Build, Grafiklauf und gezielten tatsächlichen Maus-/Tastatureingaben geprüft; siehe [M3_NACHWEIS](M3_NACHWEIS.md). P08–P10 sind in Version 1.0.3 abgeschlossen; Nachweise und konkrete Grenzen stehen in [M4_NACHWEIS](M4_NACHWEIS.md).
 
-## Aktueller Ergänzungsauftrag 1.0.18
+## Roadmap ab M10
+
+Die Paketfolge konkretisiert die Erweiterungen aus Abschnitt 16 des [Spielkonzepts](SPIELKONZEPT.md). Jede Abnahme setzt einen reproduzierbaren Spielstand und die jeweils genannten beobachtbaren Ergebnisse voraus.
+
+| Meilenstein und Paket | Voraussetzung | Lieferumfang und Abnahme |
+| --- | --- | --- |
+| M10 · P23 Kolonielogistik und Referenzpartie | M0–M9 | Kuriere erreichen Bauplätze und Fabriken über passierbares Gelände. Freie Bestände, Reservierungen und Fehlmengen sind unterscheidbar. Fahrten erzeugen speicherbare Nutzungsspuren. TEST-043 und beide F05-Siegpfade prüfen die Versorgung bis zum Sprungtor. |
+| M11 · P24 Atmosphärische Rohstoffgewinnung | M10, Gaswelten und Luftlogistik | Eine schwebende Förderstation gewinnt einen definierten atmosphärischen Rohstoff. Luftfrachter liefern die tatsächlich gewonnene Menge an Lager und Raumhafen. Bei voller Kapazität pausiert die Förderung. Speichern während einer Lieferung erhält Ladung und Auftrag. |
+| M12 · P25 Weitere Sternsysteme und Sprungverbindungen | M10, Sprungtor und Raumtransport | Ein Mehrsystem-Szenario verbindet zwei deterministisch erzeugte Systeme. Ein Schiff mit Ladung verlässt das erste System und trifft nach definierter Reisezeit im zweiten ein. Spielstand, Besitz und Sicht bleiben während des Sprungs eindeutig. Die bestehenden Einzelsystem-Szenarien behalten ihre Siegbedingungen. |
+| M13 · P26 Weitere Schiffsklassen und Bergung | M12, Raumkampf und Frachträume | Eine baubare Bergungseinheit birgt endliche, aus einem tatsächlichen Verlust entstandene Fracht. Zwei konkurrierende Bergungsaufträge können dieselbe Ladung insgesamt nur einmal entnehmen. Schiffsbau, Auftrag und Entladung sind für Spieler und KI über dieselben Befehle erreichbar. |
+| M14 · P27 Kampagne und Sonderszenarien | M11–M13, Szenariomenü | Zwei verknüpfte Missionen und ein eigenständig startbares Sonderszenario verwenden definierte Startbedingungen und sichtbare Ziele. Sieg schaltet die Folgemission frei. Niederlage, Neustart und Laden mitten in der Mission erhalten den richtigen Kampagnenfortschritt. |
+| M15 · P28 Balance und Plattformabnahme | M14 | Eine vollständige Kampagne und die regulären Siegpfade laufen im gebauten Windows-Player. Laufzeit, Speichern, Bedienung und Installer werden auf dem Zielgerät geprüft. Für Web, Mobilgeräte und Konsolen wird je Ziel die Machbarkeit und der erforderliche Geräte- und Eingabetest dokumentiert. Eine Portierung braucht eine eigene Zielplattformentscheidung. |
+
+M10 ist lokal umgesetzt. Die [Prüfungen und Startbefehle](M10_NACHWEIS.md) dokumentieren den Stand. M11–M15 sind geplant. Nummerierung, Reihenfolge und Paketgrenzen sind in D-058 festgehalten.
+
+## Vorheriger Ergänzungsauftrag 1.0.18
 
 **GUI, Bewegung, fahrzeuggebundener Bau und Verkehr** erweitern die bestehenden Pakete P04/P05, P06/P07, P08, P11, P19–P22; kein zusätzliches Sternsystem oder neuer Meilenstein wird vorgezogen. Verbindlich sind D-038 bis D-047, T-059 bis T-074, GUI-015 bis GUI-021, SURFACE-005/006/007/010, SPACE-012, LOG-014, ARCH-017 und TEST-034 bis TEST-039.
 
@@ -98,6 +113,12 @@ Fachliche Grundlage sind insbesondere SURFACE-003 bis SURFACE-008, ECO-001 bis E
 | M7 | Mehrere KI, Diplomatie und gemeinsamer Sieg | P16–P18 | M6 |
 | M8 | Geprüftes vollständiges Szenario und vereinbarte Exporte | P19–P21 | M7 |
 | M9 | Verständlicher Spieleinstieg und getrennte lokale Partien | P22 | M8 und Befehlsoberfläche 1.0.16 |
+| M10 | Freie Kolonielogistik und reguläre Referenzsiege | P23 | M9 |
+| M11 | Atmosphärische Rohstoffgewinnung | P24 | M10 |
+| M12 | Weitere Sternsysteme und Reise durch Sprungverbindungen | P25 | M10 |
+| M13 | Weitere Schiffsklassen und Bergung | P26 | M12 |
+| M14 | Kampagne und Sonderszenarien | P27 | M11–M13 |
+| M15 | Balance und Plattformabnahme | P28 | M14 |
 
 M3 und M4 können nach M2 parallel bearbeitet werden, sofern die Schnittstellen und Dateizuständigkeiten vorher geklärt sind. Die vorgezogene reine Raumansicht benötigt nur die gemeinsame Simulation; die übrigen Abhängigkeiten von P08 bleiben erhalten. Parallele Agenten bearbeiten getrennte Dateien beziehungsweise ausdrücklich zugewiesene Module.
 
