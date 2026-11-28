@@ -32,6 +32,12 @@ namespace PlanetOne.Runtime
             var center=(min+max)*.5f;var size=Vector2.Max(max-min+Vector2.one*12,Vector2.one*28);
             return new Rect(center-size*.5f,size);
         }
+        private static bool PickModel(Transform view,Ray ray,ref float nearest)
+        {
+            var geometry=view.GetComponent<UnitSelectionGeometry>();
+            if(geometry==null)geometry=view.gameObject.AddComponent<UnitSelectionGeometry>();
+            return geometry.Intersect(ray,ref nearest);
+        }
         private PointerTarget PointerTargetAtScreen(Vector2 point)
         {
             var target=new PointerTarget();float nearest=float.MaxValue;
@@ -47,17 +53,28 @@ namespace PlanetOne.Runtime
             else
             {
                 var planet=simulation.FindPlanet(openPlanetId);
-                foreach(var unit in planet.Units)
-                {
-                    if(unit.Destroyed||!simulation.CanSeeEntity(planet,PlayerFactionId,unit.Id))continue;
-                    var rect=UnitSelectionScreenRect(unit.Id,false);float distance=Vector2.Distance(rect.center,point);
-                    if(rect.width>0&&rect.Contains(point)&&distance<nearest){nearest=distance;target.Id=unit.Id;target.Owner=unit.OwnerId;}
-                }
+                var ray=sceneCamera.ScreenPointToRay(point);
+                float depth=reliefCollider!=null && reliefCollider.Raycast(ray,out var ground,300)?ground.distance+.025f:300f;
+                foreach(var u in planet.Units)
+                    if(!u.Destroyed && unitViews.TryGetValue(u.Id,out var view) && view.gameObject.activeInHierarchy &&
+                        PickModel(view,ray,ref depth))
+                        target=new PointerTarget{Id=u.Id,Owner=u.OwnerId};
+                foreach(var b in planet.Buildings)
+                    if(!b.Destroyed && buildingViews.TryGetValue(b.Id,out var view) && view.gameObject.activeInHierarchy &&
+                        simulation.CanSeeEntity(planet,PlayerFactionId,b.Id) && PickModel(view,ray,ref depth))
+                        target=new PointerTarget{Id=b.Id,Owner=GameSimulation.BuildingOwner(planet,b),Building=true};
                 if(target.Id==0)
                 {
-                    var cell=SurfaceCellAtScreen(point);var building=BuildingAt(planet,cell.X,cell.Y);
-                    if(building!=null&&!building.Destroyed&&simulation.CanSeeEntity(planet,PlayerFactionId,building.Id))
-                    {target.Id=building.Id;target.Owner=GameSimulation.BuildingOwner(planet,building);target.Building=true;}
+                    var cell=SurfaceCellAtScreen(point);
+                    foreach(var u in planet.Units)
+                    {
+                        if(u.Destroyed || !unitViews.TryGetValue(u.Id,out var view) || !view.gameObject.activeInHierarchy)continue;
+                        var at=HexGrid.FromWorld(view.position.x,view.position.z);
+                        if(at.X==cell.X && at.Y==cell.Y){target=new PointerTarget{Id=u.Id,Owner=u.OwnerId};return target;}
+                    }
+                    var b=BuildingAt(planet,cell.X,cell.Y);
+                    if(b!=null && !b.Destroyed && simulation.CanSeeEntity(planet,PlayerFactionId,b.Id))
+                        target=new PointerTarget{Id=b.Id,Owner=GameSimulation.BuildingOwner(planet,b),Building=true};
                 }
             }
             return target;
@@ -156,14 +173,28 @@ namespace PlanetOne.Runtime
     }
     public sealed class UnitSelectionGeometry:MonoBehaviour
     {
-        private Renderer[] parts;
-        private void Awake(){parts=GetComponentsInChildren<Renderer>();}
+        private MeshRenderer[] parts;
+        private void Awake(){parts=GetComponentsInChildren<MeshRenderer>(true);}
+        internal bool Intersect(Ray ray,ref float nearest)
+        {
+            bool found=false;
+            foreach(var part in parts)
+            {
+                if(part==null || !part.enabled || !part.gameObject.activeInHierarchy || !part.bounds.IntersectRay(ray,out float distance) || distance>nearest)continue;
+                var t=part.transform;
+                var local=new Ray(t.InverseTransformPoint(ray.origin),t.worldToLocalMatrix.MultiplyVector(ray.direction).normalized);
+                if(!part.localBounds.IntersectRay(local,out float localDistance))continue;
+                distance=Vector3.Dot(t.TransformPoint(local.GetPoint(localDistance))-ray.origin,ray.direction);
+                if(distance>=0 && distance<nearest){nearest=distance;found=true;}
+            }
+            return found;
+        }
         internal bool TryBounds(out Bounds bounds)
         {
             bounds=new Bounds();bool found=false;
             foreach(var part in parts)
             {
-                if(part==null||part is LineRenderer||!part.enabled||!part.gameObject.activeInHierarchy)continue;
+                if(part==null||!part.enabled||!part.gameObject.activeInHierarchy)continue;
                 if(!found){bounds=part.bounds;found=true;}else bounds.Encapsulate(part.bounds);
             }
             return found;

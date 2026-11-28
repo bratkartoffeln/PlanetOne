@@ -27,8 +27,6 @@ namespace PlanetOne.Runtime
         private readonly Dictionary<int, Transform> planetViews = new Dictionary<int, Transform>();
         private readonly Dictionary<int, Transform> orbitViews = new Dictionary<int, Transform>();
         private readonly Dictionary<long, Transform> buildingViews = new Dictionary<long, Transform>();
-        private readonly Dictionary<long, Renderer> buildingIndicators = new Dictionary<long, Renderer>();
-        private readonly Dictionary<int, long> buildingPickIds = new Dictionary<int, long>();
         private readonly Dictionary<long, Transform> shipmentViews = new Dictionary<long, Transform>();
         private readonly Dictionary<Color, Material> materials = new Dictionary<Color, Material>();
         private readonly List<long> obsoleteShipments = new List<long>();
@@ -158,18 +156,22 @@ namespace PlanetOne.Runtime
             foreach(var icon in buildingIcons.Values)Destroy(icon);
             if(domeGlass!=null)Destroy(domeGlass);
             if(trailMaterial!=null)Destroy(trailMaterial);
+            if(smokeMaterial!=null)Destroy(smokeMaterial);
+            if(particleMaterial!=null)Destroy(particleMaterial);
             if(reliefMesh!=null)Destroy(reliefMesh);
             if(reliefMap!=null)Destroy(reliefMap);
             if(bridgePanelTexture!=null)Destroy(bridgePanelTexture);if(glassPanelTexture!=null)Destroy(glassPanelTexture);
             if(panelTexture!=null)Destroy(panelTexture);if(buttonTexture!=null)Destroy(buttonTexture);if(hoverTexture!=null)Destroy(hoverTexture);
         }
 
+        private bool showTerrainLabels;
         public bool HandleShortcut(KeyCode key)
         {
             if(viewFlightActive){if(key==KeyCode.Escape){FinishViewFlight();return true;}return false;}
             if(IsCommandMenuOpen){if(key==KeyCode.Escape){CloseCommandMenu();return true;}return false;}
             if (key==KeyCode.Escape) { if(settingsOpen)CloseSettings(); else if(HandleSessionEscape()){} else if(placement.HasValue || placingRoad || removingRoad || planningSupply || militaryTargetMode.HasValue || spaceMoveTargetMode) {CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;} else if(panelOpen){panelOpen=false;contextOpen=true;} else if(SelectionCardVisible)contextOpen=false; else ShowSessionPage(SessionPage.Home); selectionStart=null; shipSelectionStart=null; return true; }
             if(settingsOpen || menuOpen)return false;
+            if(key==KeyCode.F3 && openPlanetId!=0){showTerrainLabels=!showTerrainLabels;return true;}
             if(key==KeyCode.L && openPlanetId!=0){ToggleSupplyOverlay();return true;}
             if(key==KeyCode.Space){TogglePause();return true;}
             if(key==KeyCode.F5)return SaveGame();
@@ -184,6 +186,7 @@ namespace PlanetOne.Runtime
             HandleOrbitCamera();
             if(Input.GetKeyDown(KeyCode.Space))HandleShortcut(KeyCode.Space);
             if(Input.GetKeyDown(KeyCode.L))HandleShortcut(KeyCode.L);
+            if(Input.GetKeyDown(KeyCode.F3))HandleShortcut(KeyCode.F3);
             if(Input.GetKeyDown(KeyCode.F5))HandleShortcut(KeyCode.F5);
             if(Input.GetKeyDown(KeyCode.F9))HandleShortcut(KeyCode.F9);
             if(Input.GetKeyDown(KeyCode.Tab))HandleShortcut(KeyCode.Tab);
@@ -348,8 +351,6 @@ namespace PlanetOne.Runtime
             ghost = null;
             selectedMarker = null;
             buildingViews.Clear();
-            buildingIndicators.Clear();
-            buildingPickIds.Clear();
             shipmentViews.Clear();
             unitViews.Clear(); selectedUnits.Clear(); militaryTargetMode = null;
             sidebarScroll = Vector2.zero;
@@ -432,35 +433,28 @@ namespace PlanetOne.Runtime
             {
                 obsoleteBuildings.Remove(building.Id);
                 Transform view;
-                if(IsFortification(building.Kind)&&buildingViews.TryGetValue(building.Id,out view))
+                if(HasWallLinks(building.Kind)&&buildingViews.TryGetValue(building.Id,out view))
                 {
-                    int shape=WallShape(planet,building.X,building.Y,GameSimulation.BuildingOwner(planet,building)),old;
+                    int shape=WallShape(planet,building.X,building.Y,GameSimulation.BuildingOwner(planet,building),!Definitions.IsTower(building.Kind)),old;
                     if(!wallShapes.TryGetValue(building.Id,out old)||old!=shape)
                     {
-                        var collider=view.GetComponent<Collider>();if(collider!=null)buildingPickIds.Remove(collider.GetInstanceID());
-                        view.gameObject.SetActive(false);Destroy(view.gameObject);buildingViews.Remove(building.Id);buildingIndicators.Remove(building.Id);
+                        view.gameObject.SetActive(false);Destroy(view.gameObject);buildingViews.Remove(building.Id);
                     }
                 }
                 if (!buildingViews.TryGetValue(building.Id, out view))
                 {
                     view = BuildBuilding(building);
                     buildingViews[building.Id] = view;
-                    if(IsFortification(building.Kind))wallShapes[building.Id]=WallShape(planet,building.X,building.Y,GameSimulation.BuildingOwner(planet,building));
+                    if(HasWallLinks(building.Kind))wallShapes[building.Id]=WallShape(planet,building.X,building.Y,GameSimulation.BuildingOwner(planet,building),!Definitions.IsTower(building.Kind));
                 }
                 UpdateConstructionVisual(view,building);
                 view.gameObject.SetActive(simulation.IsCellVisible(planet,PlayerFactionId,building.X,building.Y) || GameSimulation.BuildingOwner(planet,building)==PlayerFactionId);
-                Renderer indicator;
-                if (buildingIndicators.TryGetValue(building.Id, out indicator))
-                    indicator.sharedMaterial = MaterialFor(building.Deconstructing ? Amber : (!building.Enabled ? Muted : (building.CycleActive ? Cyan : BuildingColor(building.Kind))));
             }
             foreach (long id in obsoleteBuildings)
             {
                 Transform removed = buildingViews[id];
-                Collider collider = removed.GetComponent<Collider>();
-                if (collider != null) buildingPickIds.Remove(collider.GetInstanceID());
                 Destroy(removed.gameObject);
                 buildingViews.Remove(id);
-                buildingIndicators.Remove(id);
                 if (selectedBuildingId == id) selectedBuildingId = 0;
             }
             visibleCouriers.Clear();
@@ -469,11 +463,6 @@ namespace PlanetOne.Runtime
             foreach (ShipmentState shipment in planet.Shipments)
             {
                 Transform view;
-                if(GameSimulation.GroundCourierDocked(shipment))
-                {
-                    if(shipmentViews.TryGetValue(shipment.Id,out view)){view.gameObject.SetActive(false);view.GetComponent<VehicleModelSize>().DisplayOffset=Vector2.zero;}
-                    obsoleteShipments.Remove(shipment.Id);continue;
-                }
                 if (!shipmentViews.TryGetValue(shipment.Id, out view))
                 {
                     view=new GameObject("Gütertransporter").transform;view.SetParent(surfaceRoot,false);
@@ -486,6 +475,7 @@ namespace PlanetOne.Runtime
                 visibleCouriers.Add(shipment);
             }
             SeparateCourierModels();
+            if(!AtmosphereSurface)foreach(var courier in visibleCouriers)StampTracks(shipmentViews[courier.Id]);
             foreach (long id in obsoleteShipments)
             {
                 Destroy(shipmentViews[id].gameObject);
@@ -495,6 +485,8 @@ namespace PlanetOne.Runtime
             selectedMarker.gameObject.SetActive(selected != null);
             if (selected != null) ConformMarker(selectedMarker,selected.X,selected.Y);
             UpdateMilitaryViews(planet);
+            UpdateColonyActivity(planet);
+            if(trackField!=null)trackField.Refresh(SurfaceClock);
         }
 
         private Transform BuildBuilding(BuildingState building)
@@ -504,19 +496,25 @@ namespace PlanetOne.Runtime
             root.localPosition = SurfacePosition(building.X, 0, building.Y);
             float ground=root.localPosition.y;
             for(int i=0;i<6;i++){Vector3 corner=root.position+HexCorner(i,0.89f);ground=Mathf.Max(ground,ReliefHeight(corner.x,corner.z));}
-            root.localPosition=new Vector3(root.localPosition.x,ground+0.015f,root.localPosition.z);
+            root.localPosition=new Vector3(root.localPosition.x,IsFortification(building.Kind)?root.localPosition.y:ground+0.015f,root.localPosition.z);
             for(int i=0;i<6&&!IsFortification(building.Kind);i++)
             {Vector3 foot=HexCorner(i,0.79f),world=root.position+foot;float depth=root.position.y-ReliefHeight(world.x,world.z);if(depth>0.05f)Rod(root,"Fundamentstütze",foot-Vector3.up*depth,foot+Vector3.up*0.04f,0.1f,Steel);}
-            BoxCollider pickCollider = root.gameObject.AddComponent<BoxCollider>();
-            pickCollider.center = new Vector3(0, 0.55f, 0);
-            pickCollider.size = new Vector3(0.90f, 1.1f, 0.90f);
-            buildingPickIds[pickCollider.GetInstanceID()] = building.Id;
-
-            Transform status = MakePrimitive(PrimitiveType.Cube, "Betriebsanzeige", root, new Vector3(0, 0.17f, -0.39f), new Vector3(0.36f, 0.055f, 0.055f), Cyan);
-            buildingIndicators[building.Id] = status.GetComponent<Renderer>();
             if(AtmosphereSurface)BuildFloatingPlatform(root);
             if(IsFortification(building.Kind))BuildConnectedWall(root,building.Kind,building.X,building.Y,GameSimulation.BuildingOwner(simulation.FindPlanet(openPlanetId),building));
-            else PopulateBuildingModel(root,building.Kind);
+            else
+            {
+                PopulateBuildingModel(root,building.Kind);
+                if(Definitions.IsTower(building.Kind))
+                {
+                    var collar=ColonyGroup(root,"Maueranschluss",Vector3.up*(SurfacePosition(building.X,0,building.Y).y-root.position.y));
+                    BuildConnectedWall(collar,building.Kind,building.X,building.Y,GameSimulation.BuildingOwner(simulation.FindPlanet(openPlanetId),building));
+                }
+            }
+            var activity=root.gameObject.AddComponent<ColonyActivity>();
+            activity.Lamps=System.Array.FindAll(root.GetComponentsInChildren<Renderer>(),r=>r.name=="Zugangsanzeige" || r.name=="Torwarnanzeige" ||
+                r.name=="Landebakenanzeige" || r.name=="Betriebsanzeige" || r.name=="Torleuchte");
+            activity.Doors=root.GetComponentsInChildren<RollingDoor>();
+            activity.Flag=root.GetComponentInChildren<ColonyFlag>();
             AttachConstructionVisual(root,building);
             return root;
         }
@@ -524,6 +522,14 @@ namespace PlanetOne.Runtime
         private void PopulateBuildingModel(Transform root,BuildingKind kind)
         {
             BuildDetailedModel(root,kind);
+            if(!IsFortification(kind) && kind!=BuildingKind.Workshop && kind!=BuildingKind.Warehouse &&
+                kind!=BuildingKind.Spaceport && kind!=BuildingKind.VehicleFactory)
+            {
+                // A service hatch on the apron also serves freestanding plants and towers.
+                var hatch=ColonyGroup(root,"Versorgungsschleuse",new Vector3(0,.10f,-.32f));
+                ArmourPanel(hatch,"Schleusengehäuse",Vector3.zero,new Vector3(.24f,.15f,.16f),Steel);
+                LoadingDoor(hatch,Vector3.back*.085f,.18f,.12f,-1);
+            }
         }
 
         private void UpdateCamera()
@@ -647,7 +653,7 @@ namespace PlanetOne.Runtime
         }
 
         private static readonly Color ShortageRed=new Color(1,.34f,.29f);
-        private static readonly HudIcon[] CostIcons={HudIcon.Food,HudIcon.Ore,HudIcon.Metal,HudIcon.Parts,HudIcon.Crystal,HudIcon.Electronics};
+        private static readonly HudIcon[] CostIcons={HudIcon.Food,HudIcon.Ore,HudIcon.Metal,HudIcon.Parts,HudIcon.Crystal,HudIcon.Electronics,HudIcon.Hydrogen};
         private static int[] LocalShortfall(BuildingState site,int[] cost,bool paid)
         {
             var missing=new int[cost.Length];
@@ -760,6 +766,11 @@ namespace PlanetOne.Runtime
             if(factory)DrawRecruitment(building);
             if(building.Built && !building.Deconstructing && building.Kind==BuildingKind.Spaceport)DrawPortProduction(building);
             DrawSupplyControls();
+            if(building.Couriers!=null)
+            {
+                int busy=simulation.FindPlanet(building.PlanetId).Shipments.FindAll(s=>s.HomeId==building.Id).Count;
+                GUILayout.Label("Fuhrpark · "+(building.Couriers.Count-busy)+" im Gebäude · "+busy+" unterwegs",smallStyle);
+            }
             if(!factory)GUILayout.Label(Definitions.Get(building.Kind).Name.ToUpperInvariant(), headingStyle);
             GUILayout.Label(building.Status ?? (building.Built ? "Betriebsbereit" : "Im Bau"), mutedStyle);
             GUILayout.Label("Struktur: " + building.Health.ToString("0") + " / " + Definitions.BuildingHealth(building.Kind), smallStyle);
@@ -780,6 +791,8 @@ namespace PlanetOne.Runtime
                 PlanetState planet = simulation.FindPlanet(building.PlanetId);
                 GUILayout.Label("Erz im Vorkommen: " + planet.OreRemaining[building.Y * planet.Width + building.X], smallStyle);
             }
+            if (building.Kind == BuildingKind.GasExtractor)
+                GUILayout.Label("Förderbarer Wasserstoff im Gasband: "+simulation.FindPlanet(building.PlanetId).AtmosphericHydrogen,smallStyle);
             for (int r = 0; r < building.Inventory.Length; r++)
             {
                 if (building.Inventory[r] == 0 && building.ReservedIncoming[r] == 0) continue;
@@ -836,7 +849,7 @@ namespace PlanetOne.Runtime
             GUILayout.Label(supply, smallStyle);
             GUI.contentColor = previousColor;
             GUILayout.Space(10);
-            for (int r = 0; r < 6; r++)
+            for (int r = 0; r < Definitions.ResourceCount; r++)
             {
                 int total = 0;
                 foreach (BuildingState building in planet.Buildings) total += building.Inventory[r];
@@ -850,7 +863,7 @@ namespace PlanetOne.Runtime
         {
             var planet=simulation.FindPlanet(openPlanetId);if(planet==null)return;
             int columns=ProductionColumns;
-            var stock=new int[6];for(int r=0;r<stock.Length;r++) stock[r]=GameSimulation.FreeBuildingStock(planet,PlayerFactionId,r);
+            var stock=new int[Definitions.ResourceCount];for(int r=0;r<stock.Length;r++) stock[r]=GameSimulation.FreeBuildingStock(planet,PlayerFactionId,r);
 
             int column=0;
             foreach(BuildingKind kind in Enum.GetValues(typeof(BuildingKind)))
@@ -871,7 +884,7 @@ namespace PlanetOne.Runtime
             GUILayout.Space(4);
             if(GUILayout.Button(supplyOverlay?"Logistikansicht aus · L":"Logistikansicht · L",buttonStyle))ToggleSupplyOverlay();
             if(AtmosphereSurface) {
-                GUILayout.Label("LUFTFRACHT · 4 Frachtdrohnen, je 8 Waren. Automatische Flugkorridore zwischen Plattformen. Erz und Metall per Raumhafen importieren.",smallStyle);
+                GUILayout.Label("Vier Frachtdrohnen transportieren je acht Waren. Gasförderer liefern Wasserstoff. Erz und Metall kommen per Raumhafen.",smallStyle);
                 return;
             }
             GUILayout.Space(7);
