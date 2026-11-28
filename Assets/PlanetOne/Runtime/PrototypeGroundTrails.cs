@@ -55,8 +55,8 @@ namespace PlanetOne.Runtime
             var vertices=new List<Vector3>();var triangles=new List<int>();var ends=new List<Vector3>();
             var center=SurfacePosition(cell%p.Width,0,cell/p.Width);
             for(int d=0;d<6;d++)if((shape&(1<<d))!=0){var n=HexGrid.Neighbor(cell%p.Width,cell/p.Width,d);ends.Add(Vector3.Lerp(center,SurfacePosition(n.X,0,n.Y),.51f));}
-            if(ends.Count==1)AddCurvedRibbon(vertices,triangles,ends[0],center,center,.19f);
-            else for(int a=0;a<ends.Count;a++)for(int b=a+1;b<ends.Count;b++)AddCurvedRibbon(vertices,triangles,ends[a],center,ends[b],.19f);
+            if(ends.Count==1)AddCurvedRibbon(vertices,triangles,ends[0],center,center,.19f,.006f);
+            else for(int a=0;a<ends.Count;a++)for(int b=a+1;b<ends.Count;b++)AddCurvedRibbon(vertices,triangles,ends[a],center,ends[b],.19f,.006f);
             var uv=new List<Vector2>();for(int i=0;i<vertices.Count;i++)uv.Add(new Vector2((i%38)/2f/18f,i%2));
             var mesh=new Mesh{name="Befahrene Bodenspur"};mesh.SetVertices(vertices);mesh.SetTriangles(triangles,0);mesh.SetUVs(0,uv);mesh.RecalculateNormals();mesh.RecalculateBounds();
             var root=new GameObject("Nutzungsspur").transform;root.SetParent(surfaceRoot,false);root.gameObject.AddComponent<MeshFilter>().sharedMesh=mesh;

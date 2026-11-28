@@ -221,6 +221,13 @@ namespace PlanetOne.Core
         private void MoveShipment(PlanetState planet,ShipmentState shipment)
         {
             if(shipment.Traffic==null)shipment.Traffic=new GroundTrafficState();
+            BuildingState exit=null;
+            if(shipment.Traffic.Docked && shipment.DistanceTravelled==0 && shipment.Path.Count>1)
+            {
+                var first=shipment.Path[0];
+                exit=planet.Buildings.Find(b=>b.X==first.X && b.Y==first.Y && !b.Destroyed);
+                if(exit!=null && State.Tick<exit.NextCourierExitTick)return;
+            }
             double next=Math.Min(ShipmentArrivalDistance(shipment),shipment.DistanceTravelled+Definitions.CourierSpeed*Definitions.TickSeconds);
             double desired=!shipment.Airborne && PassingTraffic(planet,shipment)?RoadLaneOffset:0;
             double lateralStep=Definitions.CourierSpeed*Definitions.TickSeconds*.5;
@@ -241,6 +248,8 @@ namespace PlanetOne.Core
                 return;
             }
             RecordGroundTrail(planet,shipment,next,Distance(mover.Position.X,mover.Position.Y,target.X,target.Y));
+            // Reserve only a short launch interval. Traffic already on the route cannot hold this exit.
+            if(exit!=null && next>0)exit.NextCourierExitTick=State.Tick+Definitions.CourierExitIntervalTicks;
             RecordGroundMove(planet,mover,target);shipment.Traffic.Docked=false;shipment.DistanceTravelled=next;
             shipment.PassingOffset=lane;
         }

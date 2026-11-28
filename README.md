@@ -1,5 +1,7 @@
 # PlanetOne
 
+**Verkehr und Animationen in 1.0.22.** Transporter verlassen dieselbe Ausfahrt im Abstand von 0,30 Simulationssekunden. Kettenfahrzeuge folgen der Längs- und Querneigung des Bodens. Fußtruppen setzen ihre Füße abwechselnd auf, Ladetüren und Durchfahrtstore reagieren auf Verkehr. Kleine Betriebsleuchten blinken, die Kasernenfahne bewegt sich im Wind. Beobachtete Schüsse, Explosionen und aktive Schiffstriebwerke zeigen Partikel. [Prüfszenario](docs/ACCEPTANCE_TESTS.md#test-045--fahrzeuge-figuren-und-betriebsanimationen)
+
 **Modelle in 1.0.21.** Das Fahrzeugwerk hat ein oranges Montageportal, Frachter tragen einzeln verzurrte Container und Aufklärer haben gepfeilte Flügel. Die Baumenüs zeigen dieselben texturierten 3D-Modelle wie die Spielwelt. [Vorher-nachher-Vergleich aus dem Windows-Player](docs/MODELLE_1_0_21.png)
 
 **M11 · Wasserstoff auf Gasriesen.** Im Szenario „Gegen einen Computer“ kannst du Zephyr mit einem Kolonieschiff besiedeln. Öffne dort **Bauen → Industrie → Gasförderer**. Für 16 Metall und 4 Bauteile entsteht eine schwebende Station. Drohnen liefern den gewonnenen Wasserstoff an Lager und Raumhafen. Der Zielbestand am Hafen ist einstellbar. Für einen schnellen Einstieg zeigt die Prüfkarte „Planetentypen und Luftfracht“ Zephyr mit einer bestehenden Kolonie. [Spielregeln](docs/GAME_DESIGN.md#eco-009--atmosphärische-rohstoffgewinnung)

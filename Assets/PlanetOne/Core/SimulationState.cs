@@ -209,6 +209,7 @@ namespace PlanetOne.Core
         [DataMember] public int CapacityOverride;
         [DataMember] public double EnergyStored;
         [DataMember] public int ReservedReturnSpace;
+        [DataMember(EmitDefaultValue=false)] public long NextCourierExitTick;
         [DataMember] public int LegacyCapacityAllowance;
         [DataMember] public bool PowerBlocked;
         [DataMember] public double Health = 160;

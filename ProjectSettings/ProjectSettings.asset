@@ -145,9 +145,9 @@ PlayerSettings:
   vulkanEnableLateAcquireNextImage: 0
   vulkanEnableCommandBufferRecycling: 1
   loadStoreDebugModeEnabled: 0
-  visionOSBundleVersion: 1.0.21
-  tvOSBundleVersion: 1.0.21
-  bundleVersion: 1.0.21
+  visionOSBundleVersion: 1.0.22
+  tvOSBundleVersion: 1.0.22
+  bundleVersion: 1.0.22
   preloadedAssets: []
   metroInputSource: 0
   wsaTransparentSwapchain: 0
@@ -172,11 +172,11 @@ PlayerSettings:
   applicationIdentifier: {}
   buildNumber:
     Standalone: 0
-    VisionOS: 21
-    iPhone: 21
-    tvOS: 21
+    VisionOS: 22
+    iPhone: 22
+    tvOS: 22
   overrideDefaultApplicationIdentifier: 0
-  AndroidBundleVersionCode: 22
+  AndroidBundleVersionCode: 23
   AndroidMinSdkVersion: 25
   AndroidTargetSdkVersion: 0
   AndroidPreferredInstallLocation: 1

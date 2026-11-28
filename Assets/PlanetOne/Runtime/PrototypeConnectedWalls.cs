@@ -36,10 +36,12 @@ namespace PlanetOne.Runtime
                 ends.Add((other-center)*.5f);
             }
             var axis=ends.Count>0?new Vector3(ends[0].x,0,ends[0].z).normalized:Vector3.right;
+            if(ends.Count==2)axis=Vector3.ProjectOnPlane(ends[0]-ends[1],Vector3.up).normalized;
             if(ends.Count==0){ends.Add(axis*.42f);ends.Add(-axis*.42f);}
             if(kind==BuildingKind.Wall)
             {
                 Part(root,"Mauerpfeiler",new Vector3(0,.25f,0),new Vector3(.15f,.5f,.15f),Steel);
+                Part(root,"Betriebsanzeige",new Vector3(0,.505f,0),new Vector3(.05f,.015f,.05f),Amber);
                 foreach(var end in ends)WallArm(root,Vector3.zero,end);
             }
             else

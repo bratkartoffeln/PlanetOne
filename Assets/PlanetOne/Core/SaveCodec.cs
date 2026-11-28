@@ -146,6 +146,7 @@ namespace PlanetOne.Core
                     Require(PlanetEnvironment.AllowsBuilding(p.Kind,b.Kind),"Gebäude für diesen Planetentyp ungeeignet.");
                     Require(b.Priority >= 0 && b.Priority <= 2 && b.CapacityOverride >= 0 && b.CapacityOverride <= 4096 &&
                         b.ReservedReturnSpace >= 0 && b.LegacyCapacityAllowance >= 0 && b.LegacyCapacityAllowance <= 4096 &&
+                        b.NextCourierExitTick >= 0 && b.NextCourierExitTick-state.Tick <= Definitions.CourierExitIntervalTicks &&
                         Finite(b.EnergyStored) && b.EnergyStored >= 0 &&
                         b.EnergyStored <= Definitions.Get(b.Kind).EnergyStorageCapacity + 0.000001,
                         "Ungültige Betriebsdaten.");

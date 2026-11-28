@@ -10,6 +10,7 @@ namespace PlanetOne.Runtime
         // Presentation plane clears the large planet models; simulation coordinates remain unchanged.
         private const float ShipDisplayHeight = 2.3f;
         private readonly Dictionary<long, Transform> shipViews = new Dictionary<long, Transform>();
+        private readonly HashSet<long> visibleShipIds=new HashSet<long>();
         private readonly List<long> selectedShips = new List<long>();
         private readonly Dictionary<int, List<long>> shipGroups = new Dictionary<int, List<long>>();
         private bool showingSpacePanel;
@@ -51,20 +52,26 @@ namespace PlanetOne.Runtime
         { return SubmitIntent(new SimCommand {Kind=kind, ActorId=actor, DestinationId=destination, TargetId=target, PlanetId=planet, IntValue=value, Amount=amount, Minimum=minimum, Reserve=reserve, X=priority, BoolValue=flag}); }
         private void UpdateShipViews()
         {
-            foreach(var view in shipViews.Values) view.gameObject.SetActive(false);
+            visibleShipIds.Clear();
             foreach(var ship in simulation.State.Ships)
             {
-                if(!simulation.IsShipVisible(PlayerFactionId,ship)) continue;
                 Transform view;
+                if(!simulation.IsShipVisible(PlayerFactionId,ship))continue;
+                visibleShipIds.Add(ship.Id);
                 if(!shipViews.TryGetValue(ship.Id,out view))
                 {
                     view=new GameObject("Schiff "+ship.Id).transform;view.SetParent(spaceRoot,false);BuildShipModel(view,ship.Kind);
+                    var exhaust=view.gameObject.AddComponent<ShipExhaust>();
+                    exhaust.Plume=ModelParticles(view,"Düsenstrahl",56);
                     Part(view,"Fraktionsmarkierung",new Vector3(0,0.11f,0.35f),new Vector3(0.25f,0.02f,0.08f),DiplomaticColor(ship.OwnerId));
                     shipViews[ship.Id]=view;
                 }
                 view.gameObject.SetActive(true); UpdateMotionPose(view,SpacePosition(ship.X,ship.Y,ShipDisplayHeight),0);
                 view.localScale=Vector3.one*.75f;
+                view.GetComponent<ShipExhaust>().Advance(view.position,openPlanetId==0?AnimationDelta:0);
             }
+            foreach(var entry in shipViews)
+                if(entry.Value.gameObject.activeSelf && !visibleShipIds.Contains(entry.Key))entry.Value.gameObject.SetActive(false);
             selectedShips.RemoveAll(id=>!simulation.State.Ships.Exists(s=>s.Id==id && !s.Destroyed && !s.Consumed));
         }
         private void HandleSpaceEvents()

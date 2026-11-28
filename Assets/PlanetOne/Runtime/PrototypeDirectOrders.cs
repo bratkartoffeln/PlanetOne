@@ -156,14 +156,14 @@ namespace PlanetOne.Runtime
     }
     public sealed class UnitSelectionGeometry:MonoBehaviour
     {
-        private Renderer[] parts;
-        private void Awake(){parts=GetComponentsInChildren<Renderer>();}
+        private MeshRenderer[] parts;
+        private void Awake(){parts=GetComponentsInChildren<MeshRenderer>();}
         internal bool TryBounds(out Bounds bounds)
         {
             bounds=new Bounds();bool found=false;
             foreach(var part in parts)
             {
-                if(part==null||part is LineRenderer||!part.enabled||!part.gameObject.activeInHierarchy)continue;
+                if(part==null||!part.enabled||!part.gameObject.activeInHierarchy)continue;
                 if(!found){bounds=part.bounds;found=true;}else bounds.Encapsulate(part.bounds);
             }
             return found;

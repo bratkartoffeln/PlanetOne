@@ -39,6 +39,7 @@ namespace PlanetOne.Core
         public const int CourierCapacity = 8;
         public const int CouriersPerColony = 4;
         public const double CourierSpeed = 3;
+        public const int CourierExitIntervalTicks = 6;
         public const double TransferSeconds = 0.5;
         public const double FoodPerPersonPerSecond = 1.0 / 120;
         public const double PopulationGrowthSeconds = 45;

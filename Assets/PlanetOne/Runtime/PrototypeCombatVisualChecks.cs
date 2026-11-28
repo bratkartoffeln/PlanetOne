@@ -36,6 +36,7 @@ namespace PlanetOne.Runtime
             Require(SaveCodec.ToJson(sim.State)==frozen && controller.ActiveCombatProjectileCount==1,"Paused projectile rendering cannot modify simulation or consume ammunition");
             var effectRoot=controller.transform.Find("Beobachtete Gefechte");
             Require(VisibleCombatBurstGeometry(effectRoot.Find("Schussreaktion")),"Paused first-frame muzzle flash has nonzero visible mesh and spark geometry");
+            Require(effectRoot.Find("Schussreaktion/Mündungsfunken").GetComponent<ParticleSystem>().particleCount>0,"An observed shot emits particles at its muzzle");
             var projectile=effectRoot.Find("Geschoss");Vector3 origin=projectile.position;
             controller.SetSimulationPaused(false);float motionDeadline=Time.realtimeSinceStartup+2;
             do {yield return null;} while(projectile!=null && Vector3.Distance(origin,projectile.position)<=.005f && Time.realtimeSinceStartup<motionDeadline);
@@ -49,6 +50,7 @@ namespace PlanetOne.Runtime
             yield return null;yield return null;
             Require(target.Destroyed && sim.CombatPresentationEvents[sim.CombatPresentationEvents.Count-1].Kind==CombatVisualKind.Explosion,"Explosion follows actual lethal combat damage");
             Require(VisibleCombatBurstGeometry(controller.transform.Find("Beobachtete Gefechte/Bestätigte Zerstörung")),"Paused first-frame confirmed explosion has visible mesh and spark geometry");
+            Require(controller.transform.Find("Beobachtete Gefechte/Bestätigte Zerstörung/Explosionsglut").GetComponent<ParticleSystem>().particleCount>0,"A confirmed explosion contains live particles");
             yield return Capture("combat-confirmed-explosion.png");Require(captureFailure==null,captureFailure??"Actual destruction effect captured");
             controller.SetView(0);yield return null;
             Require(controller.ActiveCombatVisualCount==0,"Changing world clears previous effects instead of replaying combat");

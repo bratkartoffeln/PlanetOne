@@ -21,6 +21,7 @@ namespace PlanetOne.Runtime
             public Vector3[] Directions;
             public float Age, Duration, Size;
             public bool Smoke;
+            public ParticleSystem Particles;
         }
         private sealed class CombatAim
         {
@@ -53,7 +54,7 @@ namespace PlanetOne.Runtime
         {
             if(simulation==null || sceneCamera==null)return;
             if(combatObservedSimulation!=simulation || combatWorld!=openPlanetId)ClearCombatVisuals();
-            float dt=hasSession && !menuOpen && !settingsOpen && !simulation.State.Paused?Mathf.Min(Time.unscaledDeltaTime,.1f):0;
+            float dt=AnimationDelta;
             UpdateCombatTurrets(dt);
             foreach(var fact in simulation.CombatPresentationEvents)
             {
@@ -79,6 +80,7 @@ namespace PlanetOne.Runtime
             {
                 var burst=combatBursts[i];burst.Age+=dt;float t=burst.Age/burst.Duration;
                 if(t>=1){Destroy(burst.Root.gameObject);combatBursts.RemoveAt(i);continue;}
+                if(dt>0)burst.Particles.Simulate(dt,false,false,false);
                 float growth=Mathf.Sin(Mathf.Clamp01(t)*Mathf.PI);
                 // The shot exists at age zero, including when a simulation step is immediately paused.
                 // Start its flash with real geometry; elapsed animation time must not be required for visibility.
@@ -149,7 +151,7 @@ namespace PlanetOne.Runtime
                     var muzzle=turret!=null?turret.Find("MuzzlePosition"):actor.Find("MuzzlePosition");
                     if(muzzle!=null)start=muzzle.position;
                 }
-                CombatImpact(start,.15f,false,.11f);
+                CombatImpact(start,.15f,false,.14f,target?(end-start).normalized:actor!=null?actor.forward:Vector3.up);
             }
             // An unseen attacker supplies no direction, muzzle location or identity to the renderer.
             if(!source && fact.SourceWorld<0)
@@ -172,7 +174,7 @@ namespace PlanetOne.Runtime
             combatFlights.Add(new CombatFlight {Fact=fact,Head=head,Trail=trail,Start=start,End=end,Duration=duration,Arc=artillery?Mathf.Min(3,Vector3.Distance(start,end)*.3f):0});
         }
 
-        private void CombatImpact(Vector3 point,float size,bool explosion,float duration=0)
+        private void CombatImpact(Vector3 point,float size,bool explosion,float duration=0,Vector3? direction=null)
         {
             if(combatBursts.Count>=96)return;
             var root=new GameObject(explosion?"Bestätigte Zerstörung":"Schussreaktion").transform;root.SetParent(CombatEffectRoot(),false);root.position=point;
@@ -185,7 +187,22 @@ namespace PlanetOne.Runtime
                 directions[i]=new Vector3(Mathf.Cos(angle),.25f+(i%3)*.27f,Mathf.Sin(angle)).normalized;
                 sparks[i]=MakeLine("Funke",root,new Color(1,.46f,.1f),size*.05f,false);sparks[i].positionCount=2;
             }
-            combatBursts.Add(new CombatBurst {Root=root,Core=core,Sparks=sparks,Directions=directions,Size=size,Smoke=explosion,Duration=duration>0?duration:explosion?.85f:.25f});
+            float life=duration>0?duration:explosion?.85f:.25f;
+            var particles=ModelParticles(root,explosion?"Explosionsglut":direction.HasValue?"Mündungsfunken":"Trefferfunken",48);
+            int grains=explosion?42:direction.HasValue?12:18;
+            for(int i=0;i<grains;i++)
+            {
+                // A spherical spiral spreads sparks without consuming simulation randomness.
+                float y=1-(2*i+1f)/grains,r=Mathf.Sqrt(1-y*y),a=i*2.39996f;
+                var ray=new Vector3(Mathf.Cos(a)*r,y,Mathf.Sin(a)*r);
+                if(direction.HasValue)ray=(direction.Value+ray*.55f).normalized;
+                else if(openPlanetId!=0)ray.y=Mathf.Abs(ray.y);
+                var spark=new ParticleSystem.EmitParams{position=ray*size*(.12f+i%4*.09f),
+                    velocity=ray*(size/life)*(1.1f+i%5*.34f),startLifetime=life*(.5f+i%5*.11f),
+                    startSize=size*(explosion?.23f:.34f),startColor=Color.Lerp(new Color(1,.26f,.045f),new Color(1,.94f,.58f),i%6/5f)};
+                particles.Emit(spark,1);
+            }
+            combatBursts.Add(new CombatBurst {Root=root,Core=core,Sparks=sparks,Directions=directions,Size=size,Smoke=explosion,Duration=life,Particles=particles});
         }
 
         private void SetCombatAim(long actor,Vector3 position,int world,long target)

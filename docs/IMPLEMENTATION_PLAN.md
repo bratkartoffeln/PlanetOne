@@ -433,6 +433,12 @@ Leistungsmessungen verwenden ein festgehaltenes Szenario und Hardwareprofil. Ein
 
 Die grafische Überarbeitung von Kolonie und Flotte betrifft die Darstellung bestehender Spielinhalte aus Aufbau, Logistik und Militär. [Modellgestaltung und Windows-Prüfung](MODELLE_1_0_21.md)
 
+### Betriebsanimationen in 1.0.22
+
+D-061 ergänzt LOG-018 um ein Zeitfenster je Ausfahrt. Bodenbewegung, Durchfahrtstore, Ladeschleusen, Fahnen und Partikeleffekte gehören zur Darstellung von P04, P06 und P08. Der Windows-Player prüft die Stellung der Ketten gegen das Gelände-Mesh, die Gelenke bewegter Infanterie und den Zyklus der Türen. Für den separaten Konvoitest dient `tools/Test-Presentation.ps1 -CourierSpacingOnly`. Der vollständige Durchlauf verwendet `tools/Test-Presentation.ps1 -ReferenceSave TestResults/Reference/victory.json`. [Abnahme TEST-045](ACCEPTANCE_TESTS.md#test-045--fahrzeuge-figuren-und-betriebsanimationen)
+
+Am 28. November 2026 bestanden lokal alle 227 Coretests, der gesonderte Konvoitest und der vollständige Playerdurchlauf mit 1.157 PASS-Meldungen. Nach der abschließenden Ausrichtung der Torpfosten und Montage der Leuchten bestand der neu gebaute Windows-Player den Darstellungsdurchlauf `-PolishOnly` mit 606 PASS-Meldungen.
+
 ## Ergänzung 1.0.18: Zweispurige Straßen und Priorität stehender Einheiten
 
 - **Umfang:** D-045–047 / LOG-015, SURFACE-011, GUI-022 und TEST-040; Core-Fahrspurpositionen, Vorfahrt, Bau-Rückfahrt, freie Umwege, passende Fahrzeughüllen sowie rein darstellende Zielpfeile.

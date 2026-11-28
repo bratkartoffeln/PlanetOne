@@ -338,6 +338,9 @@ Transportverbindungen erscheinen als schmale, gerundete Straßenmarkierungen. En
 ### LOG-018 – Freie Wege und Nutzungsspuren
 
 Auf festem Boden können Kuriere und Baufahrzeuge ohne Straßenausbau zwischen erreichbaren Gebäuden fahren. Wiederholte Fahrten verstärken sichtbare Spuren entlang der tatsächlich befahrenen Wabenkanten. Ungenutzte Spuren verblassen. Eine Spur reserviert kein Feld und gewährt keine Bau- oder Lieferberechtigung. Auf Gasplaneten nutzt die Kolonie Luftlogistik. Diese Regel ersetzt die Straßenplanung aus LOG-017. Lagerzugriff und Baukosten richten sich weiterhin nach tatsächlich verfügbaren und erreichbaren Gütern.
+
+Eine Gebäudeausfahrt gibt den nächsten Transporter 0,30 Simulationssekunden nach der letzten tatsächlichen Ausfahrt frei. Das gilt auch bei der Rückfahrt nach dem Entladen. Das Zeitfenster wird mit dem Gebäude gespeichert. Ausfahrten an anderen Gebäuden arbeiten unabhängig. Unterwegs bleibt der Abstand zwischen Kurieren eine Darstellungsaufgabe.
+
 ## ECO-009 · Atmosphärische Rohstoffgewinnung
 
 Jede Gasriesenkolonie teilt sich einen beim Erzeugen des Systems bestimmten Fördervorrat von 1600 bis 2400 Einheiten Wasserstoff. Ein Gasförderer kostet 16 Metall und 4 Bauteile und benötigt im Betrieb 3 Energie sowie 2 Arbeitskräfte. Bei voller Produktivität liefert ein sechssekündiger Zyklus 2 Einheiten. Beim Start werden sie dem Gasband entnommen und zwei Plätze im Stationsspeicher reserviert. Erst mit Abschluss wird die Charge verfügbar. Rückbau gibt eine unfertige Charge ins Gasband zurück.

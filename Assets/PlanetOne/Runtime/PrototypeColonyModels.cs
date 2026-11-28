@@ -140,7 +140,7 @@ namespace PlanetOne.Runtime
         private void ColonyWorkshop(Transform root)
         {
             ColonyHall(root,new Vector3(-.11f,.2f,0),new Vector3(.45f,.3f,.67f),Industrial);
-            Part(root,"Werkhallentor",new Vector3(-.11f,.16f,.342f),new Vector3(.28f,.22f,.018f),Steel);
+            LoadingDoor(root,new Vector3(-.11f,.16f,.348f),.28f,.22f,1);
             for(int i=0;i<3;i++)ColonyCrate(root,new Vector3(.29f,.11f,-.23f+i*.2f),new Vector3(.16f,.14f,.14f),Industrial);
             Rod(root,"Werkstattkran",new Vector3(.25f,.05f,-.26f),new Vector3(.25f,.59f,-.26f),.035f,Industrial);
             Rod(root,"Werkstattkran",new Vector3(.25f,.59f,-.26f),new Vector3(-.14f,.59f,-.26f),.035f,Industrial);
@@ -165,7 +165,7 @@ namespace PlanetOne.Runtime
             for(int end=-1;end<=1;end+=2)for(int bay=-1;bay<=1;bay+=2)
             {
                 var door=new Vector3(bay*.17f,.18f,-.04f+end*.28f);
-                Part(root,"Motorgitter",door,new Vector3(.23f,.21f,.018f),Steel);
+                LoadingDoor(root,door+Vector3.forward*end*.013f,.23f,.21f,end);
                 Part(root,"Torleuchte",door+new Vector3(0,.125f,end*.008f),new Vector3(.20f,.025f,.022f),Industrial);
             }
             for(int i=-1;i<=1;i+=2)ColonyCrate(root,new Vector3(i*.27f,.11f,.31f),new Vector3(.17f,.16f,.15f),Industrial);
@@ -184,12 +184,13 @@ namespace PlanetOne.Runtime
             for(int side=-1;side<=1;side+=2)ColonyHall(root,new Vector3(side*.23f,.14f,0),new Vector3(.25f,.2f,.66f),new Color(.35f,.4f,.34f));
             Part(root,"Exerzierplatz",new Vector3(0,.055f,.06f),new Vector3(.14f,.012f,.58f),Steel);
             Rod(root,"Flaggenmast",new Vector3(0,.06f,-.3f),new Vector3(0,.63f,-.3f),.018f,Hull);
-            Part(root,"Fraktionsmarkierung",new Vector3(.08f,.55f,-.3f),new Vector3(.16f,.10f,.01f),Cyan);
+            var flag=ColonyGroup(root,"Standarte",new Vector3(0,.61f,-.3f));
+            flag.gameObject.AddComponent<ColonyFlag>().Initialize(ArtMaterial("Flaggentuch",Cyan,false));
         }
         private void ColonyVehicleFactory(Transform root)
         {
             ColonyHall(root,new Vector3(0,.25f,-.05f),new Vector3(.76f,.4f,.57f),Industrial);
-            Part(root,"Fahrzeughangar",new Vector3(0,.22f,.246f),new Vector3(.52f,.31f,.018f),new Color(.08f,.12f,.14f));
+            LoadingDoor(root,new Vector3(0,.22f,.262f),.52f,.31f,1);
             Part(root,"Ausfahrrampe",new Vector3(0,.07f,.33f),new Vector3(.54f,.04f,.2f),Steel);
             for(int i=-1;i<=1;i+=2)Part(root,"Fahrbahnmarkierung",new Vector3(i*.18f,.097f,.33f),new Vector3(.025f,.008f,.18f),Industrial);
             Part(root,"Hallendach",new Vector3(0,.47f,-.05f),new Vector3(.60f,.055f,.43f),Trim);
@@ -253,7 +254,7 @@ namespace PlanetOne.Runtime
             for(int side=-1;side<=1;side+=2)Part(root,"Landemarkierung",new Vector3(side*.09f,.101f,.12f),new Vector3(.022f,.008f,.21f),Hull);
             Part(root,"Landemarkierung",new Vector3(0,.102f,.12f),new Vector3(.20f,.008f,.025f),Hull);
             ColonyHall(root,new Vector3(.04f,.23f,-.27f),new Vector3(.49f,.34f,.25f),Trim);
-            Part(root,"Hangartor",new Vector3(.04f,.19f,-.136f),new Vector3(.32f,.25f,.018f),Steel);
+            LoadingDoor(root,new Vector3(.04f,.19f,-.13f),.32f,.25f,1);
             Rod(root,"Kontrollturm",new Vector3(-.32f,.03f,-.27f),new Vector3(-.32f,.68f,-.27f),.052f,Hull);
             Part(root,"Kontrollkanzel",new Vector3(-.32f,.66f,-.27f),new Vector3(.17f,.13f,.17f),Trim);
             Part(root,"Landebakenanzeige",new Vector3(-.32f,.76f,-.27f),Vector3.one*.05f,Amber,PrimitiveType.Sphere);
@@ -306,7 +307,8 @@ namespace PlanetOne.Runtime
         {
             for(int side=-1;side<=1;side+=2)ColonyHall(root,new Vector3(side*.32f,.28f,0),new Vector3(.14f,.5f,.18f),Trim);
             Part(root,"Torsturz",new Vector3(0,.56f,0),new Vector3(.78f,.09f,.18f),Hull);
-            Part(root,"Torschranke",new Vector3(0,.19f,0),new Vector3(.47f,.26f,.06f),Steel);
+            var barrier=Part(root,"Torschranke",new Vector3(0,.285f,0),new Vector3(.52f,.46f,.06f),Steel);
+            barrier.gameObject.AddComponent<RollingDoor>().Initialize();
             Part(root,"Zugangsanzeige",new Vector3(0,.56f,.1f),new Vector3(.26f,.03f,.013f),Cyan);
         }
         private void ColonyJumpGate(Transform root)

@@ -115,19 +115,30 @@ namespace PlanetOne.Runtime
             if(AtmosphereSurface){BuildAirVehicle(root,kind,faction,courier);return;}
             if(!courier && (kind==UnitKind.Infantry || kind==UnitKind.AntiTank))
             {
-                ArmourPanel(root,"Brustpanzer",new Vector3(0,.29f,0),new Vector3(.22f,.23f,.16f),Hull);
-                ArmourPanel(root,"Tornister",new Vector3(0,.29f,-.10f),new Vector3(.16f,.18f,.08f),Steel);
-                Part(root,"Helm",new Vector3(0,0.48f,0),Vector3.one*0.17f,Hull,PrimitiveType.Sphere);
-                ArmourPanel(root,"Visier",new Vector3(0,.48f,.067f),new Vector3(.145f,.065f,.05f),Canopy);
-                for(int side=-1;side<=1;side+=2)
+                var rig=root.gameObject.AddComponent<InfantryStride>();
+                rig.Torso=ColonyGroup(root,"Oberkörper",Vector3.up*.20f);
+                ArmourPanel(rig.Torso,"Brustpanzer",Vector3.up*.09f,new Vector3(.19f,.21f,.15f),Hull);
+                ArmourPanel(rig.Torso,"Tornister",new Vector3(0,.09f,-.10f),new Vector3(.15f,.17f,.08f),Steel);
+                Part(rig.Torso,"Helm",Vector3.up*.275f,Vector3.one*.16f,Hull,PrimitiveType.Sphere);
+                ArmourPanel(rig.Torso,"Visier",new Vector3(0,.275f,.064f),new Vector3(.14f,.058f,.045f),Canopy);
+                for(int i=0;i<2;i++)
                 {
-                    ArmourPanel(root,"Schulterstück",new Vector3(side*.114f,.35f,-.005f),new Vector3(.085f,.078f,.14f),faction);
-                    ArmourPanel(root,"Stiefel",new Vector3(side*.072f,.043f,.035f),new Vector3(.093f,.075f,.14f),Steel);
+                    float side=i*2-1;
+                    var hip=rig.Hips[i]=ColonyGroup(root,"Hüfte",new Vector3(side*.057f,.216f,0));
+                    Rod(hip,"Oberschenkel",Vector3.zero,Vector3.down*.10f,.069f,Steel);
+                    var knee=rig.Knees[i]=ColonyGroup(hip,"Knie",Vector3.down*.10f);
+                    Rod(knee,"Unterschenkel",Vector3.zero,Vector3.down*.10f,.063f,Hull);
+                    rig.Feet[i]=ArmourPanel(knee,"Stiefel",new Vector3(0,-.093f,.021f),new Vector3(.076f,.045f,.115f),Steel);
+                    var arm=rig.Arms[i]=ColonyGroup(rig.Torso,"Schulter",new Vector3(side*.107f,.152f,0));
+                    ArmourPanel(arm,"Schulterstück",Vector3.zero,new Vector3(.073f,.067f,.105f),faction);
+                    Rod(arm,"Oberarm",Vector3.zero,new Vector3(side*.014f,-.079f,0),.046f,Hull);
+                    Rod(arm,"Unterarm",new Vector3(side*.014f,-.079f,0),new Vector3(side*.002f,-.098f,.075f),.043f,Steel);
                 }
-                for(int side=-1;side<=1;side+=2)
-                {Rod(root,"Bein",new Vector3(side*0.07f,0.05f,0.02f),new Vector3(side*0.06f,0.2f,0),0.075f,Steel);Rod(root,"Arm",new Vector3(side*0.13f,0.35f,0),new Vector3(side*0.1f,0.26f,0.1f),0.055f,Hull);}
-                Rod(root,"Waffe",new Vector3(0.13f,0.3f,0),new Vector3(0.13f,0.3f,0.32f),kind==UnitKind.AntiTank?0.08f:0.035f,Steel);
-                var muzzle=new GameObject("MuzzlePosition").transform;muzzle.SetParent(root,false);muzzle.localPosition=new Vector3(.13f,.3f,.32f);return;
+                var hand=rig.Arms[1];var grip=new Vector3(.005f,-.098f,.07f);
+                Rod(hand,"Waffe",grip,grip+Vector3.forward*.23f,kind==UnitKind.AntiTank?.08f:.035f,Steel);
+                rig.BarrelTip=ColonyGroup(hand,"Laufende",grip+Vector3.forward*.23f);
+                rig.Muzzle=ColonyGroup(root,"MuzzlePosition",root.InverseTransformPoint(rig.BarrelTip.position));
+                return;
             }
             HullPart(root,new Vector3(0,0.23f,0),new Vector3(0.46f,0.22f,0.65f),Hull);
             for(int side=-1;side<=1;side+=2)
