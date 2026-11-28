@@ -3,7 +3,21 @@ namespace PlanetOne.Runtime
 {
     public sealed partial class PrototypeController
     {
-        private float cameraYaw,cameraPitch=50;
+        private const float DefaultSurfaceYaw=-60;
+        // The pointy-top grid is authored with its first vertex at 30 degrees.
+        private const float HexHeadingOffset=30;
+        private float systemYaw,systemPitch=50,surfaceYaw=DefaultSurfaceYaw,surfacePitch=50;
+        private float cameraYaw
+        {
+            get{return openPlanetId==0?systemYaw:surfaceYaw;}
+            set{if(openPlanetId==0)systemYaw=value;else surfaceYaw=value;}
+        }
+        private float cameraPitch
+        {
+            get{return openPlanetId==0?systemPitch:surfacePitch;}
+            set{if(openPlanetId==0)systemPitch=value;else surfacePitch=value;}
+        }
+        private float WorldCameraYaw {get{return openPlanetId==0?systemYaw:surfaceYaw+HexHeadingOffset;}}
         private Vector3 spaceFocus;
         private Vector2 spacePanStart, spacePanLast;
         private bool spacePanCaptured, spacePanDragged, spacePanCancelledTarget,spacePanContextMenu;
@@ -23,7 +37,7 @@ namespace PlanetOne.Runtime
             if(Input.GetKeyDown(KeyCode.Home))ResetCameraView();
         }
         public void ResetCameraView()
-        {if(openPlanetId==0)spaceFocus=Vector3.zero;else SetSurfaceFocus(SurfacePosition(8,0,6));CancelSpacePan();SetOrbitCamera(0,50);}
+        {if(openPlanetId==0)spaceFocus=Vector3.zero;else SetSurfaceFocus(SurfacePosition(8,0,6));CancelSpacePan();SetOrbitCamera(openPlanetId==0?0:DefaultSurfaceYaw,50);}
         public void SetSurfaceFocus(Vector3 focus)
         {
             var p=simulation.FindPlanet(openPlanetId);if(p==null)return;

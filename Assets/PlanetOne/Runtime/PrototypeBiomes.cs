@@ -20,6 +20,13 @@ namespace PlanetOne.Runtime
             material.SetTexture("_RockTex",Resources.Load<Texture2D>("SurfaceAtlas"));
             material.SetFloat("_Biome",(float)kind);biomeMaterials[kind]=material;return material;
         }
+        private void ConfigureEdgeFog(Material material,PlanetState planet)
+        {
+            float lastRow=(planet.Height-1)*(float)HexGrid.RowHeight;
+            material.SetVector("_SurfaceLimits",new Vector4(-.5f,-.58f,planet.Width,lastRow+.58f));
+            material.SetColor("_SurfaceFogColor",sceneCamera.backgroundColor);
+        }
+
         private Color BiomeRadarColor(PlanetKind kind,float height,float slope)
         {
             Color color=kind==PlanetKind.Ice?new Color(.65f,.8f,.9f):kind==PlanetKind.Desert?new Color(.65f,.4f,.17f):kind==PlanetKind.GasGiant?new Color(.64f,.52f,.36f):new Color(.16f,.35f,.18f);
@@ -34,6 +41,7 @@ namespace PlanetOne.Runtime
             mesh.vertices=vertices;mesh.triangles=triangles;mesh.RecalculateNormals();mesh.RecalculateBounds();
             var layer=new GameObject(mesh.name);layer.transform.SetParent(surfaceRoot,false);layer.AddComponent<MeshFilter>().sharedMesh=mesh;
             var material=gas?BiomeMaterial(PlanetKind.GasGiant):new Material(Resources.Load<Shader>("OceanSurface"));
+            ConfigureEdgeFog(material,p);
             var renderer=layer.AddComponent<MeshRenderer>();renderer.sharedMaterial=material;
             if(gas){renderer.receiveShadows=false;renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;}
             layer.AddComponent<OwnedSurfaceMesh>().Mesh=mesh;
@@ -83,32 +91,6 @@ namespace PlanetOne.Runtime
         private void BuildShrub(Transform parent,Vector3 position,float size,int variation)
         {
             MeshPart("Blattwerk",parent,FoliageMesh(variation,false),position+Vector3.up*size*.2f,new Vector3(size,size*.6f,size),new Color(.25f,.34f,.14f));
-        }
-        private void BuildGroundCover(PlanetState planet)
-        {
-            if(planet.Kind!=PlanetKind.Temperate&&planet.Kind!=PlanetKind.Ocean)return;
-            var vertices=new System.Collections.Generic.List<Vector3>();var indices=new System.Collections.Generic.List<int>();
-            var random=new System.Random(planet.Id*193+41);
-            for(int y=0;y<planet.Height;y++)for(int x=0;x<planet.Width;x++)
-            {
-                int cell=y*planet.Width+x;
-                if(planet.Terrain[cell]!=0 || planet.Roads[cell] || planet.Buildings.Exists(b=>b.X==x&&b.Y==y))continue;
-                var at=SurfacePosition(x,0,y);if(planet.Kind==PlanetKind.Ocean&&at.y<.15f)continue;
-                if(Mathf.PerlinNoise(at.x*.22f+planet.Id,at.z*.2f) < .46f)continue;
-                for(int i=0;i<4;i++)
-                {
-                    float wx=at.x+(float)random.NextDouble()*.65f-.325f,wz=at.z+(float)random.NextDouble()*.55f-.275f;
-                    var foot=new Vector3(wx,ReliefHeight(wx,wz)+.012f,wz);float height=.035f+(float)random.NextDouble()*.055f;
-                    float angle=(float)random.NextDouble()*Mathf.PI*2;var side=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*.025f;
-                    int first=vertices.Count;var tip=foot+Vector3.up*height+side*.6f;
-                    vertices.Add(foot-side);vertices.Add(tip);vertices.Add(foot+side);
-                    vertices.Add(foot+side);vertices.Add(tip);vertices.Add(foot-side);
-                    for(int vertex=0;vertex<6;vertex++)indices.Add(first+vertex);
-                }
-            }
-            if(vertices.Count==0)return;
-            var mesh=new Mesh{name="Bodengräser",indexFormat=UnityEngine.Rendering.IndexFormat.UInt32};mesh.SetVertices(vertices);mesh.SetTriangles(indices,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
-            var grass=MeshPart("Gras",surfaceRoot,mesh,Vector3.zero,Vector3.one,new Color(.27f,.36f,.12f));grass.gameObject.AddComponent<OwnedSurfaceMesh>().Mesh=mesh;
         }
         private void BuildFloatingPlatform(Transform root)
         {

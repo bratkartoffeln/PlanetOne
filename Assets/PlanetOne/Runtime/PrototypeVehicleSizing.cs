@@ -8,23 +8,23 @@ namespace PlanetOne.Runtime
         private void BuildGroundUnitModel(Transform root,UnitKind kind,Color color)
         {
             BuildVehicleModel(root,kind,color);
-            FitVehicleBody(root,(float)GameSimulation.GroundUnitRadius(kind),1);
+            FitVehicleBody(root,kind==UnitKind.Infantry?.36f:kind==UnitKind.AntiTank?.38f:.46f,1);
         }
         private void BuildGroundLogisticsModel(Transform root,ShipmentState shipment)
         {
             BuildVehicleModel(root,UnitKind.Engineer,Amber,!GameSimulation.IsConstructionVehicle(shipment));
             FitVehicleBody(root,(float)GameSimulation.GroundCourierRadius(shipment),AtmosphereSurface?.8f:.42f);
         }
-        private void FitVehicleBody(Transform root,float physicalRadius,float preferredScale)
+        private void FitVehicleBody(Transform root,float visualRadius,float preferredScale)
         {
             root.localScale=Vector3.one*preferredScale;
             // Surface vehicles tilt on relief. A spherical envelope also contains every such pitch/roll;
             // atmospheric craft stay level and need only the planar yaw envelope.
             float radius=ModelMotionRadius(root,true,!AtmosphereSurface);
-            if(radius>.000001f)root.localScale*=Mathf.Min(1,physicalRadius*.98f/radius);
+            if(radius>.000001f)root.localScale*=Mathf.Min(1,visualRadius*.98f/radius);
             var size=root.gameObject.AddComponent<VehicleModelSize>();
             size.PreferredScale=preferredScale;size.AppliedScale=root.localScale.x;
-            size.PhysicalRadius=physicalRadius;size.BeforeRadius=radius;
+            size.VisualRadius=visualRadius;size.BeforeRadius=radius;
             size.AfterRadius=radius*(size.AppliedScale/preferredScale);
         }
 
@@ -61,6 +61,7 @@ namespace PlanetOne.Runtime
 
     internal sealed class VehicleModelSize:MonoBehaviour
     {
-        internal float PreferredScale,AppliedScale,PhysicalRadius,BeforeRadius,AfterRadius;
+        internal Vector2 DisplayOffset;
+        internal float PreferredScale,AppliedScale,VisualRadius,BeforeRadius,AfterRadius;
     }
 }

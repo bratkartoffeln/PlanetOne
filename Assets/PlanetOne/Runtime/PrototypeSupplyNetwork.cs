@@ -39,7 +39,7 @@ namespace PlanetOne.Runtime
         private void DrawSupplyControls()
         {
             if(GUILayout.Button(supplyOverlay?"Logistikansicht aus · L":"Logistikansicht · L",buttonStyle,GUILayout.MinHeight(UiRowHeight())))ToggleSupplyOverlay();
-            if(!AtmosphereSurface&&GUILayout.Button("Verbindung planen",planningSupply?selectedButtonStyle:buttonStyle,GUILayout.MinHeight(UiRowHeight())))BeginSupplyConnection();
+
         }
         private bool HandleSupplyPointer(int x,int y)
         {
@@ -86,17 +86,6 @@ namespace PlanetOne.Runtime
         {
             supplyLabelRects.Clear();
             if(openPlanetId==0)return;var p=simulation.FindPlanet(openPlanetId);if(p.OwnerId!=PlayerFactionId)return;
-            if(supplyOverlay||planningSupply||removingRoad)
-            {
-                for(int i=0;i<p.Roads.Length;i++)if(p.Roads[i])for(int d=0;d<6;d++)
-                {
-                    var n=HexGrid.Neighbor(i%p.Width,i/p.Width,d);
-                    if(n.X<0||n.Y<0||n.X>=p.Width||n.Y>=p.Height)continue;
-                    int next=n.Y*p.Width+n.X;
-                    bool building=p.Buildings.Exists(b=>b.X==n.X&&b.Y==n.Y&&!b.Destroyed&&GameSimulation.BuildingOwner(p,b)==PlayerFactionId);
-                    if(next>i&&p.Roads[next]||building)SupplySegment(SurfacePosition(i%p.Width,.1f,i/p.Width),SurfacePosition(n.X,.1f,n.Y),new Color(.3f,.8f,.85f,.28f),scale);
-                }
-            }
             int waiting=0,moving=0,pending=0;
             foreach(var shipment in p.Shipments)
             {
@@ -136,7 +125,7 @@ namespace PlanetOne.Runtime
                     if(path==null)
                     {
                         var destination=p.Buildings.Find(b=>b.Id==delivery.TargetId);
-                        if(destination!=null)SupplyLabel(SurfacePosition(destination.X,.6f,destination.Y),"Verbindung fehlt",Amber,scale);
+                        if(destination!=null)SupplyLabel(SurfacePosition(destination.X,.6f,destination.Y),"Zufahrt versperrt",Amber,scale);
                     }
                 }
             if(selectedBuildingId!=0&&!supplyOverlay)

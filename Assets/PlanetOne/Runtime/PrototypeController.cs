@@ -75,6 +75,7 @@ namespace PlanetOne.Runtime
         public int OpenPlanetId { get { return openPlanetId; } }
         public long SelectedBuildingId { get { return selectedBuildingId; } }
         public int RenderedBuildingCount { get { return buildingViews.Count; } }
+        internal Transform ShipmentModel(long id){return shipmentViews[id];}
         public int RenderedShipmentCount { get { int count=0;foreach(var view in shipmentViews.Values)if(view.gameObject.activeInHierarchy)count++;return count; } }
         public int PlayerFactionId { get { return simulation.State.PlayerFactionId; } }
         public static string SavePath { get { return Path.Combine(Application.persistentDataPath, "prototype-save.json"); } }
@@ -156,6 +157,7 @@ namespace PlanetOne.Runtime
             foreach(var material in artMaterials.Values)Destroy(material);
             foreach(var icon in buildingIcons.Values)Destroy(icon);
             if(domeGlass!=null)Destroy(domeGlass);
+            if(trailMaterial!=null)Destroy(trailMaterial);
             if(reliefMesh!=null)Destroy(reliefMesh);
             if(reliefMap!=null)Destroy(reliefMap);
             if(bridgePanelTexture!=null)Destroy(bridgePanelTexture);if(glassPanelTexture!=null)Destroy(glassPanelTexture);
@@ -195,7 +197,7 @@ namespace PlanetOne.Runtime
                 if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) pan.x += 1;
                 if (pan.sqrMagnitude > 0)
                 {
-                    var delta=Quaternion.Euler(0,cameraYaw,0)*pan.normalized*Time.unscaledDeltaTime*8f;
+                    var delta=Quaternion.Euler(0,WorldCameraYaw,0)*pan.normalized*Time.unscaledDeltaTime*8f;
                     if(openPlanetId==0)SetSpaceFocus(spaceFocus+delta);
                     else
                     {
@@ -242,7 +244,6 @@ namespace PlanetOne.Runtime
                 return;
             }
 
-            Ray ray = sceneCamera.ScreenPointToRay(Input.mousePosition);
             var hoverCell = SurfaceCellAtScreen(Input.mousePosition);
             hoverX = hoverCell.X; hoverY = hoverCell.Y;
             PlanetState planetState = simulation.FindPlanet(openPlanetId);
@@ -264,18 +265,6 @@ namespace PlanetOne.Runtime
             else
             {
                 ghost.gameObject.SetActive(false);
-                if (Input.GetMouseButtonDown(0))
-                {
-                    RaycastHit buildingHit;
-                    long pickedId;
-                    if (Physics.Raycast(ray, out buildingHit, 300f) && buildingPickIds.TryGetValue(buildingHit.collider.GetInstanceID(), out pickedId))
-                        SelectBuilding(pickedId);
-                    else
-                    {
-                        BuildingState building = inside ? BuildingAt(planetState, hoverX, hoverY) : null;
-                        SelectBuilding(building == null ? 0 : building.Id);
-                    }
-                }
             }
         }
 
@@ -436,13 +425,7 @@ namespace PlanetOne.Runtime
         private void UpdateSurface()
         {
             PlanetState planet = simulation.FindPlanet(openPlanetId);
-            RefreshRoadVisuals(planet);
-            for(int i=0;i<planet.Roads.Length;i++)
-            {
-                if(!planet.Roads[i]||AtmosphereSurface)
-                {if(roadViews[i]!=null)Destroy(roadViews[i].gameObject);roadViews[i]=null;continue;}
-                if(roadViews[i]==null)roadViews[i]=BuildCurvedRoad(i%planet.Width,i/planet.Width,planet);
-            }
+            UpdateGroundTrails(planet);
             obsoleteBuildings.Clear();
             foreach (long id in buildingViews.Keys) obsoleteBuildings.Add(id);
             foreach (BuildingState building in planet.Buildings)
@@ -480,6 +463,7 @@ namespace PlanetOne.Runtime
                 buildingIndicators.Remove(id);
                 if (selectedBuildingId == id) selectedBuildingId = 0;
             }
+            visibleCouriers.Clear();
             obsoleteShipments.Clear();
             foreach (long id in shipmentViews.Keys) obsoleteShipments.Add(id);
             foreach (ShipmentState shipment in planet.Shipments)
@@ -487,7 +471,7 @@ namespace PlanetOne.Runtime
                 Transform view;
                 if(GameSimulation.GroundCourierDocked(shipment))
                 {
-                    if(shipmentViews.TryGetValue(shipment.Id,out view))view.gameObject.SetActive(false);
+                    if(shipmentViews.TryGetValue(shipment.Id,out view)){view.gameObject.SetActive(false);view.GetComponent<VehicleModelSize>().DisplayOffset=Vector2.zero;}
                     obsoleteShipments.Remove(shipment.Id);continue;
                 }
                 if (!shipmentViews.TryGetValue(shipment.Id, out view))
@@ -499,7 +483,9 @@ namespace PlanetOne.Runtime
                 obsoleteShipments.Remove(shipment.Id);
                 view.gameObject.SetActive(true);
                 UpdateShipmentPose(view,shipment);
+                visibleCouriers.Add(shipment);
             }
+            SeparateCourierModels();
             foreach (long id in obsoleteShipments)
             {
                 Destroy(shipmentViews[id].gameObject);
@@ -553,7 +539,7 @@ namespace PlanetOne.Runtime
             }
             else
             {
-                sceneCamera.transform.position = surfaceFocus + Quaternion.Euler(cameraPitch,cameraYaw,0)*new Vector3(0,0,-30);
+                sceneCamera.transform.position = surfaceFocus + Quaternion.Euler(cameraPitch,WorldCameraYaw,0)*new Vector3(0,0,-30);
                 sceneCamera.transform.LookAt(surfaceFocus);
                 sceneCamera.orthographicSize = surfaceZoom;
             }
@@ -573,6 +559,8 @@ namespace PlanetOne.Runtime
             float width = Screen.width / scale;
             float height = Screen.height / scale;
             PreparePresentationSkin();
+            hoveredProductionTip=null;
+            productionPointerInContent=false;
             bool previousEnabled=GUI.enabled;
             GUI.enabled=previousEnabled && !viewFlightActive && !settingsOpen && !menuOpen && !IsCommandMenuOpen && commandDismissFrame!=Time.frameCount;
             if(hasSession)
@@ -592,6 +580,7 @@ namespace PlanetOne.Runtime
             DrawViewFlight(width,height);
             DrawPresentationDialogs(width,height);
             DrawCommandMenu();
+            if(GUI.enabled && !menuOpen && !settingsOpen && !IsCommandMenuOpen) ProductionTooltip(width,height);
             DrawWorldPointer(scale);
             GUI.matrix = original;
         }
@@ -614,32 +603,168 @@ namespace PlanetOne.Runtime
         }
 
 
-        private void DrawBuildButton(BuildingKind kind)
+        private int ProductionColumns {get{return Mathf.Clamp((int)(SidebarContentWidth/(124*TextScale)),2,3);}}
+        private Rect ProductionRect(int columns)
         {
-            BuildingDefinition definition = Definitions.Get(kind);
-            string cost = "";
-            if (definition.Cost[(int)ResourceKind.Metal] > 0) cost += definition.Cost[(int)ResourceKind.Metal] + " M";
-            if (definition.Cost[(int)ResourceKind.Parts] > 0) cost += "  " + definition.Cost[(int)ResourceKind.Parts] + " B";
-            float tileWidth=(SidebarContentWidth-16)/2;
-            if (GUILayout.Button(new GUIContent(definition.Name + "\n" + cost, BuildingIcon(kind),definition.Name+" bauen · "+cost+" · Bauplatz anschließend in der Welt wählen"), placement == kind ? selectedBuildStyle : buildStyle, GUILayout.Height(126+FontUnitSize(16)*2),GUILayout.Width(tileWidth)))
+            float w=Mathf.Floor((SidebarContentWidth-columns*5)/columns);
+            return GUILayoutUtility.GetRect(w,72+(smallStyle.lineHeight+4)*3,GUILayout.Width(w));
+        }
+        private void DrawBuildButton(BuildingKind kind,int columns,int[] stock)
+        {
+            var definition=Definitions.Get(kind);
+            var missing=new int[stock.Length];
+            for(int r=0;r<stock.Length;r++) missing[r]=Math.Max(0,definition.Cost[r]-stock[r]);
+            string locked=simulation.BuildingTechnologyError(kind,PlayerFactionId);
+            Rect tile=ProductionRect(columns);
+            BuildingState active=null;int jobs=0;
+            foreach(var site in simulation.FindPlanet(openPlanetId).Buildings)
+                if(site.Kind==kind && !site.Built && !site.Destroyed && !site.Deconstructing)
+                {active=site;jobs++;}
+            if(productionPointerInContent && jobs==1 && Event.current.type==EventType.MouseDown && Event.current.button==1 && tile.Contains(Event.current.mousePosition))
             {
-                var next=placement == kind ? (BuildingKind?)null : kind;
-                CancelPlacement();placement=next;
-                placingRoad = false;
-                removingRoad = false;
-                selectedBuildingId = 0;
+                RequestBuildingOperation(openPlanetId,active.Id,active.Enabled?CommandKind.SetBuildingEnabled:CommandKind.CancelConstruction,0,false);
+                Event.current.Use();
+            }
+            bool selected=placement==kind;
+            bool stopped=active!=null && (!active.Enabled || active.Status=="Baufahrzeug: Anfahrt unterbrochen");
+            float progress=active==null?0:(float)(active.BuildProgress/Math.Max(.01,definition.BuildSeconds));
+            int[] costs=definition.Cost;
+            if(active!=null)
+            {
+                var outstanding=LocalShortfall(active,costs,active.ConstructionStarted);
+                bool waiting=Array.Exists(outstanding,n=>n>0);
+                stopped|=waiting;
+                if(waiting)missing=outstanding;
+            }
+            string state=active!=null?(active.Enabled?Mathf.FloorToInt(progress*100)+" %":"Pause"):selected?"Platzieren":null;
+            var tooltip=locked??(active==null?"Bauplatz wählen":active.Status);
+            if(ProductionTile(tile,definition.Name,BuildingIcon(kind),costs,missing,tooltip,selected,jobs,state,progress,stopped,locked!=null))
+            {                CancelPlacement();selectedBuildingId=0;
+                if(jobs==1 && !active.Enabled) RequestBuildingOperation(openPlanetId,active.Id,CommandKind.SetBuildingEnabled,0,true);
+                else if(locked!=null) Notify(locked);
+                else if(!selected) placement=kind;
             }
         }
 
+        private static readonly Color ShortageRed=new Color(1,.34f,.29f);
+        private static readonly HudIcon[] CostIcons={HudIcon.Food,HudIcon.Ore,HudIcon.Metal,HudIcon.Parts,HudIcon.Crystal,HudIcon.Electronics};
+        private static int[] LocalShortfall(BuildingState site,int[] cost,bool paid)
+        {
+            var missing=new int[cost.Length];
+            if(!paid)for(int r=0;r<cost.Length;r++) missing[r]=Math.Max(0,cost[r]-site.Inventory[r]+site.ReservedOutgoing[r]);
+            return missing;
+        }
+
+        private GUIStyle productionNameStyle, productionTipStyle;
+        private string hoveredProductionTip;
+        private bool productionPointerInContent;
+        private bool ProductionTile(Rect tile,string name,Texture2D portrait,int[] cost,int[] missing,string detail,
+            bool selected,int count,string state,float progress,bool stopped,bool locked)
+        {
+            bool shortage=Array.Exists(missing,n=>n>0);
+            bool hot=productionPointerInContent && tile.Contains(Event.current.mousePosition);
+            Fill(tile,locked?Color.gray:selected?Cyan:hot?Amber:Border);
+            var inside=new Rect(tile.x+2,tile.y+2,tile.width-4,tile.height-4);
+            Fill(inside,new Color(.065f,.09f,.105f));
+            if(productionNameStyle==null)
+            {
+                productionNameStyle=new GUIStyle(smallStyle){alignment=TextAnchor.MiddleCenter,wordWrap=true,padding=new RectOffset()};
+                productionNameStyle.normal.background=null;
+                productionNameStyle.normal.textColor=Ink;
+            }
+            productionNameStyle.fontSize=FontUnitSize(14);
+            float line=smallStyle.lineHeight+4;
+            float titleHeight=productionNameStyle.lineHeight*2+2;
+            string status=locked?"Forschung":count>0?(count>1?"×"+count+"  ":"")+state:null;
+            float statusHeight=string.IsNullOrEmpty(status)?0:line;
+            var title=new Rect(inside.x+2,inside.y+1,inside.width-4,titleHeight);
+            var art=new Rect(inside.x+3,title.yMax+1,inside.width-6,inside.yMax-title.yMax-line-statusHeight-3);
+            var tint=GUI.color;
+            if(locked) GUI.color=Color.gray;
+            GUI.DrawTexture(art,portrait,ScaleMode.ScaleToFit);GUI.color=tint;
+            if(locked)Fill(inside,new Color(.23f,.23f,.23f,.78f));
+            else if(shortage)Fill(inside,new Color(.72f,.045f,.035f,.34f));
+            if(stopped) Fill(inside,new Color(.65f,.055f,.045f,.32f));
+            if(count>0)
+            {
+                Fill(new Rect(inside.x,inside.y,inside.width*(stopped?Mathf.Max(.035f,progress):Mathf.Clamp01(progress)),inside.height),
+                    stopped?new Color(.86f,.075f,.06f,.64f):new Color(.06f,.58f,.46f,.48f));
+            }
+            GUI.Label(title,name,productionNameStyle);
+            if(statusHeight>0)
+                GUI.Label(new Rect(inside.x+2,art.yMax,inside.width-4,statusHeight),status,productionNameStyle);
+            var entries=Array.FindAll(cost,n=>n>0).Length;
+            float slot=inside.width/Math.Max(1,entries),x=inside.x+2,y=inside.yMax-smallStyle.lineHeight-4;
+            for(int r=0;r<cost.Length;r++)
+            {
+                if(cost[r]<=0)continue;
+                float icon=Mathf.Min(smallStyle.lineHeight,slot*.43f);
+                GUI.color=locked?Color.gray:missing[r]>0?ShortageRed:Color.white;
+                GUI.DrawTexture(new Rect(x,y+2,icon,icon),HudSymbol(CostIcons[r]));
+                GUI.Label(new Rect(x+icon+1,y,slot-icon,smallStyle.lineHeight+4),cost[r].ToString(),smallStyle);
+                GUI.color=tint;x+=slot;
+            }
+            string tip=name+"\nKosten: "+GoodsText(cost);
+            if(shortage)tip+="\nFehlt: "+GoodsText(missing);
+            if(!string.IsNullOrEmpty(detail))tip+="\n"+detail;
+            if(hot && Event.current.type==EventType.Repaint) hoveredProductionTip=tip;
+            bool clicked=GUI.Button(tile,GUIContent.none,GUIStyle.none);
+            return clicked && !locked;
+        }
+
+        private void ProductionTooltip(float width,float height)
+        {
+            if(Event.current.type!=EventType.Repaint || hoveredProductionTip==null) return;
+            if(productionTipStyle==null)productionTipStyle=new GUIStyle(smallStyle){wordWrap=true,padding=new RectOffset(),alignment=TextAnchor.UpperLeft};
+            productionTipStyle.fontSize=FontUnitSize(13);
+            var text=new GUIContent(hoveredProductionTip);
+            const float padX=18,padY=14;
+            float w=Mathf.Min(width-16,Mathf.Clamp(productionTipStyle.CalcSize(text).x+2*padX,210,365));
+            float h=productionTipStyle.CalcHeight(text,w-2*padX)+2*padY;
+            Vector2 mouse=Event.current.mousePosition;
+            float x=mouse.x>=w+16?mouse.x-w-12:mouse.x+12;
+            var box=new Rect(Mathf.Clamp(x,4,width-w-4),Mathf.Clamp(mouse.y+12,4,height-h-4),w,h);
+            DrawPanel(box);GUI.Label(new Rect(box.x+padX,box.y+padY,w-2*padX,h-2*padY),text,productionTipStyle);
+        }
+        private void DrawConstructionOrders(PlanetState planet)
+        {
+            bool first=true;
+            foreach(var site in planet.Buildings)
+            {
+                if(site.Destroyed||site.Built||site.Deconstructing||GameSimulation.BuildingOwner(planet,site)!=PlayerFactionId)continue;
+                if(first){GUILayout.Label("BAUAUFTRÄGE",headingStyle);first=false;}
+                var def=Definitions.Get(site.Kind);
+                float progress=Mathf.Clamp01((float)(site.BuildProgress/Math.Max(.01,def.BuildSeconds)));
+                GUILayout.Label(def.Name+" · "+(site.Enabled?(site.Status??"Material angefordert"):"Angehalten"),bodyStyle);
+                Rect bar=GUILayoutUtility.GetRect(1,5,GUILayout.ExpandWidth(true));
+                Fill(bar,new Color(.16f,.22f,.24f));Fill(new Rect(bar.x,bar.y,bar.width*progress,bar.height),site.Enabled?Cyan:ShortageRed);
+                GUILayout.BeginHorizontal();
+                if(GUILayout.Button(site.Enabled?"Anhalten":"Fortsetzen",buttonStyle))
+                    RequestBuildingOperation(planet.Id,site.Id,CommandKind.SetBuildingEnabled,0,!site.Enabled);
+                if(!site.Enabled && GUILayout.Button("Abbrechen",buttonStyle))
+                    RequestBuildingOperation(planet.Id,site.Id,CommandKind.CancelConstruction);
+                GUILayout.EndHorizontal();
+                Rect row=GUILayoutUtility.GetLastRect();
+                if(Event.current.type==EventType.MouseDown && Event.current.button==1 && row.Contains(Event.current.mousePosition))
+                {
+                    RequestBuildingOperation(planet.Id,site.Id,site.Enabled?CommandKind.SetBuildingEnabled:CommandKind.CancelConstruction,0,false);
+                    Event.current.Use();
+                }
+            }
+        }
         private void DrawBuildingDetails(BuildingState building)
         {
             if(GameSimulation.BuildingOwner(simulation.FindPlanet(building.PlanetId),building)!=PlayerFactionId)
             { GUILayout.Label(Definitions.Get(building.Kind).Name+" · fremde Anlage",headingStyle);GUILayout.Label("Mit Infanterie vor Ort sichern.",bodyStyle);return; }
+            bool factory=building.Built && !building.Deconstructing && (building.Kind==BuildingKind.VehicleFactory || building.Kind==BuildingKind.Barracks);
+            if(factory)DrawRecruitment(building);
+            if(building.Built && !building.Deconstructing && building.Kind==BuildingKind.Spaceport)DrawPortProduction(building);
             DrawSupplyControls();
-            GUILayout.Label(Definitions.Get(building.Kind).Name.ToUpperInvariant(), headingStyle);
+            if(!factory)GUILayout.Label(Definitions.Get(building.Kind).Name.ToUpperInvariant(), headingStyle);
             GUILayout.Label(building.Status ?? (building.Built ? "Betriebsbereit" : "Im Bau"), mutedStyle);
             GUILayout.Label("Struktur: " + building.Health.ToString("0") + " / " + Definitions.BuildingHealth(building.Kind), smallStyle);
-            DrawRecruitment(building);
+            if(!factory)DrawRecruitment(building);
+            if (!building.Built && !building.Deconstructing && !building.ConstructionStarted) DrawMaterialNeeds(building, Definitions.Get(building.Kind).Cost);
             if (!building.Built)
                 GUILayout.Label("Baufortschritt  " + Mathf.RoundToInt((float)(100 * building.BuildProgress / Math.Max(0.01, Definitions.Get(building.Kind).BuildSeconds))) + " %", smallStyle);
             GUILayout.Space(6);
@@ -724,12 +849,9 @@ namespace PlanetOne.Runtime
         private void DrawBuildTools()
         {
             var planet=simulation.FindPlanet(openPlanetId);if(planet==null)return;
-            string[] categories={"Aufbau","Industrie","Militär"};
-            float categoryWidth=12;foreach(string category in categories)categoryWidth+=buttonStyle.CalcSize(new GUIContent(category)).x+8;
-            int categoryColumns=categoryWidth>SidebarContentWidth?1:3;
-            int categoryRows=Mathf.CeilToInt(categories.Length/(float)categoryColumns);
-            buildCategory=GUILayout.SelectionGrid(buildCategory,categories,categoryColumns,buttonStyle,GUILayout.Height(categoryRows*UiRowHeight()+Mathf.Max(0,categoryRows-1)*4));
-            GUILayout.Space(8);
+            int columns=ProductionColumns;
+            var stock=new int[6];for(int r=0;r<stock.Length;r++) stock[r]=GameSimulation.FreeBuildingStock(planet,PlayerFactionId,r);
+
             int column=0;
             foreach(BuildingKind kind in Enum.GetValues(typeof(BuildingKind)))
             {
@@ -739,32 +861,23 @@ namespace PlanetOne.Runtime
                 bool basic=kind==BuildingKind.Farm || kind==BuildingKind.SolarPlant || kind==BuildingKind.Housing || kind==BuildingKind.Warehouse;
                 if(buildCategory!=(military?2:basic?0:1))continue;
                 if(!PlanetEnvironment.AllowsBuilding(planet.Kind,kind))continue;
-                if(column%2==0)GUILayout.BeginHorizontal();
-                DrawBuildButton(kind);column++;
-                if(column%2==0)GUILayout.EndHorizontal();
+                if(column%columns==0)GUILayout.BeginHorizontal();
+                DrawBuildButton(kind,columns,stock);column++;
+                if(column%columns==0)GUILayout.EndHorizontal();
             }
-            if(column%2!=0)GUILayout.EndHorizontal();
+            if(column%columns!=0)GUILayout.EndHorizontal();
+
+            DrawConstructionOrders(planet);
             GUILayout.Space(4);
             if(GUILayout.Button(supplyOverlay?"Logistikansicht aus · L":"Logistikansicht · L",buttonStyle))ToggleSupplyOverlay();
             if(AtmosphereSurface) {
                 GUILayout.Label("LUFTFRACHT · 4 Frachtdrohnen, je 8 Waren. Automatische Flugkorridore zwischen Plattformen. Erz und Metall per Raumhafen importieren.",smallStyle);
                 return;
             }
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Verbindung planen", planningSupply ? selectedButtonStyle : buttonStyle, GUILayout.MinHeight(UiRowHeight(30))))
-            {
-                BeginSupplyConnection();
-            }
-            if (GUILayout.Button("Abschnitt sperren", removingRoad ? selectedButtonStyle : buttonStyle, GUILayout.MinHeight(UiRowHeight(30))))
-            {
-                bool next = !removingRoad; CancelPlacement(); removingRoad = next; selectedBuildingId = 0;
-            }
-            GUILayout.EndHorizontal();
             GUILayout.Space(7);
             if (removingRoad) GUILayout.Label("Eine Verbindungslinie anklicken. Lieferungen nutzen einen Umweg oder warten mit ihrer Fracht.", smallStyle);
             else if (placingRoad) GUILayout.Label("Freie Felder verbinden. Versorgungsverbindungen sind vorläufig kostenfrei. Rechtsklick beendet die Planung.", smallStyle);
-            else if (placement.HasValue) GUILayout.Label("Bauplatz am Versorgungsnetz wählen. Bei Bedarf zuerst eine Verbindung zum Bauplatz planen.", smallStyle);
-            else GUILayout.Label("Metall M · Bauteile B. Alle Baumaterialien werden tatsächlich angeliefert.", smallStyle);
+            else if (placement.HasValue) GUILayout.Label("Freien erreichbaren Bauplatz wählen. Transporter und Baufahrzeuge finden automatisch den Weg.", smallStyle);
         }
 
         private void DrawMetric(string label, string value)
@@ -877,6 +990,9 @@ namespace PlanetOne.Runtime
                 contextOpen=true;panelOpen=false;
                 showingSpacePanel=false;showingDiplomacy=false;showingMilitary=false;presentationSection=1;
                 selectedBuildingId = id;
+                if(GameSimulation.BuildingOwner(planet,building)==PlayerFactionId && building.Built && !building.Deconstructing &&
+                    (building.Kind==BuildingKind.VehicleFactory || building.Kind==BuildingKind.Barracks || building.Kind==BuildingKind.Spaceport))
+                {panelOpen=true;contextOpen=false;UpdateCamera();}
                 showingDetails = true;
                 sidebarScroll = Vector2.zero;
                 return true;

@@ -11,8 +11,81 @@ namespace PlanetOne.Runtime
         private GUIStyle centerStyle,treeStyle;
         private readonly Dictionary<string,Texture2D> objectPortraits=new Dictionary<string,Texture2D>();
         private static readonly string[] SectionNames={"Übersicht","Bauen","Bodentruppen","Flotte","Forschung","Versorgung","Diplomatie"};
+        private static readonly string[] BuildTabNames={"Basis","Industrie","Militär"};
+        private static readonly int[] SidebarSections={1,3,4,6};
+        private static readonly string[] SidebarTabNames={SectionNames[1],SectionNames[3],SectionNames[4],SectionNames[6]};
+        private GUIStyle tabLabel;
+        private float[] tabWidths=Array.Empty<float>();
+
+        private int TabColumns(string[] labels,float width)
+        {
+            if(tabLabel==null)
+            {
+                tabLabel=new GUIStyle(GUIStyle.none){alignment=TextAnchor.MiddleCenter};
+                tabLabel.hover.textColor=tabLabel.active.textColor=tabLabel.focused.textColor=Ink;
+            }
+            tabLabel.fontSize=FontUnitSize(16);
+            if(tabWidths.Length<labels.Length)tabWidths=new float[labels.Length];
+            float total=0,widest=1;
+            for(int i=0;i<labels.Length;i++)
+            {
+                tabWidths[i]=tabLabel.CalcSize(new GUIContent(labels[i])).x+14;
+                total+=tabWidths[i];
+                widest=Mathf.Max(widest,tabWidths[i]);
+            }
+            if(total<=width)return labels.Length;
+            int columns=Mathf.Max(1,Mathf.FloorToInt(width/widest));
+            int rows=Mathf.CeilToInt((float)labels.Length/columns);
+            return Mathf.CeilToInt((float)labels.Length/rows);
+        }
+
+        private int DrawTabStrip(Rect rect,int selected,string[] labels,int columns)
+        {
+            float h=UiRowHeight();
+            float x=rect.x,extra=0;
+            for(int i=0;i<labels.Length;i++)
+            {
+                int row=i/columns;
+                if(i%columns==0)
+                {
+                    int count=Mathf.Min(columns,labels.Length-i);
+                    float used=0;
+                    for(int j=i;j<i+count;j++)used+=tabWidths[j];
+                    extra=(rect.width-used)/count;
+                    x=rect.x;
+                }
+                var cell=new Rect(x,rect.y+row*h,tabWidths[i]+extra,h);
+                x=cell.xMax;
+                bool active=i==selected;
+                bool hover=GUI.enabled && cell.Contains(Event.current.mousePosition);
+                var face=new Rect(cell.x+1,cell.y+(active?0:4),cell.width-2,cell.height-(active?0:4));
+                Fill(face,active?new Color(.085f,.20f,.23f):hover?new Color(.12f,.17f,.20f):new Color(.065f,.09f,.11f));
+                Fill(new Rect(cell.x,cell.yMax-2,cell.width,2),active?Cyan:Border);
+                tabLabel.normal.textColor=active?Ink:hover?Color.white:Muted;
+                if(GUI.Button(face,labels[i],tabLabel))selected=i;
+            }
+            return selected;
+        }
+
+        private int DrawWorkspaceTabs(int selected,string[] labels,float width=0)
+        {
+            int columns=TabColumns(labels,width>0?width:SidebarContentWidth);
+            float h=UiRowHeight()*Mathf.CeilToInt((float)labels.Length/columns);
+            var rect=GUILayoutUtility.GetRect(1,h,GUILayout.ExpandWidth(true));
+            return DrawTabStrip(rect,selected,labels,columns);
+        }
+
+        private int DrawSidebarTabs(Rect area,ref float top,int selected,string[] labels)
+        {
+            float width=area.width-24;
+            int columns=TabColumns(labels,width);
+            float h=UiRowHeight()*Mathf.CeilToInt((float)labels.Length/columns);
+            var rect=new Rect(area.x+12,top,width,h);
+            top+=h+6;
+            return DrawTabStrip(rect,selected,labels,columns);
+        }
         private bool HasSelection {get{return openPlanetId==0?StarSelected || selectedShips.Count>0 || simulation.FindPlanet(selectedPlanetId)!=null:selectedBuildingId!=0 || selectedUnits.Count>0;}}
-        private bool SelectionCardVisible {get{return !viewFlightActive && CurrentLayout!=InterfaceLayout.CommandCenter && contextOpen && !panelOpen && HasSelection;}}
+        private bool SelectionCardVisible {get{return !viewFlightActive && CurrentLayout!=InterfaceLayout.CommandCenter && !(CurrentLayout==InterfaceLayout.OrbitalBridge&&(selectedUnits.Count>0||selectedShips.Count>0)) && contextOpen && !panelOpen && HasSelection;}}
         private float SelectionSummaryHeight {get{return 132+FontUnitSize(18)*4;}}
         private Rect SelectionCardRect(float width){float w=Mathf.Min(430,346+(TextScale-1)*140);return new Rect(width-w-18,TopHeight+22,w,SelectionSummaryHeight+UiRowHeight()*2+50);}
         public bool IsContextCardOpen {get{return SelectionCardVisible;}}
@@ -33,7 +106,7 @@ namespace PlanetOne.Runtime
             {
                 if(planet.OwnerId!=PlayerFactionId || openPlanetId!=0 && planet.Id!=openPlanetId)continue;
                 power+=planet.EnergyProduced-planet.EnergyUsed;
-                foreach(var building in planet.Buildings)if(GameSimulation.BuildingOwner(planet,building)==PlayerFactionId)for(int r=0;r<6;r++)stock[r]+=building.Inventory[r];
+                foreach(var building in planet.Buildings)for(int r=0;r<6;r++)stock[r]+=GameSimulation.FreeSupplyStock(planet,PlayerFactionId,building,r);
             }
             string[] names={"Energie","Metall","Bauteile","Nahrung","Kristalle"};
             string[] values={(power>0?"+":"")+power,stock[2].ToString(),stock[3].ToString(),stock[0].ToString(),stock[4].ToString()};
@@ -74,9 +147,22 @@ namespace PlanetOne.Runtime
             GUI.Label(new Rect(area.x+16,top,area.width-62,FontUnitSize(20)+12),panelOpen?SectionNames[presentationSection].ToUpperInvariant():openPlanetId==0?"SONNENSYSTEM":simulation.FindPlanet(openPlanetId).Name.ToUpperInvariant(),headingStyle);
             if(panelOpen && HudButton(new Rect(area.xMax-42,top-4,30,30),"",HudIcon.Close,false,"Zur Auswahl zurück")){panelOpen=false;contextOpen=true;UpdateCamera();}
             top+=FontUnitSize(20)+22;
-            if(fixedBar && !panelOpen){DrawRadar(new Rect(area.x+14,top,area.width-28,142));top+=156;}
-            float navRow=UiRowHeight(40);float footer=fixedBar?navRow*4+20:0;
-            Rect content=new Rect(area.x+14,top,area.width-28,area.yMax-top-footer-12);
+            bool buildPanel=openPlanetId!=0 && simulation.FindPlanet(openPlanetId).OwnerId==PlayerFactionId &&
+                ((!panelOpen && fixedBar) || (panelOpen && presentationSection==1 && !showingDetails && !showingMilitary && !showingDiplomacy && !showingSpacePanel));
+            if(fixedBar)
+            {
+                int selected=buildPanel?0:panelOpen && !showingDetails?Array.IndexOf(SidebarSections,presentationSection):-1;
+                int next=DrawSidebarTabs(area,ref top,selected,SidebarTabNames);
+                if(next!=selected){OpenPresentationSection(SidebarSections[next]);GUIUtility.ExitGUI();}
+            }
+            if(buildPanel)
+            {
+                int next=DrawSidebarTabs(area,ref top,buildCategory,BuildTabNames);
+                if(next!=buildCategory)SelectBuildCategory(next);
+            }
+            Rect content=new Rect(area.x+14,top,area.width-28,area.yMax-top-12);
+            productionPointerInContent=GUI.enabled && content.Contains(Event.current.mousePosition) &&
+                Event.current.mousePosition.x < content.xMax-GUI.skin.verticalScrollbar.fixedWidth;
             GUILayout.BeginArea(content);
             sidebarContentWidth=content.width-GUI.skin.verticalScrollbar.fixedWidth-8;
             sidebarScroll.x=0;
@@ -84,13 +170,12 @@ namespace PlanetOne.Runtime
             GUILayout.BeginVertical(GUILayout.Width(sidebarContentWidth));
             DrawHudContent();
             GUILayout.EndVertical();GUILayout.EndScrollView();GUILayout.EndArea();
-            if(fixedBar)
-            {
-                int[] sections={1,3,4,6};HudIcon[] icons={HudIcon.Build,HudIcon.Fleet,HudIcon.Research,HudIcon.Diplomacy};
-                for(int i=0;i<4;i++)if(HudButton(new Rect(area.x+12,area.yMax-footer+i*(navRow+2),area.width-24,navRow),SectionNames[sections[i]],icons[i],presentationSection==sections[i]))OpenPresentationSection(sections[i]);
-            }
         }
 
+        internal void SelectBuildCategory(int category)
+        {
+            buildCategory=category;sidebarScroll=Vector2.zero;
+        }
         private void DrawHudContent()
         {
             if(!panelOpen)
@@ -134,7 +219,7 @@ namespace PlanetOne.Runtime
             if(showingDetails)
             {
                 var b=FindSelected(planet);
-                if(b!=null){Rect image=GUILayoutUtility.GetRect(160,92);GUI.DrawTexture(image,BuildingIcon(b.Kind),ScaleMode.ScaleToFit);DrawBuildingDetails(b);}
+                if(b!=null){if(b.Kind!=BuildingKind.VehicleFactory && b.Kind!=BuildingKind.Barracks && b.Kind!=BuildingKind.Spaceport){Rect image=GUILayoutUtility.GetRect(160,92);GUI.DrawTexture(image,BuildingIcon(b.Kind),ScaleMode.ScaleToFit);}DrawBuildingDetails(b); }
                 else GUILayout.Label("Ein Gebäude auswählen, um seinen Betrieb zu verwalten.",bodyStyle);
                 return;
             }
@@ -145,7 +230,7 @@ namespace PlanetOne.Runtime
                 if(GUILayout.Button("Versorgung verwalten",buttonStyle,GUILayout.MinHeight(UiRowHeight(34))))OpenPresentationSection(5);
                 return;
             }
-            if(planet.OwnerId==PlayerFactionId){GUILayout.Label("BAUEN",headingStyle);GUILayout.Space(8);DrawBuildTools();}
+            if(planet.OwnerId==PlayerFactionId){DrawBuildTools();}
             else {GUILayout.Label("Fremde Oberfläche",headingStyle);GUILayout.Label("Eigene Truppen können hier über ihre Auswahl befehligt werden.",bodyStyle);}
         }
 
@@ -178,6 +263,10 @@ namespace PlanetOne.Runtime
         private void DrawPresentationBottom(float width,float height)
         {
             float y=height-BottomHeight;
+            if(CurrentLayout!=InterfaceLayout.OrbitalBridge)
+            {
+                var radar=new Rect(14,y-176,220,164);DrawPanel(radar);DrawRadar(new Rect(radar.x+8,radar.y+8,radar.width-16,radar.height-16));
+            }
             if(CurrentLayout==InterfaceLayout.OpenSpace)
             {
                 float w=Mathf.Min(width-60,760+(TextScale-1)*160);var dock=new Rect((width-w)/2,y+8,w,BottomHeight-20);DrawPanel(dock);
@@ -201,7 +290,7 @@ namespace PlanetOne.Runtime
             string message=Time.unscaledTime<notificationUntil?notification:placement.HasValue || placingRoad || removingRoad?(placementReason??"Bauplatz wählen · Rechtsklick / Esc: abbrechen"):spaceMoveTargetMode?"Flugziel anklicken · Esc: abbrechen":militaryTargetMode.HasValue?"Befehlsziel anklicken · Esc: abbrechen":ScenarioOutcomeText;
             if(!string.IsNullOrEmpty(message))
             {
-                float x=CurrentLayout==InterfaceLayout.OrbitalBridge?NavigationWidth+16:18,w=Mathf.Max(200,Mathf.Min(width-x-SideWidth-24,780));
+                float x=CurrentLayout==InterfaceLayout.OrbitalBridge?NavigationWidth+16:248,w=Mathf.Max(200,Mathf.Min(width-x-SideWidth-24,780));
                 float h=smallStyle.CalcHeight(new GUIContent(message),w-24)+16;var notice=new Rect(x,y-h-10,w,h);DrawPanel(notice);GUI.Label(new Rect(notice.x+12,notice.y+8,notice.width-24,notice.height-16),message,smallStyle);
             }
         }
@@ -248,7 +337,7 @@ namespace PlanetOne.Runtime
             if(openPlanetId==0)
             {if(StarSelected)return StarPortrait();var ship=simulation.State.Ships.Find(s=>selectedShips.Contains(s.Id) && !s.Destroyed && !s.Consumed);if(ship!=null)return ShipPortrait(ship.Kind);var p=simulation.FindPlanet(selectedPlanetId);return p==null?null:PlanetPortrait(p);}
             var planet=simulation.FindPlanet(openPlanetId);var b=FindSelected(planet);if(b!=null)return BuildingIcon(b.Kind);
-            var u=planet.Units.Find(v=>selectedUnits.Contains(v.Id)&&!v.Destroyed);return u==null?null:ObjectPortrait("unit"+u.Kind+"-"+planet.Kind,r=>BuildVehicleModel(r,u.Kind,Cyan),0.7f);
+            var u=planet.Units.Find(v=>selectedUnits.Contains(v.Id)&&!v.Destroyed);return u==null?null:UnitPortrait(u.Kind);
         }
         private void DrawSelectionSummary(Rect rect,bool wide,float titleReserve=0)
         {
@@ -288,14 +377,17 @@ namespace PlanetOne.Runtime
             }
         }
         private Texture2D PlanetPortrait(PlanetState planet){return ObjectPortrait("planet"+planet.Id+"-"+planet.ParentId,r=>CreateCelestial(planet,r,Vector3.zero,1.5f),1);}
-        private Texture2D ShipPortrait(ShipKind kind){return ObjectPortrait("ship"+kind,r=>BuildShipModel(r,kind),0.75f);}
-        private Texture2D ObjectPortrait(string key,Action<Transform> create,float size)
+        private Texture2D UnitPortrait(UnitKind kind){return ObjectPortrait("unit"+kind+"-"+AtmosphereSurface,r=>BuildVehicleModel(r,kind,Cyan),.64f,true);}
+        private Texture2D ShipPortrait(ShipKind kind){return ObjectPortrait("ship"+kind,r=>BuildShipModel(r,kind),0.75f,true);}
+        // From this azimuth, local +Z (the front of a unit) projects toward the lower right.
+        private const float UnitPortraitYaw=-150f;
+        private Texture2D ObjectPortrait(string key,Action<Transform> create,float size,bool catalogue=false)
         {
             Texture2D image;if(objectPortraits.TryGetValue(key,out image))return image;
             var root=new GameObject("Objektporträt").transform;root.position=Vector3.one*2500;var cameraObject=new GameObject("Porträtkamera");var camera=cameraObject.AddComponent<Camera>();var rt=RenderTexture.GetTemporary(192,128,24);var previous=RenderTexture.active;
             var portraitMaterials=new List<Material>();
             try
-            {create(root);foreach(var renderer in root.GetComponentsInChildren<Renderer>())if(renderer.sharedMaterial.shader.name=="PlanetOne/CelestialSurface"){var material=new Material(renderer.sharedMaterial);material.SetVector("_SunDirection",new Vector4(1,1,2,0));renderer.sharedMaterial=material;portraitMaterials.Add(material);}foreach(var t in root.GetComponentsInChildren<Transform>())t.gameObject.layer=30;camera.enabled=false;camera.cullingMask=1<<30;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=Color.clear;camera.orthographic=true;camera.orthographicSize=size;camera.aspect=1.5f;camera.nearClipPlane=0.1f;camera.farClipPlane=15;camera.transform.position=root.position+new Vector3(2,2.4f,3);camera.transform.LookAt(root.position+Vector3.up*0.1f);camera.targetTexture=rt;camera.Render();RenderTexture.active=rt;image=new Texture2D(192,128,TextureFormat.RGBA32,false);image.ReadPixels(new Rect(0,0,192,128),0,0);image.Apply();objectPortraits[key]=image;return image;}
+            {create(root);foreach(var renderer in root.GetComponentsInChildren<Renderer>())if(renderer.sharedMaterial.shader.name=="PlanetOne/CelestialSurface"){var material=new Material(renderer.sharedMaterial);material.SetVector("_SunDirection",new Vector4(1,1,2,0));renderer.sharedMaterial=material;portraitMaterials.Add(material);}foreach(var t in root.GetComponentsInChildren<Transform>())t.gameObject.layer=30;camera.enabled=false;camera.cullingMask=1<<30;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=Color.clear;camera.orthographic=true;camera.orthographicSize=size;camera.aspect=1.5f;camera.nearClipPlane=0.1f;camera.farClipPlane=15;camera.transform.position=root.position+(catalogue?CatalogueCameraOffset(UnitPortraitYaw):new Vector3(2,2.4f,3));camera.transform.LookAt(root.position+Vector3.up*(catalogue?.24f:.1f));if(catalogue)FrameCatalogueModel(camera,root);camera.targetTexture=rt;camera.Render();RenderTexture.active=rt;image=new Texture2D(192,128,TextureFormat.RGBA32,false);image.ReadPixels(new Rect(0,0,192,128),0,0);image.Apply();objectPortraits[key]=image;return image;}
             finally{RenderTexture.active=previous;camera.targetTexture=null;RenderTexture.ReleaseTemporary(rt);root.gameObject.SetActive(false);Destroy(root.gameObject);Destroy(cameraObject);foreach(var material in portraitMaterials)Destroy(material);}
         }
     }

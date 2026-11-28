@@ -79,6 +79,7 @@ namespace PlanetOne.Runtime
             var terrain=new GameObject("Durchgehendes Relief");terrain.transform.SetParent(surfaceRoot,false);
             terrain.AddComponent<MeshFilter>().sharedMesh=reliefMesh;
             var terrainRenderer=terrain.AddComponent<MeshRenderer>();terrainRenderer.sharedMaterial=BiomeMaterial(planet.Kind);
+            ConfigureEdgeFog(terrainRenderer.sharedMaterial,planet);
             terrainRenderer.enabled=!PlanetEnvironment.Airborne(planet);
             reliefCollider=terrain.AddComponent<MeshCollider>();reliefCollider.sharedMesh=reliefMesh;
             if(planet.Kind==PlanetKind.Ocean || PlanetEnvironment.Airborne(planet))BuildEnvironmentLayer(planet,vertices,triangles);
@@ -119,6 +120,9 @@ namespace PlanetOne.Runtime
                 if(x>-0.7f && x<planet.Width && z>-0.6f && z<planet.Height*0.866f)continue;
                 if(planet.Kind==PlanetKind.Ocean && ReliefHeight(x,z)<.15f)continue;
                 float size=.4f+(float)random.NextDouble()*1.55f;
+                float outside=Vector2.Distance(new Vector2(x,z),new Vector2(Mathf.Clamp(x,0,planet.Width),Mathf.Clamp(z,0,planet.Height*(float)HexGrid.RowHeight)));
+                size*=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(1,5,outside));
+                if(size<.1f)continue;
                 if(planet.Kind==PlanetKind.Temperate || planet.Kind==PlanetKind.Ocean)
                 {
                     float woodland=Mathf.PerlinNoise(x*.18f+planet.Id,z*.18f+12);
@@ -127,7 +131,7 @@ namespace PlanetOne.Runtime
                 }
                 else Rock(surfaceRoot,new Vector3(x,ReliefHeight(x,z)+size*.09f,z),new Vector3(size,size*.58f,size*1.2f),i);
             }
-            BuildGroundCover(planet);
+
             yield return null;
             Physics.SyncTransforms();
         }

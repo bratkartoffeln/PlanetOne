@@ -236,23 +236,24 @@ namespace PlanetOne.Core
             int index = y * p.Width + x;
             if (kind == BuildingKind.CrystalMine && p.Terrain[index] != 3) return "Kristallminen benötigen ein Kristallvorkommen.";
             if (kind != BuildingKind.CrystalMine && p.Terrain[index] == 3) return "Dieses Feld ist für Kristallabbau reserviert.";
-            if (p.Roads[index] && kind != BuildingKind.Gate) return "Auf dieser Fläche verläuft ein Transportkorridor.";
             if (kind == BuildingKind.Mine && p.Terrain[index] != 2) return "Erzminen benötigen ein Erzvorkommen.";
             if (kind != BuildingKind.Mine && p.Terrain[index] == 2) return "Dieses Feld ist für den Erzabbau reserviert.";
             var headquarters = p.Buildings.Find(b => b.Kind == BuildingKind.Headquarters && b.Built);
             var proposedSite = new BuildingState { X = x, Y = y };
             if (headquarters == null || FindPath(p, headquarters, proposedSite) == null)
-                return "Zuerst eine Versorgungsverbindung vom Kommandozentrum zum Bauplatz planen.";
+                return "Kein befahrbarer Weg vom Kommandozentrum zum Bauplatz. Gelände und Gebäude versperren die Zufahrt.";
             var definition = Definitions.Get(kind);
+            var shortages = new List<string>();
             for (int r = 0; r < 6; r++)
             {
                 if(definition.Cost[r]==0)continue;
-                int available = 0;
-                foreach (var b in p.Buildings)
-                    if (BuildingOwner(p,b)==factionId && b.Built && !b.Deconstructing && IsStorage(b) && FindPath(p,b,proposedSite)!=null) available += b.Inventory[r] - b.ReservedOutgoing[r];
-                if (available < definition.Cost[r]) return "Nicht genug " + Definitions.ResourceName((ResourceKind)r) + " in erreichbaren lokalen Lagern. Vorräte und Versorgungsverbindung prüfen.";
+                int available = FreeBuildingStock(p,factionId,r,proposedSite);
+                if (available >= definition.Cost[r]) continue;
+                string missing = (definition.Cost[r]-available) + " " + Definitions.ResourceName((ResourceKind)r);
+                if (FreeBuildingStock(p,factionId,r) >= definition.Cost[r]) missing += " (Lager nicht erreichbar)";
+                shortages.Add(missing);
             }
-            return null;
+            return shortages.Count == 0 ? null : "Am Bauplatz fehlen: " + string.Join(", ",shortages);
         }
 
         private static string ValidateCell(PlanetState p, int x, int y, int factionId)
@@ -275,6 +276,12 @@ namespace PlanetOne.Core
             { Report(command, false, "UnknownFaction", "Unbekannte Fraktion."); return; }
             if (!FactionActive(command.IssuerId)) { Report(command,false,"FactionInactive","Ausgeschiedene Fraktion kann keine Aufträge erteilen."); return; }
             if(command.Kind==CommandKind.ConnectSupply){ApplySupplyConnection(command);return;}
+            if(command.Kind==CommandKind.CancelRecruitUnit)
+            {
+                if(p==null)Report(command,false,"UnknownPlanet","Unbekannter Planet.");
+                else ApplyMilitary(p,command);
+                return;
+            }
             if (command.Kind == CommandKind.MineAsteroid) { ApplyMining(command); return; }
             if (command.Kind >= CommandKind.ProposeTreaty) { ApplyDiplomacy(command); return; }
             if (p == null) { Report(command, false, "UnknownPlanet", "Unbekannter Planet."); return; }
@@ -315,7 +322,7 @@ namespace PlanetOne.Core
                 { Report(command, false, "ProtectedHeadquarters", "Das Kommandozentrum sichert die Grundversorgung."); return; }
                 if (command.Kind == CommandKind.SetBuildingEnabled)
                 {
-                    if (!target.Built) { Report(command, false, "InvalidTarget", "Die Baustelle ist noch nicht fertig."); return; }
+
                     target.Enabled = command.BoolValue;
                     Report(command, true, "BuildingEnabled", target.Enabled ? "Betrieb eingeschaltet." : "Betrieb angehalten."); return;
                 }
@@ -398,42 +405,11 @@ namespace PlanetOne.Core
         {
             if(PlanetEnvironment.Airborne(p))return true;
             for (int i = 1; i < path.Count - 1; i++)
-                if (!p.Roads[path[i].Y * p.Width + path[i].X]) return false;
+                if (!CargoCellOpen(p,path[i].X,path[i].Y)) return false;
             return true;
         }
 
         private static List<GridCell> FindPath(PlanetState p, BuildingState source, BuildingState target)
-        {
-            if (source == null || target == null) return null;
-            if(PlanetEnvironment.Airborne(p))return PlanetEnvironment.AirPath(p.Width,p.Height,new GridCell(source.X,source.Y),new GridCell(target.X,target.Y));
-            int start = source.Y * p.Width + source.X;
-            int finish = target.Y * p.Width + target.X;
-            int[] previous = new int[p.Terrain.Length];
-            for (int i = 0; i < previous.Length; i++) previous[i] = -1;
-            var queue = new Queue<int>(); queue.Enqueue(start); previous[start] = start;
-
-            while (queue.Count > 0)
-            {
-                int current = queue.Dequeue();
-                if (current == finish) break;
-                for (int direction = 0; direction < 6; direction++)
-                {
-                    var neighbor = HexGrid.Neighbor(current % p.Width, current / p.Width, direction);
-                    int x = neighbor.X, y = neighbor.Y;
-                    if (x < 0 || y < 0 || x >= p.Width || y >= p.Height) continue;
-                    int next = y * p.Width + x;
-                    if (previous[next] >= 0 || (next != finish && !p.Roads[next])) continue;
-                    previous[next] = current; queue.Enqueue(next);
-                }
-            }
-            if (previous[finish] < 0) return null;
-            var path = new List<GridCell>();
-            for (int current = finish; ; current = previous[current])
-            {
-                path.Add(new GridCell(current % p.Width, current / p.Width));
-                if (current == start) break;
-            }
-            path.Reverse(); return path;
-        }
+        { return FreeCargoPath(p,source,target); }
     }
 }

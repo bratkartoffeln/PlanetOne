@@ -69,7 +69,7 @@ internal static class HexGridTests
     {
         var sim=Empty();var p=sim.FindPlanet(1); // HQ at 8/6, west-up sloping neighbor 7/5.
         Check(sim.ValidatePlacement(1,BuildingKind.Warehouse,7,5)==null,"Sloping building edge not connected");
-        Check(sim.ValidatePlacement(1,BuildingKind.Warehouse,9,5)!=null,"Square diagonal connected");
+        Check(sim.ValidatePlacement(1,BuildingKind.Warehouse,9,5)==null,"Reachable road-free site rejected");
         p.Roads[5*p.Width+7]=true;
         Check(sim.ValidatePlacement(1,BuildingKind.Warehouse,7,4)==null,"Hex road fails to connect");
         sim.Enqueue(new SimCommand {Id=sim.NextCommandId(),PlanetId=1,Kind=CommandKind.PlaceBuilding,Building=BuildingKind.Warehouse,X=7,Y=4});sim.Step(800);

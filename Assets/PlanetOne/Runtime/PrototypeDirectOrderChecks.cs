@@ -12,6 +12,7 @@ namespace PlanetOne.Runtime
         {
             var network=RunSupplyNetworkChecks();while(network.MoveNext())yield return network.Current;
             var walls=RunWallChecks();while(walls.MoveNext())yield return walls.Current;
+            var radar=RunSelectionRadarChecks();while(radar.MoveNext())yield return radar.Current;
             var orders=RunDirectOrderChecks();while(orders.MoveNext())yield return orders.Current;
             var arrows=RunOrderArrowChecks();while(arrows.MoveNext())yield return arrows.Current;
             var focus=RunPlanetFocusChecks();while(focus.MoveNext())yield return focus.Current;

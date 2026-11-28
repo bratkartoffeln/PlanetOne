@@ -143,14 +143,14 @@ internal static class ConstructionVehicleTests
         var sim = GameSimulation.CreateDefault(); var p = sim.FindPlanet(1); var site = PaidSite(sim);
         sim.Step(3); var builder = Builder(p, site.Id);
         Check(builder != null && builder.Phase == ShipmentPhase.BuilderOutbound, "Missing outbound builder.");
-        Command(sim, CommandKind.RemoveRoad, x: 13, y: 6);
+        var terrain=LogisticsBarrier.Column(p,13);sim.Step();
         Check(builder.RouteBlocked && site.BuildProgress == 0, "Builder ignored missing road.");
         var position = sim.GetShipmentPosition(builder); sim.Step(50);
         var stopped = sim.GetShipmentPosition(builder);
         Check(Math.Abs(position.X - stopped.X) < 1e-9 && Math.Abs(position.Y - stopped.Y) < 1e-9,
             "Blocked builder teleported or moved off its actual road.");
         var restored = new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(sim.State)));
-        Command(sim, CommandKind.PlaceRoad, x: 13, y: 6); Command(restored, CommandKind.PlaceRoad, x: 13, y: 6);
+        LogisticsBarrier.Restore(p,terrain);LogisticsBarrier.Restore(restored.FindPlanet(1),terrain);
         sim.Step(700); restored.Step(700);
         Check(site.Built && SaveCodec.ToJson(sim.State) == SaveCodec.ToJson(restored.State),
             "Saved blocked builder did not continue exactly after reconnection.");
@@ -161,11 +161,11 @@ internal static class ConstructionVehicleTests
     {
         var sim = GameSimulation.CreateDefault(); var p = sim.FindPlanet(1); var site = PaidSite(sim);
         Wait(sim, () => site.BuildProgress > 0); var builder = Builder(p, site.Id);
-        Command(sim, CommandKind.RemoveRoad, x: 13, y: 6); double progress = site.BuildProgress;
+        var terrain=LogisticsBarrier.Column(p,13);sim.Step(); double progress = site.BuildProgress;
         sim.Step(200);
         Check(site.BuildProgress == progress && builder.Phase == ShipmentPhase.Building && !site.Built,
             "Disconnected construction continued without its supply connection.");
-        Command(sim, CommandKind.PlaceRoad, x: 13, y: 6); Wait(sim, () => site.Built);
+        LogisticsBarrier.Restore(p,terrain); Wait(sim, () => site.Built);
         Balance(p); SaveCodec.Validate(sim.State);
     }
 
@@ -232,13 +232,13 @@ internal static class ConstructionVehicleTests
         sim.Step();
         Check(site.Destroyed && builder.Phase == ShipmentPhase.BuilderReturning &&
             p.RecoveredTotals[2] == 0 && p.RecoveredTotals[3] == 0, "Destruction refunded a building or removed its builder.");
-        Command(sim, CommandKind.RemoveRoad, x: 13, y: 6);
+        var terrain=LogisticsBarrier.Column(p,13);sim.Step();
         Check(builder.RouteBlocked, "Returning builder ignored its broken road.");
         double distance = builder.DistanceTravelled; sim.Step(80);
         Check(builder.DistanceTravelled == distance && p.Buildings.Contains(site),
             "Blocked return teleported the builder or orphaned its job reference.");
         SaveCodec.Validate(sim.State);
-        Command(sim, CommandKind.PlaceRoad, x: 13, y: 6);
+        LogisticsBarrier.Restore(p,terrain);
         Wait(sim, () => !p.Shipments.Contains(builder));
         Check(!p.Buildings.Contains(site), "Destroyed site was not removed after actual vehicle return.");
         Balance(p); SaveCodec.Validate(sim.State);

@@ -7,6 +7,8 @@ internal static class MilitaryTests
     internal static void Register(Action<string, Action> run)
     {
         run("M3 recruits through construction and physical deliveries exactly once", Recruitment);
+        run("M3 planet recruitment limits and one-at-a-time cancellation", RecruitmentLimit);
+        run("M3 active recruitment cancellation refunds only paid costs", CancelActiveOrder);
         run("M3 hidden targets reject commands and stale sightings do not track", Visibility);
         run("M3 peace and ownership prevent unauthorized attacks", Rights);
         run("M3 range and cover change actual damage", Combat);
@@ -59,6 +61,56 @@ internal static class MilitaryTests
         s.Step(1000);
         Check(p.Units.Count == 1 && p.Population <= population && p.ConsumedTotals[2] - metal == Definitions.Get(UnitKind.Infantry).Metal, "Recruitment duplicated or wrong cost");
         SaveCodec.Validate(s.State);
+    }
+    private static void Recruit(GameSimulation sim,BuildingState site,UnitKind kind,bool cancel=false)
+    {
+        sim.Enqueue(new SimCommand { Id=sim.NextCommandId(), PlanetId=site.PlanetId, TargetId=site.Id,
+            Kind=cancel?CommandKind.CancelRecruitUnit:CommandKind.RecruitUnit, IntValue=(int)kind });
+    }
+
+    private static void RecruitmentLimit()
+    {
+        var sim=Empty();
+        var first=Building(sim,BuildingKind.VehicleFactory,4,4);
+        var second=Building(sim,BuildingKind.VehicleFactory,6,4);
+        var barracks=Building(sim,BuildingKind.Barracks,8,4);
+        var colony=sim.FindPlanet(2);
+        colony.OwnerId=1;
+        var remote=new BuildingState {Id=sim.State.NextEntityId++,PlanetId=colony.Id,Kind=BuildingKind.VehicleFactory,Built=true,Health=160};
+        colony.Buildings.Add(remote);
+        for(int i=0;i<19;i++)Recruit(sim,first,i%2==0?UnitKind.Tank:UnitKind.Artillery);
+        Recruit(sim,second,UnitKind.Tank);
+        Recruit(sim,second,UnitKind.Artillery);
+        sim.Step();
+        Check(Result(sim)=="RecruitmentQueueFull" && first.RecruitQueue.Count==18 && second.RecruitQueue==null,"Two factories exceeded their combined quota");
+        for(int i=0;i<21;i++)Recruit(sim,barracks,i%2==0?UnitKind.Infantry:UnitKind.AntiTank);
+        sim.Step();
+        Check(Result(sim)=="RecruitmentQueueFull" && barracks.RecruitQueue.Count==19,"Troop limit is not independent of vehicles");
+        Recruit(sim,remote,UnitKind.Artillery);
+        Recruit(sim,first,UnitKind.Artillery,true);
+        Recruit(sim,second,UnitKind.Artillery);
+        sim.Step();
+        Check(remote.RecruitKind==(int)UnitKind.Artillery && second.RecruitQueue.Count==1,"Released or remote slot unavailable");
+        Check(first.RecruitQueue.Count==17 && first.RecruitQueue[15]==UnitKind.Tank && first.RecruitQueue[16]==UnitKind.Tank,"Did not remove just the last matching artillery");
+    }
+
+    private static void CancelActiveOrder()
+    {
+        var sim=GameSimulation.CreateDefault();var p=sim.FindPlanet(1);
+        var site=Building(sim,BuildingKind.Barracks,7,5);
+        var cost=Definitions.Get(UnitKind.Infantry).Cost;
+        site.Inventory=(int[])cost.Clone();
+        int population=p.Population;
+        Recruit(sim,site,UnitKind.Infantry);Recruit(sim,site,UnitKind.AntiTank);
+        sim.Step();
+        Check(site.RecruitPaid && p.Population<population,"Fixture did not pay for active infantry");
+        site.Enabled=false;
+        Recruit(sim,site,UnitKind.Infantry,true);Recruit(sim,site,UnitKind.Infantry,true);
+        sim.Step();
+        Check(site.RecruitKind==(int)UnitKind.AntiTank && !site.RecruitPaid && site.RecruitProgress==0 && site.RecruitQueue==null,"Next job did not advance exactly once");
+        Check(Result(sim)=="NoRecruitment" && p.Population==population && p.Units.Count==0,"Crew refund duplicated or phantom unit");
+        for(int r=0;r<cost.Length;r++)Check(site.Inventory[r]==cost[r],"Wrong refund at production site");
+        SaveCodec.Validate(sim.State);
     }
     private static void Visibility()
     {
@@ -135,7 +187,7 @@ internal static class MilitaryTests
         p.Buildings[0].Inventory[3] = 0; depot.Inventory[3] = 0;
         s.Step(100); Check(tower.Ammunition == 0, "Tower did not spend reserve"); double health = enemy.Health; s.Step(200);
         Check(enemy.Health == health, "Tower fired without ammunition");
-        p.Roads[6 * p.Width + 9] = false; p.Roads[5 * p.Width + 8] = false;
+        LogisticsBarrier.Ring(p,tower.X,tower.Y);
         tower.Inventory[0] = 0; tower.Inventory[3] = 0; tower.Ammunition = 2; tower.EnergyStored = 2; s.Step();
         Check(tower.Operational, "Local reserve did not buffer interruption"); s.Step(50);
         Check(!tower.Operational && tower.EnergyStored < 0.05, "Disconnected tower ignored finite power reserve");

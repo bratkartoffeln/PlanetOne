@@ -29,7 +29,7 @@ namespace PlanetOne.Runtime
         public InterfaceLayout CurrentLayout { get { return (InterfaceLayout)presentation.Layout; } }
         private float TopHeight { get { return Mathf.Max(56,FontUnitSize(18)+28); } }
         private float BottomHeight { get { return CurrentLayout==InterfaceLayout.OrbitalBridge?Mathf.Max(190,FontUnitSize(18)*5+88):CurrentLayout==InterfaceLayout.OpenSpace?Mathf.Max(112,FontUnitSize(17)+96):Mathf.Max(86,FontUnitSize(18)*2+40); } }
-        private float SideWidth { get { return CurrentLayout==InterfaceLayout.CommandCenter&&!panelOpen?Mathf.Clamp(Screen.width/UiScale*.23f,318,380)+Mathf.Max(0,TextScale-1)*100:Mathf.Clamp(Screen.width/UiScale*.36f,430,570); } }
+        private float SideWidth { get { return CurrentLayout==InterfaceLayout.CommandCenter&&(!panelOpen||presentationSection==1&&!showingDetails)?Mathf.Clamp(Screen.width/UiScale*.23f,318,380)+Mathf.Max(0,TextScale-1)*100:Mathf.Clamp(Screen.width/UiScale*.36f,430,570); } }
         private bool SidebarVisible { get { return CurrentLayout == InterfaceLayout.CommandCenter || panelOpen; } }
         private Rect SidebarRect(float width, float height)
         { return new Rect(width - SideWidth - (CurrentLayout == InterfaceLayout.OpenSpace ? 12 : 0), TopHeight + 8, SideWidth, height - TopHeight - BottomHeight - 16); }
@@ -47,6 +47,7 @@ namespace PlanetOne.Runtime
         {
             if (viewFlightActive || settingsOpen || menuOpen || IsCommandMenuOpen || commandDismissFrame==Time.frameCount || !WorldViewport.Contains(screenPoint)) return false;
             var guiPoint = new Vector2(screenPoint.x/UiScale, (Screen.height-screenPoint.y)/UiScale);
+            if(radarOuterRect.Contains(guiPoint))return false;
             if(SidebarVisible && SidebarRect(Screen.width/UiScale,Screen.height/UiScale).Contains(guiPoint))return false;
             return !SelectionCardVisible || !SelectionCardRect(Screen.width/UiScale).Contains(guiPoint);
         }
@@ -110,10 +111,13 @@ namespace PlanetOne.Runtime
             string caption=openPlanetId==0?"SYSTEMKARTE":"KOLONIEKARTE";
             float captionHeight=smallStyle.CalcHeight(new GUIContent(caption),rect.width-12);
             var map=new Rect(rect.x+8,rect.y+captionHeight+9,rect.width-16,Mathf.Max(12,rect.height-captionHeight-17));
+            float extent=1;
             if(openPlanetId==0)
             {
-                float extent=1;
                 foreach(var p in simulation.State.Planets)if(simulation.IsPlanetKnown(PlayerFactionId,p.Id))extent=Mathf.Max(extent,(float)p.OrbitRadius+3);
+                foreach(var ship in simulation.State.Ships)
+                    if(simulation.IsShipVisible(PlayerFactionId,ship))
+                        extent=Mathf.Max(extent,Mathf.Max(Mathf.Abs((float)ship.X),Mathf.Abs((float)ship.Y)));
                 for(int ring=1;ring<=4;ring++)for(int i=0;i<48;i++)
                 {float a=i*Mathf.PI/24,b=(i+1)*Mathf.PI/24;DrawMapLine(map.center+new Vector2(Mathf.Cos(a)*map.width,Mathf.Sin(a)*map.height)*ring*0.1f,map.center+new Vector2(Mathf.Cos(b)*map.width,Mathf.Sin(b)*map.height)*ring*0.1f,new Color(0.05f,0.3f,0.34f),0.7f);}
                 foreach(var p in simulation.State.Planets)
@@ -121,7 +125,6 @@ namespace PlanetOne.Runtime
                     if(!simulation.IsPlanetKnown(PlayerFactionId,p.Id))continue;
                     var pos=simulation.GetOrbitPosition(p.Id);
                     Rect dot=new Rect(map.center.x+(float)pos.X/extent*map.width*0.42f-5,map.center.y-(float)pos.Y/extent*map.height*0.42f-5,10,10);
-                    if(GUI.Button(dot,GUIContent.none,buttonStyle))SelectPlanet(p.Id);
                     Fill(new Rect(dot.x+2,dot.y+2,6,6),p.Id==selectedPlanetId?Color.white:Cyan);
                 }
                 Fill(new Rect(map.center.x-3,map.center.y-3,6,6),Amber);
@@ -132,8 +135,6 @@ namespace PlanetOne.Runtime
                 if(p.OwnerId==PlayerFactionId && reliefMap!=null)
                 {
                     GUI.DrawTexture(map,reliefMap);
-                    for(int y=0;y<p.Height;y++)for(int x=0;x<p.Width;x++)if(supplyOverlay && p.Roads[y*p.Width+x])
-                        Fill(new Rect(map.x+(x+(y%2)*0.5f)/p.Width*map.width,map.y+(1-y/(float)p.Height)*map.height,3,2),new Color(0.2f,0.47f,0.48f));
                 }
                 foreach(var b in p.Buildings)
                 {
@@ -142,10 +143,49 @@ namespace PlanetOne.Runtime
                     if(GameSimulation.BuildingOwner(p,b)!=PlayerFactionId && !simulation.IsCellVisible(p,PlayerFactionId,b.X,b.Y))continue;
                     Rect dot=new Rect(map.x+(b.X+(b.Y%2)*0.5f)/p.Width*map.width-3,map.y+(1-b.Y/(float)p.Height)*map.height-3,7,7);
                     Fill(dot,DiplomaticColor(GameSimulation.BuildingOwner(p,b)));
-                    if(GUI.Button(dot,GUIContent.none,GUIStyle.none)){SelectBuilding(b.Id);surfaceFocus=SurfacePosition(b.X,0,b.Y);UpdateCamera();}
                 }
             }
+            DrawRadarViewport(rect,map,extent);
+            if(Event.current.type==EventType.Repaint)DrawRadarUnits();
             GUI.Label(new Rect(rect.x+6,rect.y+3,rect.width-12,captionHeight),caption,smallStyle);
+        }
+        private void DrawRadarUnits()
+        {
+            if(openPlanetId==0)
+            {
+                foreach(var ship in simulation.State.Ships)
+                    if(simulation.IsShipVisible(PlayerFactionId,ship))
+                        DrawRadarContact(SpacePosition(ship.X,ship.Y),ship.OwnerId);
+                return;
+            }
+            var planet=simulation.FindPlanet(openPlanetId);
+            foreach(var shipment in planet.Shipments)
+            {
+                var source=planet.Buildings.Find(b=>b.Id==shipment.SourceId);
+                int owner=source==null?planet.OwnerId:GameSimulation.BuildingOwner(planet,source);
+                var pos=simulation.GetShipmentPosition(shipment);
+                if(owner!=PlayerFactionId)
+                {
+                    var cell=HexGrid.FromWorld(pos.X,pos.Y);
+                    if(!simulation.IsCellVisible(planet,PlayerFactionId,cell.X,cell.Y))continue;
+                }
+                DrawRadarContact(new Vector3((float)pos.X,0,(float)pos.Y),owner);
+            }
+            foreach(var ship in simulation.State.Ships)
+                if(!ship.Destroyed && !ship.Consumed && ship.TransportPhase!=TransportPhase.Space && ship.TargetPlanetId==planet.Id &&
+                    (ship.OwnerId==PlayerFactionId || simulation.IsCellVisible(planet,PlayerFactionId,ship.LandingX,ship.LandingY)))
+                    DrawRadarContact(SurfacePosition(ship.LandingX,0,ship.LandingY),ship.OwnerId);
+            foreach(var unit in planet.Units)
+                if(!unit.Destroyed && (unit.OwnerId==PlayerFactionId || simulation.IsCellVisible(planet,PlayerFactionId,unit.X,unit.Y)))
+                    DrawRadarContact(SurfacePosition(unit.X,0,unit.Y),unit.OwnerId);
+        }
+        private void DrawRadarContact(Vector3 world,int owner)
+        {
+            Vector2 pos=WorldOnRadar(world);
+            float x=Mathf.Clamp(pos.x,radarMapRect.xMin+3,radarMapRect.xMax-3);
+            float y=Mathf.Clamp(pos.y,radarMapRect.yMin+3,radarMapRect.yMax-3);
+            Fill(new Rect(x-3,y-3,6,6),Color.black);
+            Fill(new Rect(x-2,y-2,4,4),DiplomaticColor(owner));
         }
         private void DrawMapLine(Vector2 a,Vector2 b,Color color,float width)
         {
@@ -159,13 +199,14 @@ namespace PlanetOne.Runtime
             float dialogWidth=Mathf.Min(1000,width-48),dialogHeight=Mathf.Min(760,height-48);
             Rect box=new Rect((width-dialogWidth)/2,(height-dialogHeight)/2,dialogWidth,dialogHeight);DrawPanel(box);
             GUILayout.BeginArea(new Rect(box.x+28,box.y+28,box.width-56,box.height-56));
-            if(settingsOpen)DrawReadableSettings();else DrawSessionMenu();
+            if(settingsOpen)DrawReadableSettings(box.width-56);else DrawSessionMenu(box.width-56);
             GUILayout.EndArea();
         }
-        private void DrawReadableSettings()
+        private void DrawReadableSettings(float width)
         {
             GUILayout.Label("EINSTELLUNGEN",titleStyle);GUILayout.Space(16);
-            settingsPage=GUILayout.SelectionGrid(settingsPage,new[]{"Layout", "Schrift und Größe", "Anzeige"},3,buttonStyle,GUILayout.MinHeight(UiRowHeight(44)));
+            int nextPage=DrawWorkspaceTabs(settingsPage,new[]{"Layout","Schrift und Größe","Anzeige"},width);
+            if(nextPage!=settingsPage){settingsPage=nextPage;settingsScroll=Vector2.zero;GUIUtility.ExitGUI();}
             GUILayout.Space(16);settingsScroll=GUILayout.BeginScrollView(settingsScroll);
             if(settingsPage==0)
             {

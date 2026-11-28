@@ -13,6 +13,34 @@ namespace PlanetOne.Runtime
             foreach(BuildingKind kind in System.Enum.GetValues(typeof(BuildingKind)))
                 System.IO.File.WriteAllBytes(System.IO.Path.Combine(directory,"building-"+kind+".png"),BuildingIcon(kind).EncodeToPNG());
         }
+        // Unity uses Y as the vertical axis of the XZ hex surface.
+        private static Vector3 CatalogueCameraOffset(float yaw)
+        { return Quaternion.AngleAxis(yaw,Vector3.up)*new Vector3(0,1.65f,-2.8f); }
+        // Fit the actual silhouette in camera space, including turrets and foundations.
+        // This runs only when generating a cached catalogue portrait.
+        private static void FrameCatalogueModel(Camera camera, Transform root)
+        {
+            var min=new Vector2(float.PositiveInfinity,float.PositiveInfinity);
+            var max=new Vector2(float.NegativeInfinity,float.NegativeInfinity);
+            foreach(var filter in root.GetComponentsInChildren<MeshFilter>())
+            {
+                var renderer=filter.GetComponent<Renderer>();
+                if(renderer==null || !renderer.enabled || filter.sharedMesh==null)continue;
+                var toCamera=camera.transform.worldToLocalMatrix*filter.transform.localToWorldMatrix;
+                foreach(var vertex in filter.sharedMesh.vertices)
+                {
+                    Vector2 projected=toCamera.MultiplyPoint3x4(vertex);
+                    min=Vector2.Min(min,projected);
+                    max=Vector2.Max(max,projected);
+                }
+            }
+            if(min.x>max.x)return;
+            var center=(min+max)*.5f;
+            camera.transform.position+=camera.transform.right*center.x+camera.transform.up*center.y;
+            var span=max-min;
+            camera.orthographicSize=Mathf.Max(.01f,span.y,span.x/camera.aspect)*.56f;
+        }
+
         private Texture2D BuildingIcon(BuildingKind kind)
         {
             Texture2D icon;if(buildingIcons.TryGetValue(kind,out icon))return icon;
@@ -22,10 +50,13 @@ namespace PlanetOne.Runtime
             try
             {
                 PopulateBuildingModel(root,kind);
+                var baseHex=root.Find("Fundament");
+                if(baseHex!=null)baseHex.localRotation=Quaternion.Euler(0,30,0);
                 foreach(var t in root.GetComponentsInChildren<Transform>())t.gameObject.layer=30;
                 camera.enabled=false;camera.cullingMask=1<<30;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=new Color(0.035f,0.06f,0.08f);
                 camera.orthographic=true;camera.orthographicSize=0.76f;camera.aspect=1.5f;camera.nearClipPlane=0.01f;camera.farClipPlane=20;
-                camera.transform.position=root.position+new Vector3(0,2.4f,-2);camera.transform.LookAt(root.position+Vector3.up*0.3f);
+                camera.transform.position=root.position+CatalogueCameraOffset(60);camera.transform.LookAt(root.position+Vector3.up*0.3f);
+                FrameCatalogueModel(camera,root);
                 camera.targetTexture=target;camera.Render();RenderTexture.active=target;
                 icon=new Texture2D(192,128,TextureFormat.RGB24,false);icon.ReadPixels(new Rect(0,0,192,128),0,0);icon.Apply();buildingIcons[kind]=icon;return icon;
             }

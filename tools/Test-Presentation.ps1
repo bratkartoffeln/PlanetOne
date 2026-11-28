@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$ReferenceSave,[string]$PlayerPath,[switch]$CommandUiOnly,[switch]$SessionUiOnly,[switch]$PolishOnly,[switch]$InteractionOnly,[ValidateRange(1024,3840)][int]$Width=1440,[ValidateRange(720,2160)][int]$Height=900)
+param([string]$ReferenceSave,[string]$PlayerPath,[switch]$CommandUiOnly,[switch]$SessionUiOnly,[switch]$PolishOnly,[switch]$InteractionOnly,[switch]$CourierSpacingOnly,[switch]$BuildSidebarOnly,[switch]$SurfaceEdgeOnly,[switch]$SupplyNetworkOnly,[ValidateRange(1024,3840)][int]$Width=1440,[ValidateRange(720,2160)][int]$Height=900)
 $ErrorActionPreference='Stop'
 $projectRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if(-not $PlayerPath){$PlayerPath=Join-Path $projectRoot 'Builds\Windows\PlanetOne.exe'}
@@ -46,6 +46,10 @@ public static class PlanetOneIsolatedDesktop {
 $arguments='-planetOneSmoke -screen-width '+$Width+' -screen-height '+$Height+' -screen-fullscreen 0 -force-d3d11 -smokeOutput "'+$outputDirectory+'" -logFile "'+(Join-Path $outputDirectory 'player.log')+'"'
 if($ReferenceSave){$referencePath=(Resolve-Path -LiteralPath $ReferenceSave).Path;$arguments+=' -referenceSave "'+$referencePath+'"'}
 if($PolishOnly){$arguments+=' -polishOnly'}
+if($SupplyNetworkOnly){$arguments+=' -supplyNetworkOnly'}
+if($SurfaceEdgeOnly){$arguments+=' -surfaceEdgeOnly'}
+if($BuildSidebarOnly){$arguments+=' -buildSidebarOnly'}
+if($CourierSpacingOnly){$arguments+=' -courierSpacingOnly'}
 if($InteractionOnly){$arguments+=' -interactionOnly'}
 if($SessionUiOnly){$arguments+=' -sessionUiOnly'}
 if($CommandUiOnly){$arguments+=' -commandUiOnly'}
@@ -62,7 +66,7 @@ try {
  if([PlanetOneIsolatedDesktop]::ExitCode() -ne 0){throw ('Player fehlgeschlagen: '+$outputDirectory)}
  $report=Join-Path $outputDirectory 'smoke-result.txt'
  if(-not (Test-Path -LiteralPath $report)){throw 'Player lieferte kein Pruefprotokoll.'}
- $layouts=if($InteractionOnly){@()}else{@('CommandCenter','OrbitalBridge','OpenSpace')}
+ $layouts=if($InteractionOnly -or $CourierSpacingOnly -or $BuildSidebarOnly -or $SurfaceEdgeOnly -or $SupplyNetworkOnly){@()}else{@('CommandCenter','OrbitalBridge','OpenSpace')}
  foreach($layout in $layouts){
   $views=if($PolishOnly){@('surface','space','type140','large')}elseif($SessionUiOnly){@('Home','NewGame','Save','Guide')}elseif($CommandUiOnly){@('building','unit')}else{@('surface','space')}
   foreach($view in $views){

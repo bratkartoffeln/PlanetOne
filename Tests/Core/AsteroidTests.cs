@@ -17,7 +17,7 @@ internal static class AsteroidTests
         run("Captured return ports never receive mined cargo from the former owner",PortLoss);
         run("Mining save continuation preserves extraction travel and unloading exactly",Continuation);
         run("Asteroid saves reject forged reserves totals cargo and missing references",InvalidSaves);
-        run("Overlapping version ten couriers are rejected unchanged and current asteroid saves preserve all values",LegacyOverlap);
+        run("Coincident legacy couriers retain their cargo and current asteroid saves preserve all values",LegacyOverlap);
     }
     private static void Check(bool value,string message){if(!value)throw new Exception(message);}
     private static string fixture;
@@ -137,10 +137,19 @@ internal static class AsteroidTests
             if(x*x+y*y<radius*radius)overlap=true;
         }
         Check(overlap,"Legacy fixture no longer has coincident physical couriers");
-        bool rejected=false;try{SaveCodec.FromJson(Encoding.UTF8.GetString(original));}
-        catch(InvalidDataException error){rejected=error.Message.Contains("überlagern");}
-        Check(rejected,"Overlapping legacy couriers were accepted or failed without the physical conflict reason");
-        Check(original.SequenceEqual(File.ReadAllBytes(path)),"Rejected legacy fixture was modified");
+        var migrated=SaveCodec.FromJson(Encoding.UTF8.GetString(original));
+        foreach(var planet in old.Planets)
+        {
+            var loaded=migrated.Planets.Find(p=>p.Id==planet.Id);
+            Check(loaded.Shipments.Count==planet.Shipments.Count,"Migration changed courier count");
+            foreach(var shipment in planet.Shipments)
+            {
+                var courier=loaded.Shipments.Find(s=>s.Id==shipment.Id);
+                Check(courier!=null && courier.Amount==shipment.Amount && courier.Resource==shipment.Resource &&
+                    courier.TargetId==shipment.TargetId && courier.DistanceTravelled==shipment.DistanceTravelled,"Migration changed an active delivery");
+            }
+        }
+        Check(original.SequenceEqual(File.ReadAllBytes(path)),"Legacy fixture was modified");
         // The current-format preservation requirement remains exact; old files are never repaired in place.
         var current=GameSimulation.CreateDiplomacyScenario(2);string snapshot=SaveCodec.ToJson(current.State);
         var restored=SaveCodec.FromJson(snapshot);

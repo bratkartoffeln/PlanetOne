@@ -10,7 +10,7 @@ internal static class AiTests
     {
         run("M6 own economy produces real goods and researches from equal starting stocks", Economy);
         run("M6 hidden enemy construction never enters observation or decisions", Knowledge);
-        run("M6 broken road triggers reconnection rather than duplicate production", BrokenRoad);
+        run("M6 colonies expand across passable terrain without constructing roads", FreeSupply);
         run("M6 missing transport capacity prevents an invasion start", Capacity);
         run("M6 AI snapshots preserve knowledge decisions and exact continuation", Persistence);
         run("A single-colony AI pays for a freighter to fulfil an accepted trade",TradeCarrier);
@@ -48,13 +48,13 @@ internal static class AiTests
         Check(Json(ap.Command)==Json(bp.Command)&&ap.Goal==bp.Goal&&ap.Reason==bp.Reason&&ap.Alternative==bp.Alternative,"Secret changes decision");
         av.Worlds[0].Buildings[0].Inventory[2]=9999;Check(a.FindPlanet(2).Buildings[0].Inventory[2]==100,"Observation aliases simulation");
     }
-    private static void BrokenRoad()
+    private static void FreeSupply()
     {
         var s=GameSimulation.CreateAiScenario();var p=s.FindPlanet(2);Array.Clear(p.Roads,0,p.Roads.Length);
         InvasionFixture.AddBuilding(s,2,BuildingKind.Warehouse,11,6);
-        var action=AiPlanner.Plan(s.ObserveForAi(2),s.State.ComputerFactions[0]);
-        Check(action.Command!=null&&action.Command.Kind==CommandKind.PlaceRoad&&action.Reason.Contains("Wabenkante"),"Wrong bottleneck reaction");
-        s.Step(200);Check(p.Roads[6*p.Width+9]||p.Roads[5*p.Width+9],"Road not repaired");
+        s.Step(1600);
+        Check(p.Buildings.Exists(b=>b.Built && b.Kind!=BuildingKind.Warehouse && b.Kind!=BuildingKind.Headquarters)
+            && p.Trails.Count>0 && Array.TrueForAll(p.Roads,r=>!r),"AI failed to build using free supply routes");
     }
     private static void Capacity()
     {
@@ -172,7 +172,9 @@ internal static class AiTests
         Console.WriteLine("  M6 40min: ships="+s.State.Ships.Count+", operation="+ai.Operation.Phase+", reason="+ai.Operation.Reason+", colonies="+s.State.Planets.FindAll(p=>p.OwnerId==2).Count);
         Check(s.State.Ships.Exists(t=>t.OwnerId==2&&t.Kind==ShipKind.OrbitalYard),"No paid yard");
         Check(s.State.Ships.Exists(t=>t.OwnerId==2&&t.Kind==ShipKind.Scout),"No paid exploration");
-        var battle=MilitaryWorld();battle.State.Ships.RemoveAll(t=>t.OwnerId==2);battle.Step(2400);SaveCodec.Validate(battle.State);
+        var battle=MilitaryWorld();battle.State.Ships.RemoveAll(t=>t.OwnerId==2);
+        for(int tick=0;tick<2400 && battle.State.ComputerFactions[0].Operation.Phase!=OperationPhase.Completed;tick++)battle.Step();
+        SaveCodec.Validate(battle.State);
         Console.WriteLine("  M6 prepared operation="+battle.State.ComputerFactions[0].Operation.Phase+" "+battle.State.ComputerFactions[0].Operation.Reason);
         Check(battle.FindPlanet(2).OwnerId==1&&battle.State.ComputerFactions[0].Operation.Phase==OperationPhase.Completed,"Prepared invasion never completes real occupation");
     }

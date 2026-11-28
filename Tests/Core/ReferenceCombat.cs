@@ -12,13 +12,8 @@ internal static partial class ReferenceCombat
     }
     public static void Defend(GameSimulation s,Action prepareCivilEconomy=null)
     {
-        ReferenceTests.Command(s,new SimCommand {Kind=CommandKind.DeclareWar,IntValue=3});
         var electronics=s.FindPlanet(1).Buildings.Find(b=>b.Kind==BuildingKind.ElectronicsFactory);
         ReferenceTests.Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.SetBuildingEnabled,TargetId=electronics.Id,BoolValue=false});
-        // The command centre is an endpoint, not a road through the middle of the city.
-        foreach(int x in new[]{5,6,7})
-            if(!s.FindPlanet(1).Roads[4*s.FindPlanet(1).Width+x])
-                ReferenceTests.Command(s,new SimCommand {PlanetId=1,Kind=CommandKind.PlaceRoad,X=x,Y=4});
         ReferenceTests.Build(s,1,BuildingKind.SolarPlant,3,5);
         ReferenceTests.Build(s,1,BuildingKind.MilitaryDepot,2,5);
         ReferenceTests.Build(s,1,BuildingKind.GunTower,4,7);
@@ -31,6 +26,7 @@ internal static partial class ReferenceCombat
         ReferenceTests.Command(s,new SimCommand {Kind=CommandKind.BuildWarship,ActorId=yard.Id,PlanetId=1,IntValue=(int)ShipKind.EscortFrigate});
         ReferenceTests.Wait(s,()=>s.State.Ships.Exists(v=>v.OwnerId==1&&v.Id>=before&&v.Kind==ShipKind.EscortFrigate),"Paid home escort");
         var escort=s.State.Ships.Find(v=>v.OwnerId==1&&v.Id>=before&&v.Kind==ShipKind.EscortFrigate);
+        ReferenceTests.Command(s,new SimCommand {Kind=CommandKind.DeclareWar,IntValue=3});
         // Keep investing through ordinary commands while the paid defence is on duty.
         // Waiting for the opponent's whole campaign before starting the gate loses
         // the economic race to the independent third faction.

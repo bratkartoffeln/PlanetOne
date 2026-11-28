@@ -78,7 +78,7 @@ namespace PlanetOne.Core
                 foreach(var b in p.Buildings)if(b.OwnerId==0)b.OwnerId=p.OwnerId;
                 foreach(var b in p.Buildings)if(BuildingOwner(p,b)==faction)
                 {
-                    b.ShipBuildPaid=false;CancelPortWork(p,b);b.RecruitKind=-1;b.RecruitPaid=false;b.RecruitProgress=0;b.CapturingFaction=0;b.CaptureProgress=0;b.RestoreWorkerId=0;b.RestoreProgress=0;
+                    b.ShipBuildPaid=false;CancelPortWork(p,b);b.RecruitQueue=null;b.RecruitKind=-1;b.RecruitPaid=false;b.RecruitProgress=0;b.CapturingFaction=0;b.CaptureProgress=0;b.RestoreWorkerId=0;b.RestoreProgress=0;
                     b.OwnerId=recipient==0?-1:recipient;b.Enabled=recipient!=0;b.Operational=false;
                     b.CycleActive=false;b.CycleProgress=0;b.ProductionReservedSpace=0;
                 }

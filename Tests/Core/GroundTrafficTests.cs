@@ -10,9 +10,14 @@ internal static class GroundTrafficTests
         run("Attack moves to firing range even when the enemy's adjacent cells are inaccessible",AttackApproach);
         run("Long free movement follows a world-space straight line at bounded speed",StraightMovement);
         run("Changing destination and holding first center the unit and preserve saved continuation",RecenterOrders);
+        run("Tanks pass a one-hex gap horizontally vertically and diagonally",GapDirections);
+        run("Nine units settle on separate destination hexes",LargeGroup);
+        run("Diagonal passage follows the shared edge between parked tanks",DiagonalPassage);
         run("Adjacent hexes accommodate two tanks without moving the parked tank",AdjacentTanks);
         run("An open detour leaves a stationary vehicle at its original position",StationaryDetour);
         run("A mid-edge mover returns to a free route instead of displacing a newly parked tank",MidEdgeDetour);
+        run("Coincident deliveries advance independently and survive save and load",SharedCourierPath);
+        run("Couriers clear a fork after an interrupted passing maneuver",ForkEncounter);
         run("Opposing road couriers use separate lanes without give-way maneuvers",TwoLanes);
         run("Ground crossing and opposing orders keep physical bodies and tick sweeps separate",Crossing);
         run("A surrounded friendly mover opens a cooperative gap without deleting orders",Surrounded);
@@ -21,7 +26,7 @@ internal static class GroundTrafficTests
         run("Intersecting active give-way intentions replan from actual positions",ActiveYieldCrossing);
         run("A newly blocked give-way destination replans without losing its order",ChangedYieldTerrain);
         run("A stationary service order makes room and retains its original target",ServicingBlocker);
-        run("A docked helper keeps a cyclic encounter open until the outside courier passes",DockedYieldCycle);
+        run("Docked couriers resume after loading an old mutual wait",DockedYieldCycle);
         run("A courier leaves its passing dock when the requester starts stationary service",DockedServiceRequester);
         run("Saving during a real give-way maneuver preserves exact continuation",YieldSave);
         run("A group reaches distinct legal places around one shared destination",GroupArrival);
@@ -31,6 +36,61 @@ internal static class GroundTrafficTests
         run("Occupied transport exits retain the actual embarked troop until a legal place is free",Unloading);
     }
     private static void Check(bool value,string message){if(!value)throw new Exception(message);}
+    private static void LargeGroup()
+    {
+        var sim=Fixture();
+        var units=new List<UnitState>();
+        for(int row=0;row<3;row++) for(int col=0;col<3;col++)
+            units.Add(Add(sim,16+col*2,16+row*2));
+        foreach(var unit in units) Move(sim,unit,24,22);
+        for(int tick=0;tick<600;tick++)
+        {
+            StepSafe(sim);
+            if(units.TrueForAll(u=>u.Order==UnitOrder.Hold)) break;
+        }
+        var slots=new HashSet<int>();
+        foreach(var unit in units)
+            Check(unit.Order==UnitOrder.Hold && unit.X==unit.GoalX && unit.Y==unit.GoalY &&
+                HexGrid.Steps(unit.GoalX,unit.GoalY,24,22)<=2 && slots.Add(unit.GoalY*100+unit.GoalX),"Formation failed to settle");
+    }
+
+    private static void GapDirections()
+    {
+        foreach(var points in new[]{new[]{18,20,22,20,20,19,20,21},new[]{20,18,20,22,19,20,21,20},new[]{19,18,21,22,19,20,21,20}})
+        {
+            var sim=Fixture();
+            var mover=Add(sim,points[0],points[1]);
+            var left=Add(sim,points[4],points[5]);
+            var right=Add(sim,points[6],points[7]);
+            var start=GameSimulation.GroundUnitPosition(mover);
+            var end=HexGrid.ToWorld(points[2],points[3]);
+            Move(sim,mover,points[2],points[3]);
+            for(int tick=0;tick<160;tick++)
+            {
+                StepSafe(sim);
+                Check(GameSimulation.GroundPointSegmentDistance(GameSimulation.GroundUnitPosition(mover),start,end)<.000001,"Detour through one-hex gap");
+                Check(left.X==points[4] && left.Y==points[5] && right.X==points[6] && right.Y==points[7],"Parked unit moved");
+            }
+            Check(mover.X==points[2] && mover.Y==points[3],"Did not pass the gap");
+        }
+    }
+    private static void DiagonalPassage()
+    {
+        var sim = Fixture();
+        var first = Add(sim,21,20);
+        var second = Add(sim,21,21);
+        var mover = Add(sim,20,21);
+        var start = GameSimulation.GroundUnitPosition(mover);
+        var end = HexGrid.ToWorld(22,20);
+        Move(sim,mover,22,20);
+        for (int tick=0; tick<160; tick++)
+        {
+            StepSafe(sim);
+            Check(GameSimulation.GroundPointSegmentDistance(GameSimulation.GroundUnitPosition(mover),start,end)<.000001,"Detour at shared hex edge");
+            Check(first.X==21 && first.Y==20 && second.X==21 && second.Y==21,"Parked tank displaced");
+        }
+        Check(mover.X==22 && mover.Y==20,"Diagonal passage did not finish");
+    }
     private static void StraightMovement()
     {
         var sim=Fixture();var u=Add(sim,18,18);Move(sim,u,25,24);
@@ -99,6 +159,41 @@ internal static class GroundTrafficTests
         for(int i=0;i<900;i++){StepSafe(sim);Check(parked.X==22&&parked.Y==20,"Stationary tank moved despite an open detour");}
         Check(moving.Order==UnitOrder.Hold&&HexGrid.Distance(moving.X,moving.Y,26,20)<.001,"Detour never reached its goal");
     }
+    private static void SharedCourierPath()
+    {
+        var sim=Fixture();var planet=sim.FindPlanet(1);var hq=planet.Buildings[0];
+        var depot=new BuildingState{PlanetId=1,Id=sim.State.NextEntityId++,Kind=BuildingKind.Warehouse,X=4,Y=6,Built=true,Health=Definitions.BuildingHealth(BuildingKind.Warehouse)};
+        planet.Buildings.Add(depot);
+        for(int i=0;i<2;i++)
+        {
+            var courier=new ShipmentState{Id=sim.State.NextEntityId++,SourceId=depot.Id,TargetId=hq.Id,
+                Phase=ShipmentPhase.Returning,Traffic=new GroundTrafficState{Docked=true}};
+            for(int x=8;x>=4;x--)courier.Path.Add(new GridCell(x,6));
+            planet.Shipments.Add(courier);
+        }
+        sim.Step();
+        Check(planet.Shipments.TrueForAll(c=>c.DistanceTravelled>0),"Another delivery blocked departure");
+        sim=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(sim.State)));
+        sim.Step(120);
+        Check(sim.FindPlanet(1).Shipments.Count==0,"Overlapping deliveries failed to finish");
+    }
+    private static void ForkEncounter()
+    {
+        var sim=Fixture();var planet=sim.FindPlanet(1);var hq=planet.Buildings[0];
+        var west=new BuildingState{Id=sim.State.NextEntityId++,Kind=BuildingKind.Warehouse,X=6,Y=9,Built=true};
+        var east=new BuildingState{Id=sim.State.NextEntityId++,Kind=BuildingKind.Warehouse,X=7,Y=9,Built=true};
+        planet.Buildings.Add(west);planet.Buildings.Add(east);
+        // A returning vehicle enters the fork while another leaves the shared trunk.
+        var leaving=new ShipmentState{Id=sim.State.NextEntityId++,SourceId=west.Id,TargetId=hq.Id,
+            Phase=ShipmentPhase.Returning,DistanceTravelled=2.9999994,PassingOffset=.15,Traffic=new GroundTrafficState(),
+            Path=new List<GridCell>{new GridCell(8,6),new GridCell(8,7),new GridCell(8,8),new GridCell(7,8),new GridCell(6,9)}};
+        var entering=new ShipmentState{Id=sim.State.NextEntityId++,SourceId=hq.Id,TargetId=east.Id,
+            Phase=ShipmentPhase.Returning,DistanceTravelled=.2598072,PassingOffset=.15,Traffic=new GroundTrafficState(),
+            Path=new List<GridCell>{new GridCell(7,9),new GridCell(8,8),new GridCell(8,7),new GridCell(8,6)}};
+        planet.Shipments.Add(leaving);planet.Shipments.Add(entering);
+        for(int i=0;i<160 && planet.Shipments.Count>0;i++)StepSafe(sim);
+        Check(!planet.Shipments.Contains(leaving)&&!planet.Shipments.Contains(entering),"Couriers still waiting at fork");
+    }
     private static void TwoLanes()
     {TwoLanes(false);TwoLanes(true);}
     private static void TwoLanes(bool curved)
@@ -115,9 +210,21 @@ internal static class GroundTrafficTests
             if(curved&&x==12){p.Roads[7*p.Width+x]=true;a.Path.Add(new GridCell(x,7));b.Path.Insert(0,new GridCell(x,7));}
         }
         p.Shipments.Add(a);p.Shipments.Add(b);
-        bool simultaneous=false;
+        bool simultaneous=false,approachedCentered=false,passedApart=false,returnedToCenter=false;
         for(int i=0;i<600&&p.Shipments.Count>0;i++)
-        {StepSafe(sim);simultaneous|=p.Shipments.Count==2&&!GameSimulation.GroundCourierDocked(a)&&!GameSimulation.GroundCourierDocked(b);Check(!a.Traffic.Yielding&&!b.Traffic.Yielding,"Opposing lanes triggered an evasive maneuver");}
+        {
+            StepSafe(sim);
+            if(!curved && !GameSimulation.GroundCourierDocked(a) && !GameSimulation.GroundCourierDocked(b))
+            {
+                var first=GameSimulation.CourierDisplayPosition(a);var second=GameSimulation.CourierDisplayPosition(b);
+                double center=HexGrid.ToWorld(8,6).Y;
+                bool centered=Math.Abs(first.Y-center)<.000001 && Math.Abs(second.Y-center)<.000001;
+                approachedCentered|=second.X-first.X>4 && centered;
+                passedApart|=Math.Abs(second.X-first.X)<.4 && second.Y-first.Y>.48;
+                returnedToCenter|=first.X-second.X>4 && centered;
+            }
+            simultaneous|=p.Shipments.Count==2&&!GameSimulation.GroundCourierDocked(a)&&!GameSimulation.GroundCourierDocked(b);Check(!a.Traffic.Yielding&&!b.Traffic.Yielding,"Opposing lanes triggered an evasive maneuver");}
+        if (!curved) Check(approachedCentered && passedApart && returnedToCenter,"Couriers must centre, pass on the right and centre again");
         Check(p.Shipments.Count==0&&simultaneous,"Opposing couriers did not depart concurrently and arrive");
     }
     private static void MidEdgeDetour()
@@ -156,7 +263,7 @@ internal static class GroundTrafficTests
         inside.Traffic=new GroundTrafficState{Yielding=true,Docked=true,YieldForId=outside.Id,StartX=6.8,StartY=y,RequestX=6.2,RequestY=y,GoalX=8,GoalY=6,Progress=1};
         outside.Traffic=new GroundTrafficState{Yielding=true,YieldForId=inside.Id,StartX=6.2,StartY=y,RequestX=6.8,RequestY=y,GoalX=5,GoalY=6,Progress=1};
         planet.Shipments.Add(inside);planet.Shipments.Add(outside);sim.State.Tick=20;
-        StepSafe(sim);Check(inside.Traffic.Docked&&inside.Traffic.Yielding,"Interior helper abandoned its passing bay before the outside courier passed");
+        StepSafe(sim);Check(!inside.Traffic.Yielding,"Saved courier kept waiting for another courier");
         for(int i=0;i<500&&planet.Shipments.Exists(s=>s.Id==inside.Id||s.Id==outside.Id);i++)StepSafe(sim);
         Check(!planet.Shipments.Exists(s=>s.Id==inside.Id||s.Id==outside.Id),"Cyclic encounter repeated instead of completing both physical returns");
         SaveCodec.Validate(sim.State);
@@ -174,12 +281,12 @@ internal static class GroundTrafficTests
     }
     private static void Move(GameSimulation sim,UnitState unit,int x,int y)
     {Check(sim.Enqueue(new SimCommand{Id=sim.NextCommandId(),IssuerId=unit.OwnerId,PlanetId=1,ActorId=unit.Id,Kind=CommandKind.MoveUnit,X=x,Y=y}),"Move intent rejected");}
-    private sealed class Body {public long Id;public double Radius;public SimPoint Position;}
+    private sealed class Body {public bool Cargo;public long Id;public double Radius;public SimPoint Position;}
     private static List<Body> Bodies(GameSimulation sim)
     {
         var result=new List<Body>();var planet=sim.FindPlanet(1);
         foreach(var unit in planet.Units)if(!unit.Destroyed&&unit.Layer==TargetLayer.Ground)result.Add(new Body{Id=unit.Id,Radius=GameSimulation.GroundUnitRadius(unit.Kind),Position=GameSimulation.GroundUnitPosition(unit)});
-        foreach(var shipment in planet.Shipments)if(!GameSimulation.GroundCourierDocked(shipment))result.Add(new Body{Id=shipment.Id,Radius=GameSimulation.GroundCourierRadius(shipment),Position=GameSimulation.GroundCourierPosition(shipment)});
+        foreach(var shipment in planet.Shipments)if(!GameSimulation.GroundCourierDocked(shipment))result.Add(new Body{Cargo=true,Id=shipment.Id,Radius=GameSimulation.GroundCourierRadius(shipment),Position=GameSimulation.GroundCourierPosition(shipment)});
         return result;
     }
     private static double Separation(SimPoint a,SimPoint b){double x=a.X-b.X,y=a.Y-b.Y;return Math.Sqrt(x*x+y*y);}
@@ -194,6 +301,7 @@ internal static class GroundTrafficTests
         var before=Bodies(sim);sim.Step();var after=Bodies(sim);
         for(int i=0;i<after.Count;i++)for(int j=i+1;j<after.Count;j++)
         {
+            if(after[i].Cargo && after[j].Cargo) continue;
             double limit=after[i].Radius+after[j].Radius-GameSimulation.GroundTrafficTolerance;
             Check(Separation(after[i].Position,after[j].Position)>=limit,"Bodies overlap at tick "+sim.State.Tick+": "+after[i].Id+" / "+after[j].Id);
             var a=before.Find(v=>v.Id==after[i].Id);var b=before.Find(v=>v.Id==after[j].Id);
@@ -335,7 +443,7 @@ internal static class GroundTrafficTests
         var tick=typeof(GameSimulation).GetMethod("TickRecruitment",BindingFlags.NonPublic|BindingFlags.Instance);int count=planet.Units.Count;long id=sim.State.NextEntityId;
         tick.Invoke(sim,new object[]{planet,building});Check(planet.Units.Count==count&&building.RecruitPaid&&sim.State.NextEntityId==id,"Blocked production lost payment or created a duplicate");
         var departing=planet.Units[0];Move(sim,departing,27,22);for(int i=0;i<200;i++)StepSafe(sim);
-        building.Operational=true;tick.Invoke(sim,new object[]{planet,building});Check(planet.Units.Count==count+1&&building.RecruitKind==-1,"Freed production exit did not release exactly one unit");
+        if(building.RecruitKind>=0){building.Operational=true;tick.Invoke(sim,new object[]{planet,building});}Check(planet.Units.Count==count+1&&building.RecruitKind==-1,"Freed production exit did not release exactly one unit");
     }
     private static void Unloading()
     {

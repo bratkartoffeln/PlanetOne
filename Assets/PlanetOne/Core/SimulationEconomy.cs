@@ -47,7 +47,8 @@ namespace PlanetOne.Core
                 var definition = Definitions.Get(b.Kind);
                 if (!b.Built)
                 {
-                    TickConstruction(p, b, definition);
+                    if (b.Enabled) TickConstruction(p, b, definition);
+                    else SetStatus(p,b,"ConstructionPaused","Bau angehalten");
                     continue;
                 }
                 if (!b.Enabled) { SetStatus(p, b, "Disabled", "Betrieb angehalten"); continue; }
@@ -238,7 +239,7 @@ namespace PlanetOne.Core
             CancelPortWork(p, building);
             var recovery = GetRecoveryPreview(building);
             if (building.RecruitKind >= 0 && building.RecruitPaid) p.Population += Definitions.Get((UnitKind)building.RecruitKind).Crew;
-            building.RecruitKind = -1; building.RecruitPaid = false; building.RecruitProgress = 0;
+            building.RecruitQueue=null;building.RecruitKind = -1; building.RecruitPaid = false; building.RecruitProgress = 0;
             var definition = Definitions.Get(building.Kind);
             building.Deconstructing = true; building.Enabled = false;
             for (int r = 0; r < 6; r++) p.RecoveredTotals[r] += recovery[r] - building.Inventory[r];

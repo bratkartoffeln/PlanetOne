@@ -26,31 +26,6 @@ namespace PlanetOne.Core
         private static AiIntent Order(string goal,string reason,SimCommand command,string alternative="Bestände halten und neu bewerten")
         {return new AiIntent(goal,reason,alternative,command);}
 
-        private static List<GridCell> RoadPath(AiWorld w,GridCell start,GridCell goal,bool existing)
-        {
-            if(w.Kind==PlanetKind.GasGiant)return PlanetEnvironment.AirPath(w.Width,w.Height,start,goal);
-            int length=w.Width*w.Height;var prev=new int[length];for(int i=0;i<length;i++)prev[i]=-1;
-            int s=start.Y*w.Width+start.X,g=goal.Y*w.Width+goal.X;var queue=new Queue<int>();queue.Enqueue(s);prev[s]=s;
-            while(queue.Count>0)
-            {
-                int c=queue.Dequeue();if(c==g)break;
-                for(int d=0;d<6;d++)
-                {
-                    var n=HexGrid.Neighbor(c%w.Width,c/w.Width,d);if(n.X<0||n.Y<0||n.X>=w.Width||n.Y>=w.Height)continue;
-                    int next=n.Y*w.Width+n.X;if(prev[next]>=0)continue;
-                    if(next!=g && (existing?!w.Roads[next]:w.Terrain[next]!=0 || w.Buildings.Exists(b=>b.X==n.X&&b.Y==n.Y)))continue;
-                    prev[next]=c;queue.Enqueue(next);
-                }
-            }
-            if(prev[g]<0)return null;var path=new List<GridCell>();for(int c=g;;c=prev[c]){path.Add(new GridCell(c%w.Width,c/w.Width));if(c==s)break;}path.Reverse();return path;
-        }
-        private static AiIntent Connect(AiWorld w,BuildingState hq,GridCell site)
-        {
-            if(RoadPath(w,new GridCell(hq.X,hq.Y),site,true)!=null)return null;
-            var path=RoadPath(w,new GridCell(hq.X,hq.Y),site,false);if(path==null)return null;
-            for(int i=1;i<path.Count-1;i++) {var c=path[i];if(!w.Roads[c.Y*w.Width+c.X])return Order("Lieferweg herstellen","Fehlende Wabenkante im Weg zur Anlage",new SimCommand {Kind=CommandKind.PlaceRoad,PlanetId=w.Id,X=c.X,Y=c.Y},"Weitere Produktion behebt die Wegeunterbrechung nicht");}
-            return null;
-        }
         private static AiIntent Build(AiObservation v,AiState ai,AiWorld w,BuildingKind kind,string reason,bool essential=false)
         {
             if(!PlanetEnvironment.AllowsBuilding(w.Kind,kind))return null;
@@ -58,24 +33,25 @@ namespace PlanetOne.Core
             int reserveMetal=essential?0:Definitions.AiMetalReserve+(ai.Profile==AiProfile.Security?8:0), reserveParts=essential?0:Definitions.AiPartsReserve;
             if(Goods(w,v,2,true)<cost[2]+reserveMetal || Goods(w,v,3,true)<cost[3]+reserveParts)return null;
             var hq=w.Buildings.Find(b=>Own(b,v)&&b.Kind==BuildingKind.Headquarters);if(hq==null)return null;
-            // One flood per network replaces two full path searches for every candidate hex.
-            // Exact paths are still calculated for the selected site by Connect.
-            var potential=ReachableNetwork(w,hq,false);var connected=ReachableNetwork(w,hq,true);
+            // One flood finds reachable building sites without constructing roads.
+            // Actual cargo paths are validated by the shared simulation.
+            var potential=ReachableNetwork(w,hq);
             GridCell? chosen=null;double best=double.MaxValue;
             for(int y=0;y<w.Height;y++)for(int x=0;x<w.Width;x++)
             {
                 int i=y*w.Width+x,terrain=kind==BuildingKind.Mine?2:kind==BuildingKind.CrystalMine?3:0;
-                if(w.Terrain[i]!=terrain || terrain>=2 && w.Ore[i]<=0 || w.Roads[i] || w.Buildings.Exists(b=>b.X==x&&b.Y==y))continue;
+                if(w.Terrain[i]!=terrain || terrain>=2 && w.Ore[i]<=0 || w.Buildings.Exists(b=>b.X==x&&b.Y==y))continue;
+                if(w.Buildings.Exists(b=>HexGrid.Steps(b.X,b.Y,x,y)<2))continue;
                 if(!ReachesSite(w,potential,x,y))continue;
                 double score=HexGrid.Steps(hq.X,hq.Y,x,y)*10+((x*17+y*31+v.Seed)&15)*0.01;
-                if(!ReachesSite(w,connected,x,y))score+=30;
+
                 if(score<best){best=score;chosen=new GridCell(x,y);}
             }
             if(!chosen.HasValue)return null;
-            var road=Connect(w,hq,chosen.Value);if(road!=null)return road;
+
             return Order("Bauen: "+Definitions.Get(kind).Name,reason+(essential?"; Grundversorgung darf Wiederaufbaureserve nutzen":"; Wiederaufbaureserve bleibt geschützt"),new SimCommand {Kind=CommandKind.PlaceBuilding,PlanetId=w.Id,Building=kind,X=chosen.Value.X,Y=chosen.Value.Y});
         }
-        private static bool[] ReachableNetwork(AiWorld w,BuildingState hq,bool roads)
+        private static bool[] ReachableNetwork(AiWorld w,BuildingState hq)
         {
             var reached=new bool[w.Width*w.Height];
             if(w.Kind==PlanetKind.GasGiant){for(int i=0;i<reached.Length;i++)reached[i]=true;return reached;}
@@ -87,7 +63,7 @@ namespace PlanetOne.Core
                 for(int d=0;d<6;d++)
                 {
                     var n=HexGrid.Neighbor(current%w.Width,current/w.Width,d);if(n.X<0||n.Y<0||n.X>=w.Width||n.Y>=w.Height)continue;
-                    int next=n.Y*w.Width+n.X;if(reached[next]||(roads?!w.Roads[next]:w.Terrain[next]!=0||occupied[next]))continue;
+                    int next=n.Y*w.Width+n.X;if(reached[next]||(PlanetEnvironment.BlocksGround(w.Terrain[next])||occupied[next]))continue;
                     reached[next]=true;queue.Enqueue(next);
                 }
             }
@@ -102,8 +78,7 @@ namespace PlanetOne.Core
         private static AiIntent Economy(AiObservation v,AiState ai,AiWorld w)
         {
             var hq=w.Buildings.Find(b=>Own(b,v)&&b.Kind==BuildingKind.Headquarters);if(hq==null)return null;
-            foreach(var b in w.Buildings)if(Own(b,v)&&b.Id!=hq.Id)
-            {var repair=Connect(w,hq,new GridCell(b.X,b.Y));if(repair!=null)return repair;}
+
             foreach(var b in w.Buildings)if(Own(b,v)&&b.Built&&b.Kind==BuildingKind.Workshop)
             {
                 int parts=Goods(w,v,3,true)+b.Inventory[3]-b.ReservedOutgoing[3];bool enable=b.Enabled?parts<48:parts<24;

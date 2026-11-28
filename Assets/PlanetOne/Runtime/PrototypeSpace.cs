@@ -18,7 +18,6 @@ namespace PlanetOne.Runtime
         private string freightAmount = "20", supplyMinimum = "8", supplyTarget = "24", supplyReserve = "12";
         private int supplyPriority = 1;
         private Vector2? shipSelectionStart;
-        private GUIStyle spaceTabStyle;
         private int supplyTask, selectedTechnology;
         private bool portPickerOpen;
         private long supplyEditPort;
@@ -170,7 +169,6 @@ namespace PlanetOne.Runtime
         }
         private void DrawSpacePanel()
         {
-            PrepareWorkspaceStyle();
             int next=DrawWorkspaceTabs(spacePanelTab,new[]{"Flotte","Forschung","Versorgung","Raumkampf"});
             if(next!=spacePanelTab)ShowSpacePanel(next);
             GUILayout.Space(14);
@@ -180,29 +178,6 @@ namespace PlanetOne.Runtime
                 if(priorSession!=null && GUILayout.Button("Zur laufenden Kolonie zurück",buttonStyle)) { RestorePreviousSession(); return; }
             }
             if(spacePanelTab==0) DrawFleetPanel(); else if(spacePanelTab==1) DrawResearchPanel(); else if(spacePanelTab==2) DrawSupplyPanel(); else DrawInvasionPanel();
-        }
-        private void PrepareWorkspaceStyle()
-        {
-            if(spaceTabStyle==null)spaceTabStyle=new GUIStyle(buttonStyle);
-            spaceTabStyle.fontSize=FontUnitSize(17);spaceTabStyle.wordWrap=true;spaceTabStyle.alignment=TextAnchor.MiddleCenter;
-            spaceTabStyle.padding=new RectOffset(8,8,8,8);spaceTabStyle.fixedWidth=0;spaceTabStyle.stretchWidth=true;
-            spaceTabStyle.normal.background=buttonTexture;spaceTabStyle.hover.background=hoverTexture;
-        }
-        private int DrawWorkspaceTabs(int selected,string[] labels)
-        {
-            PrepareWorkspaceStyle();
-            float longest=0;
-            foreach(string label in labels)foreach(string word in label.Split(' '))longest=Mathf.Max(longest,spaceTabStyle.CalcSize(new GUIContent(word)).x);
-            int columns=longest*2+12>SideWidth-52?1:2;
-            for(int i=0;i<labels.Length;i+=columns)
-            {
-                GUILayout.BeginHorizontal();
-                for(int j=i;j<Mathf.Min(i+columns,labels.Length);j++)
-                    if(GUILayout.Button(labels[j],selected==j?selectedButtonStyle:spaceTabStyle,GUILayout.MinHeight(UiRowHeight(42)),GUILayout.ExpandWidth(true)))selected=j;
-                if(columns==2 && i+1>=labels.Length)GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-            }
-            return selected;
         }
         private bool WorkspaceButton(string label,bool selected=false)
         {return GUILayout.Button(label,selected?selectedButtonStyle:buttonStyle,GUILayout.MinHeight(UiRowHeight(36)));}
@@ -271,15 +246,30 @@ namespace PlanetOne.Runtime
             return;
             }
             GUILayout.Space(12); var port=ChoosePort(); if(port==null) return;
-            if(port.ShipBuildKind>=0) GUILayout.Label("Bauauftrag: "+Definitions.Ships[port.ShipBuildKind].Name,bodyStyle);
-            else for(int i=0;i<=(int)ShipKind.OrbitalYard;i++)
+            DrawPortProduction(port);
+        }
+        private void DrawPortProduction(BuildingState port)
+        {
+            GUILayout.Label("SCHIFFBAU",headingStyle);
+            int columns=ProductionColumns,total=(int)ShipKind.OrbitalYard+1;
+            for(int i=0;i<total;i++)
             {
-                var d=Definitions.Ships[i]; bool unlocked=simulation.HasTechnology(PlayerFactionId,d.Required);
-                WorkspaceHeading(d.Name);GUILayout.Label(GoodsText(d.Cost)+" · "+d.Crew+" Bewohner · "+d.Seconds+" s",smallStyle);
-                bool wasEnabled=GUI.enabled;GUI.enabled=wasEnabled && unlocked;
-                if(WorkspaceButton(unlocked?d.Name+" bauen":"Benötigt "+Definitions.Technologies[(int)d.Required].Name)) RequestSpaceOrder(CommandKind.BuildShip,target:port.Id,planet:port.PlanetId,value:i);
-                GUI.enabled=wasEnabled;
+                if(i%columns==0)GUILayout.BeginHorizontal();
+                var def=Definitions.Ships[i];bool active=port.ShipBuildKind==i;
+                bool locked=!simulation.HasTechnology(PlayerFactionId,def.Required);
+                int[] missing=LocalShortfall(port,def.Cost,active && port.ShipBuildPaid);
+                float progress=active?Mathf.Clamp01((float)(port.ShipBuildProgress/def.Seconds)):0;
+                bool stopped=active && (!port.Operational || !port.Enabled || Array.Exists(missing,n=>n>0) || progress>=1);
+                string detail=locked?"Forschung: "+Definitions.Technologies[(int)def.Required].Name:active?port.Status:def.Crew+" Bewohner · "+def.Seconds+" s";
+                if(ProductionTile(ProductionRect(columns),def.Name,ShipPortrait((ShipKind)i),def.Cost,missing,detail,false,active?1:0,
+                    stopped?"Wartet":Mathf.FloorToInt(progress*100)+" %",progress,stopped,locked))
+                {
+                    if(port.ShipBuildKind<0)RequestSpaceOrder(CommandKind.BuildShip,target:port.Id,planet:port.PlanetId,value:i);
+                    else Notify("Schiffswerft belegt");
+                }
+                if((i+1)%columns==0)GUILayout.EndHorizontal();
             }
+            if(total%columns!=0)GUILayout.EndHorizontal();
         }
         private void DrawResearchPanel()
         {
@@ -335,7 +325,12 @@ namespace PlanetOne.Runtime
             GUILayout.Space(10);GUILayout.Label("Mindestbestand · Nachschub anfordern unter",smallStyle);supplyMinimum=GUILayout.TextField(supplyMinimum,4,GUILayout.MinHeight(UiRowHeight(32)));
             GUILayout.Label("Zielbestand · bis zu diesem Wert auffüllen",smallStyle);supplyTarget=GUILayout.TextField(supplyTarget,4,GUILayout.MinHeight(UiRowHeight(32)));
             GUILayout.Label("Exportreserve · im Quellhafen zurückbehalten",smallStyle);supplyReserve=GUILayout.TextField(supplyReserve,4,GUILayout.MinHeight(UiRowHeight(32)));
-            WorkspaceHeading("PRIORITÄT");supplyPriority=DrawWorkspaceTabs(supplyPriority,new[]{"Niedrig","Normal","Hoch"});
+            WorkspaceHeading("PRIORITÄT");
+            GUILayout.BeginHorizontal();
+            string[] priorities={"Niedrig","Normal","Hoch"};
+            for(int i=0;i<priorities.Length;i++)
+                if(WorkspaceButton(priorities[i],i==supplyPriority))supplyPriority=i;
+            GUILayout.EndHorizontal();
             int minimum,target,reserve;
             if(WorkspaceButton("Versorgungsregel übernehmen",true))
             {

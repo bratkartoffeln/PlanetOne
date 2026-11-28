@@ -19,7 +19,6 @@ namespace PlanetOne.Runtime
         private List<SaveSlotInfo> slotCatalog=new List<SaveSlotInfo>();
         private SessionPage sessionPage;
         private Vector2 sessionScroll;
-        private Vector2 sessionNavigationScroll;
         private GUIStyle sessionCardStyle;
         private string selectedSaveSlot;
         private bool hasSession, settingsReturnToMenu;
@@ -163,7 +162,7 @@ namespace PlanetOne.Runtime
             Action launch=()=>{bool hadSession=hasSession;start();if(!hadSession)priorSession=null;hasSession=true;UpdateCamera();CloseSessionMenu();};
             if(hasSession)ConfirmSessionAction("Testszenario öffnen?","Separate Prüfkarte mit vorbereiteten Beständen. Die vorherige Partie bleibt über „Zur vorherigen Partie zurück“ erreichbar.",launch);else launch();
         }
-        private void DrawSessionMenu()
+        private void DrawSessionMenu(float width)
         {
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical();
@@ -185,27 +184,25 @@ namespace PlanetOne.Runtime
                 if(GUILayout.Button(ConfirmationActionLabel(),selectedButtonStyle,GUILayout.MinHeight(UiRowHeight(46))))ResolveSessionConfirmation(true);
                 GUILayout.EndHorizontal();return;
             }
-            GUILayout.BeginHorizontal();
-            GUILayout.BeginVertical(GUILayout.Width(216));
-            sessionNavigationScroll=GUILayout.BeginScrollView(sessionNavigationScroll);
-            DrawSessionNavigation();
-            GUILayout.EndScrollView();
-            GUILayout.EndVertical();
-            GUILayout.Space(22);
-            GUILayout.BeginVertical();
+            DrawSessionNavigation(width);
+            GUILayout.Space(12);
             sessionScroll=GUILayout.BeginScrollView(sessionScroll);
             switch(sessionPage)
             {
                 case SessionPage.Home: DrawSessionHome();break;
                 case SessionPage.NewGame: DrawNewSession();break;
                 case SessionPage.Save: case SessionPage.Load: DrawSaveSlots();break;
-                case SessionPage.Guide: DrawStartGuide();break;
+                case SessionPage.Guide: DrawStartGuide(width-GUI.skin.verticalScrollbar.fixedWidth-8);break;
                 case SessionPage.Fixtures: DrawSessionFixtures();break;
             }
             GUILayout.EndScrollView();
             if(sessionError!=null){GUILayout.Space(10);GUILayout.Label(sessionError,bodyStyle);}
-            GUILayout.EndVertical();
-            GUILayout.EndHorizontal();GUILayout.Space(14);
+            GUILayout.Space(14);
+            GUILayout.BeginHorizontal();
+            if(SessionButton("Einstellungen",HudIcon.Settings))SetSettingsVisible(true);
+            if(SessionButton("Spiel beenden",HudIcon.Close))
+            {if(hasSession)ConfirmSessionAction("Spiel beenden?","Nicht gespeicherter Fortschritt geht verloren.",()=>Application.Quit());else Application.Quit();}
+            GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label("Version "+Application.version,smallStyle);
             GUILayout.FlexibleSpace();
@@ -228,23 +225,15 @@ namespace PlanetOne.Runtime
         }
         private bool SessionButton(string text,HudIcon icon,bool primary=false)
         {return GUILayout.Button(new GUIContent(text,HudSymbol(icon)),primary?selectedButtonStyle:buttonStyle,GUILayout.MinHeight(UiRowHeight(44)));}
-        private void SessionNavigation(string label,HudIcon icon,SessionPage page)
-        {if(SessionButton(label,icon,sessionPage==page)){ShowSessionPage(page);GUIUtility.ExitGUI();}}
-        private void DrawSessionNavigation()
+        private void DrawSessionNavigation(float width)
         {
-            GUILayout.Label("PARTIE",smallStyle);GUILayout.Space(6);
-            SessionNavigation("Übersicht",HudIcon.Planet,SessionPage.Home);
-            SessionNavigation("Neue Partie",HudIcon.Play,SessionPage.NewGame);
-            SessionNavigation("Spiel laden",HudIcon.Supply,SessionPage.Load);
-            if(hasSession)SessionNavigation("Spiel speichern",HudIcon.Supply,SessionPage.Save);
-            GUILayout.Space(18);GUILayout.Label("HILFE & DARSTELLUNG",smallStyle);GUILayout.Space(6);
-            SessionNavigation("Starthilfe",HudIcon.Info,SessionPage.Guide);
-            if(SessionButton("Einstellungen",HudIcon.Settings))SetSettingsVisible(true);
-            GUILayout.Space(18);
-            SessionNavigation("Prüfkarten",HudIcon.Units,SessionPage.Fixtures);
-            GUILayout.Space(12);
-            if(SessionButton("Spiel beenden",HudIcon.Close))
-            {if(hasSession)ConfirmSessionAction("Spiel beenden?","Nicht gespeicherter Fortschritt geht verloren.",()=>Application.Quit());else Application.Quit();}
+            var pages=hasSession?new[]{SessionPage.Home,SessionPage.NewGame,SessionPage.Load,SessionPage.Save,SessionPage.Guide,SessionPage.Fixtures}:
+                new[]{SessionPage.Home,SessionPage.NewGame,SessionPage.Load,SessionPage.Guide,SessionPage.Fixtures};
+            string[] labels=hasSession?new[]{"Übersicht","Neue Partie","Spiel laden","Spiel speichern","Starthilfe","Prüfkarten"}:
+                new[]{"Übersicht","Neue Partie","Spiel laden","Starthilfe","Prüfkarten"};
+            int selected=Array.IndexOf(pages,sessionPage);
+            int next=DrawWorkspaceTabs(selected,labels,width);
+            if(next!=selected){ShowSessionPage(pages[next]);GUIUtility.ExitGUI();}
         }
         private string ConfirmationActionLabel()
         {
@@ -355,20 +344,14 @@ namespace PlanetOne.Runtime
         private static readonly string[] GuideTitles={"1 · Orientierung und Zeit","2 · Grundversorgung aufbauen","3 · Raumfahrt und Nachschub","4 · Partner, Konflikte und Ziel"};
         private static readonly string[] GuideTexts={
             "Linksklick wählt ein Objekt. Rechtsklick bewegt gewählte Einheiten oder greift einen Gegner an. Strg + Rechtsklick öffnet weitere Befehle und Diplomatie; rechts ziehen verschiebt die Kamera. Q/E dreht, das Mausrad zoomt. Die Leertaste pausiert. Im Menü steht die Spielzeit still. Ein Doppelklick auf einen Planeten startet den Anflug zur Oberfläche.",
-            "Baue zuerst Hydroponik für Nahrung und eine Solaranlage für Energie. Mine, Schmelze und Werkstatt liefern Erz, Metall und Bauteile. Mit „Verbindung planen“ ein Startgebäude und ein Zielgebäude oder einen Bauplatz verbinden. L zeigt das Versorgungsnetz; Material fährt tatsächlich zur Baustelle. Wähle ein Gebäude und öffne „Details“, um fehlende Versorgung zu sehen.",
+            "Baue zuerst Hydroponik für Nahrung und eine Solaranlage für Energie. Mine, Schmelze und Werkstatt liefern Erz, Metall und Bauteile. Transporter finden selbst befahrbare Wege zur Baustelle und zwischen Gebäuden. Häufige Fahrten hinterlassen langsam sichtbare Spuren. L zeigt Lieferwege und Engpässe; Waren bleiben tatsächlich im Fahrzeug. Wähle ein Gebäude und öffne „Details“, um fehlende Versorgung zu sehen.",
             "Ein versorgtes Labor ermöglicht Forschung; Raumtransport schaltet den Weg zu weiteren Kolonien frei. Der Raumhafen baut Schiffe aus bezahlten Materialien. Flotte trennt Schiffe, Aufträge, Schiffbau und Abbau. Frachter transportieren echte Waren, keine globalen Bestände.",
             "Diplomatie erlaubt Handel, Zugangsrechte und Koalitionen. Die Drei-Kolonien-Partie beginnt friedlich. Für den Sieg brauchst du Forschung, gelieferte Komponenten und ein gesichertes Sprungtor. Verbündete können gemeinsam gewinnen. F5 speichert; im Menü kannst du einen anderen Speicherplatz wählen."};
-        private void DrawStartGuide()
+        private void DrawStartGuide(float width)
         {
             SessionHeading("Starthilfe",HudIcon.Info);GUILayout.Space(14);
             string[] topics={"Orientierung","Versorgung","Raumfahrt","Diplomatie"};
-            for(int row=0;row<2;row++)
-            {
-                GUILayout.BeginHorizontal();
-                for(int column=0;column<2;column++)
-                {int page=row*2+column;if(GUILayout.Button((page+1)+" · "+topics[page],guidePage==page?selectedButtonStyle:buttonStyle,GUILayout.MinHeight(UiRowHeight(40))))guidePage=page;}
-                GUILayout.EndHorizontal();
-            }
+            guidePage=DrawWorkspaceTabs(guidePage,topics,width);
             GUILayout.Space(16);BeginSessionCard();
             GUILayout.Label(GuideTitles[guidePage],headingStyle);GUILayout.Space(12);GUILayout.Label(GuideTexts[guidePage],bodyStyle);GUILayout.Space(18);
             if(hasSession && SessionButton(guidePage==0?"Eigene Kolonie öffnen":guidePage==1?"Baukatalog öffnen":guidePage==2?"Forschung öffnen":"Diplomatie öffnen",guidePage==1?HudIcon.Build:guidePage==2?HudIcon.Research:guidePage==3?HudIcon.Diplomacy:HudIcon.Planet,true))OpenGuideDestination(guidePage);
