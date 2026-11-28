@@ -101,31 +101,32 @@ namespace PlanetOne.Runtime
             float locationX=openPlanetId==0?8:50;
             float locationWidth=Mathf.Clamp(locationX+bodyStyle.CalcSize(new GUIContent(place)).x+50,190,width*.24f);
             if(HudButton(new Rect(locationX,top,locationWidth-locationX,control),place,HudIcon.Planet))OpenPresentationSection(0);
-            int[] stock=new int[6];int power=0;
+            int[] stock=new int[Definitions.ResourceCount];int power=0;
             foreach(var planet in simulation.State.Planets)
             {
                 if(planet.OwnerId!=PlayerFactionId || openPlanetId!=0 && planet.Id!=openPlanetId)continue;
                 power+=planet.EnergyProduced-planet.EnergyUsed;
-                foreach(var building in planet.Buildings)for(int r=0;r<6;r++)stock[r]+=GameSimulation.FreeSupplyStock(planet,PlayerFactionId,building,r);
+                foreach(var building in planet.Buildings)for(int r=0;r<Definitions.ResourceCount;r++)stock[r]+=GameSimulation.FreeSupplyStock(planet,PlayerFactionId,building,r);
             }
-            string[] names={"Energie","Metall","Bauteile","Nahrung","Kristalle"};
-            string[] values={(power>0?"+":"")+power,stock[2].ToString(),stock[3].ToString(),stock[0].ToString(),stock[4].ToString()};
-            HudIcon[] icons={HudIcon.Energy,HudIcon.Metal,HudIcon.Parts,HudIcon.Food,HudIcon.Crystal};
+            string[] names={"Energie","Metall","Bauteile","Nahrung","Kristalle","Wasserstoff"};
+            string[] values={(power>0?"+":"")+power,stock[2].ToString(),stock[3].ToString(),stock[0].ToString(),stock[4].ToString(),stock[(int)ResourceKind.Hydrogen].ToString()};
+            HudIcon[] icons={HudIcon.Energy,HudIcon.Metal,HudIcon.Parts,HudIcon.Food,HudIcon.Crystal,HudIcon.Hydrogen};
+            int count=AtmosphereSurface || stock[(int)ResourceKind.Hydrogen]>0?names.Length:names.Length-1;
             string pauseCaption=simulation.State.Paused?"Weiter":"Pause",speedCaption=simulation.State.TimeScale+"×";
             float pauseWidth=Mathf.Max(108,bodyStyle.CalcSize(new GUIContent(pauseCaption)).x+50);
             float speedWidth=Mathf.Max(48,buttonStyle.CalcSize(new GUIContent(speedCaption)).x+12);
             float right=width-(pauseWidth+speedWidth+40+40+18)-8;
-            var labels=new string[5];var cells=new float[5];float needed=0,available=right-locationWidth-22;
-            for(int i=0;i<5;i++){labels[i]=names[i]+" "+values[i];cells[i]=bodyStyle.CalcSize(new GUIContent(labels[i])).x+44;needed+=cells[i];}
+            var labels=new string[count];var cells=new float[count];float needed=0,available=right-locationWidth-22;
+            for(int i=0;i<count;i++){labels[i]=names[i]+" "+values[i];cells[i]=bodyStyle.CalcSize(new GUIContent(labels[i])).x+44;needed+=cells[i];}
             // Keep the selected font size; the symbol identifies any resource whose long name cannot fit.
             while(needed>available)
             {
                 int best=-1;float saving=0;
-                for(int i=0;i<5;i++)if(labels[i]!=values[i]){float delta=cells[i]-(bodyStyle.CalcSize(new GUIContent(values[i])).x+44);if(delta>saving){best=i;saving=delta;}}
+                for(int i=0;i<count;i++)if(labels[i]!=values[i]){float delta=cells[i]-(bodyStyle.CalcSize(new GUIContent(values[i])).x+44);if(delta>saving){best=i;saving=delta;}}
                 if(best<0)break;labels[best]=values[best];cells[best]-=saving;needed-=saving;
             }
-            float extra=Mathf.Max(0,(available-needed)/5),resourceX=locationWidth+12;
-            for(int i=0;i<5;i++)
+            float extra=Mathf.Max(0,(available-needed)/count),resourceX=locationWidth+12;
+            for(int i=0;i<count;i++)
             {
                 float x=resourceX,cell=cells[i]+extra;Color old=GUI.color;GUI.color=i==0?Amber:i==4?Cyan:Ink;
                 GUI.DrawTexture(new Rect(x,TopHeight/2-12,24,24),HudSymbol(icons[i]));GUI.color=old;

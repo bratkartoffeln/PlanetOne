@@ -31,7 +31,7 @@ internal static class InvasionTests
     private static void Yard()
     {
         var s=World();var p=s.FindPlanet(1);var port=InvasionFixture.AddBuilding(s,1,BuildingKind.Spaceport,9,5);
-        port.Inventory=new[]{20,0,80,40,0,0};var yard=InvasionFixture.AddShip(s,1,1,ShipKind.OrbitalYard);
+        port.Inventory=new[]{20,0,80,40,0,0,0};var yard=InvasionFixture.AddShip(s,1,1,ShipKind.OrbitalYard);
         Check(!Cmd(s,CommandKind.BuildShip,target:port.Id,value:(int)ShipKind.Corvette),"Port bypassed yard");
         Check(Cmd(s,CommandKind.BuildWarship,yard.Id,value:(int)ShipKind.Corvette),"Yard rejected");
         Check(s.State.Ships.Count==1 && !yard.ProductionPaid,"Instant free ship");

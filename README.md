@@ -1,5 +1,7 @@
 # PlanetOne
 
+**M11 · Wasserstoff auf Gasriesen.** Im Szenario „Gegen einen Computer“ kannst du Zephyr mit einem Kolonieschiff besiedeln. Öffne dort **Bauen → Industrie → Gasförderer**. Für 16 Metall und 4 Bauteile entsteht eine schwebende Station. Drohnen liefern den gewonnenen Wasserstoff an Lager und Raumhafen. Der Zielbestand am Hafen ist einstellbar. Für einen schnellen Einstieg zeigt die Prüfkarte „Planetentypen und Luftfracht“ Zephyr mit einer bestehenden Kolonie. [Spielregeln](docs/GAME_DESIGN.md#eco-009--atmosphärische-rohstoffgewinnung)
+
 Die [Roadmap ab M10](docs/IMPLEMENTATION_PLAN.md#roadmap-ab-m10) führt von der Kolonielogistik über Gasförderung und weitere Sternsysteme bis zu Kampagnen und Plattformabnahme. M10 prüft, dass eine Kolonie über frei befahrbares Gelände bauen, produzieren und eine vollständige Referenzpartie bestreiten kann.
 
 PlanetOne ist ein Einzelspieler-Echtzeitstrategiespiel mit planetarem Aufbau, physischer Warenlogistik, Raumgefechten, steuerbaren Bodeninvasionen, vorbereiteten Verteidigungsstellungen und diplomatisch handelnden Computerfraktionen.

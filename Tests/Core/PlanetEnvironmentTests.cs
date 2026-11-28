@@ -12,6 +12,8 @@ internal static class PlanetEnvironmentTests
         run("Planet environments have plausible stellar flux composition and distinct larger maps",Profiles);
         run("Gas colony transfers one real ship manifest without creating roads or deposits",GasFounding);
         run("Air freight pays construction over physical corridors and survives save load",AirFreight);
+        run("M11 atmospheric hydrogen is extracted once, flown to storage and port, and resumes after loading",HydrogenDeliveries);
+        run("M11 full storage and an exhausted gas band stop extraction without losing a batch",HydrogenLimits);
         run("Cancelled airborne cargo physically returns once without roads",AirRecovery);
         run("Ocean water blocks construction and ground movement while islands remain usable",Water);
         run("Gas rules reject roads ground mines and invalid saved infrastructure",InvalidGas);
@@ -66,6 +68,55 @@ internal static class PlanetEnvironmentTests
         Check(p.Buildings[1].Built && p.Roads.All(r=>!r),"Air site not completed");var cost=Definitions.Get(BuildingKind.Warehouse).Cost;
         Check(Goods(p,2)==metal-cost[2] && Goods(p,3)==parts-cost[3],"Construction duplicated/lost goods");
     }
+    private static void HydrogenDeliveries()
+    {
+        var s=Founded();var p=s.FindPlanet(7);int h=(int)ResourceKind.Hydrogen;
+        int band=p.AtmosphericHydrogen;
+        Check(s.ValidatePlacement(1,BuildingKind.GasExtractor,10,5)!=null,"Extractor accepted on solid ground");
+        Check(Cmd(s,CommandKind.PlaceBuilding,x:10,y:5,building:BuildingKind.SolarPlant),"Solar construction rejected");
+        Check(Cmd(s,CommandKind.PlaceBuilding,x:10,y:7,building:BuildingKind.GasExtractor),"Extractor rejected");
+        Check(Cmd(s,CommandKind.PlaceBuilding,x:7,y:8,building:BuildingKind.Spaceport),"Port rejected");
+        Check(Cmd(s,CommandKind.PlaceBuilding,x:6,y:5,building:BuildingKind.Warehouse),"Warehouse rejected");
+        var extractor=p.Buildings.Single(b=>b.Kind==BuildingKind.GasExtractor);
+        var port=p.Buildings.Single(b=>b.Kind==BuildingKind.Spaceport);
+        var warehouse=p.Buildings.Single(b=>b.Kind==BuildingKind.Warehouse);
+        ShipmentState flight=null;
+        for(int i=0;i<5000 && flight==null;i++){
+            s.Step();flight=p.Shipments.Find(d=>d.Resource==ResourceKind.Hydrogen && d.Airborne && d.Phase==ShipmentPhase.InTransit && d.Amount>0);
+        }
+        Check(flight!=null && p.ProducedTotals[h]>0,"No loaded hydrogen drone");
+        var copy=new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(s.State)));
+        for(int i=0;i<14000 && (warehouse.Inventory[h]==0 || port.Inventory[h]<8);i++){s.Step();copy.Step();}
+        Check(warehouse.Inventory[h]>0 && port.Inventory[h]==8 && p.Trails.Count==0,"Paid output failed to reach warehouse and port by air");
+        Check(SaveCodec.ToJson(s.State)==SaveCodec.ToJson(copy.State),"Mid-flight save changed delivery or cargo");
+        Check(p.ProducedTotals[h]==Goods(p,h) && band-p.AtmosphericHydrogen==p.ProducedTotals[h]+extractor.ProductionReservedSpace,"Hydrogen ledger disagrees with band depletion");
+        var destination=InvasionFixture.AddBuilding(s,1,BuildingKind.Spaceport,10,5);
+        var ship=InvasionFixture.AddShip(s,7,1,ShipKind.Freighter);
+        port.Supply.ExportReserve[h]=3;
+        s.Enqueue(new SimCommand{Id=s.NextCommandId(),PlanetId=1,ActorId=ship.Id,TargetId=port.Id,Kind=CommandKind.AssignFreight,IntValue=h,Amount=8});
+        s.Step();
+        Check(ship.Freight!=null && ship.Freight.Amount==5,"Space freight ignored the export reserve");
+        for(int i=0;i<4000 && ship.Freight!=null;i++)s.Step();
+        Check(ship.Freight==null && destination.Inventory[h]==5 && ship.Cargo[h]==0 && destination.ReservedIncoming[h]==0,"Export did not arrive exactly once");
+        SaveCodec.Validate(s.State);
+    }
+    private static void HydrogenLimits()
+    {
+        var s=Founded();var p=s.FindPlanet(7);int h=(int)ResourceKind.Hydrogen;
+        Check(Cmd(s,CommandKind.PlaceBuilding,x:10,y:5,building:BuildingKind.GasExtractor),"Extractor rejected");
+        var b=p.Buildings.Single(v=>v.Kind==BuildingKind.GasExtractor);
+        // Fill the existing storage quota so the extractor must retain its full output.
+        p.Buildings[0].Inventory[h]=16;
+        s.Step(5000);
+        Check(b.Inventory[h]==GameSimulation.StorageCapacity(b) && !b.CycleActive,"Extractor failed to stop at capacity");
+        int remaining=p.AtmosphericHydrogen,produced=p.ProducedTotals[h];s.Step(400);
+        Check(p.AtmosphericHydrogen==remaining && p.ProducedTotals[h]==produced,"Full store still drained atmosphere");
+        b.Inventory[h]-=2;p.AtmosphericHydrogen=2;s.Step(700);
+        Check(p.AtmosphericHydrogen==0 && p.ProducedTotals[h]==produced+2,"Last batch was not produced exactly once");
+        b.Inventory[h]-=2;s.Step(400);
+        Check(!b.CycleActive && b.Status.Contains("erschöpft") && p.ProducedTotals[h]==produced+2,"Empty band restarted production");
+        SaveCodec.Validate(s.State);
+    }
     private static void AirRecovery()
     {
         var s=Founded();var p=s.FindPlanet(7);int metal=Goods(p,2),parts=Goods(p,3);
@@ -102,7 +153,14 @@ internal static class PlanetEnvironmentTests
         Check(migrated.Version==SaveCodec.CurrentVersion && migrated.Planets[0].Kind==PlanetKind.Temperate,"No migration");
         migrated.Asteroids=null;migrated.AsteroidBelts=null;migrated.Version=9;for(int i=0;i<old.Planets.Count;i++)migrated.Planets[i].Kind=old.Planets[i].Kind;
         foreach(var planet in migrated.Planets){Check(planet.Trails.Count==0,"Migration invented trail wear");planet.Trails=null;}
-        Check(Raw(old)==Raw(migrated),"Legacy world resized or existing state changed");
+        Check(WithEmptyHydrogenSlots(Raw(old))==Raw(migrated),"Legacy world resized or existing state changed");
+    }
+    internal static string WithEmptyHydrogenSlots(string legacyJson)
+    {
+        // Compare the entire old snapshot, allowing exactly the new field in each six-good vector.
+        return System.Text.RegularExpressions.Regex.Replace(legacyJson,
+            "\"(Inventory|ReservedOutgoing|ReservedIncoming|ProducedTotals|ConsumedTotals|RecoveredTotals|LostTotals|SpaceLostTotals|Cargo|Minimum|Target|ExportReserve|Priority|Replenishing)\":\\[([^\\]]*)\\]",
+            m=>m.Value.Substring(0,m.Value.Length-1)+","+(m.Groups[1].Value=="Priority"?"1":m.Groups[1].Value=="Replenishing"?"false":"0")+"]");
     }
     private static void Showcase()
     {

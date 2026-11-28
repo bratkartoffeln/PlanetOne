@@ -14,6 +14,17 @@ namespace PlanetOne.Runtime
                 case BuildingKind.Headquarters:ColonyHeadquarters(root);break;
                 case BuildingKind.Mine:ColonyMine(root,false);break;
                 case BuildingKind.CrystalMine:ColonyMine(root,true);break;
+                case BuildingKind.GasExtractor:
+                    var separator=ColonyGroup(root,"Gasabscheider",Vector3.zero);
+                    ColonyTank(separator,new Vector3(0,.08f,0),.17f,.54f,Cyan);
+                    for(int side=-1;side<=1;side+=2)
+                    {
+                        var intake=new Vector3(side*.30f,.21f,0);
+                        ColonyTank(separator,intake,.13f,.20f,Trim);
+                        Ring(separator,intake+Vector3.up*.22f,.15f,Cyan,12,.025f);
+                        Part(separator,"Ansaugleitung",new Vector3(side*.18f,.27f,0),new Vector3(.22f,.065f,.08f),Steel);
+                    }
+                    break;
                 case BuildingKind.Smelter:ColonySmelter(root);break;
                 case BuildingKind.SolarPlant:ColonySolar(root);break;
                 case BuildingKind.Warehouse:ColonyWarehouse(root);break;

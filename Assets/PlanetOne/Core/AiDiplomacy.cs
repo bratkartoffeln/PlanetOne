@@ -71,7 +71,7 @@ namespace PlanetOne.Core
                 if(gate==null&&world.Energy-world.EnergyDemand>=8&&world.Workers-world.WorkersUsed>=4)
                 {var build=Build(v.World,ai,world,BuildingKind.JumpGate,"Eigene Forschung und freie Betriebskapazität erlauben das gemeinsame Szenarioziel");if(build!=null)return build;}
                 if(gate!=null&&gate.Built&&gate.Operational&&!v.Gates.Exists(g=>g.BuildingId==gate.Id&&(g.Activating||g.Complete)))
-                {bool ready=true;for(int r=0;r<6;r++)if(gate.Inventory[r]-gate.ReservedOutgoing[r]<Definitions.GateComponents[r])ready=false;if(ready)return Order("Sprungtor sichern","Alle Komponenten wurden physisch angeliefert; Aktivierung öffentlich ankündigen",new SimCommand{Kind=CommandKind.ActivateGate,TargetId=gate.Id});}
+                {bool ready=true;for(int r=0;r<Definitions.ResourceCount;r++)if(gate.Inventory[r]-gate.ReservedOutgoing[r]<Definitions.GateComponents[r])ready=false;if(ready)return Order("Sprungtor sichern","Alle Komponenten wurden physisch angeliefert; Aktivierung öffentlich ankündigen",new SimCommand{Kind=CommandKind.ActivateGate,TargetId=gate.Id});}
             }
             foreach(int partner in v.Partners)
             {

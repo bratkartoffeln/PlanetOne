@@ -40,7 +40,7 @@ internal static class ConstructionVehicleTests
         var p = sim.FindPlanet(1); var cost = Definitions.Get(BuildingKind.SolarPlant).Cost;
         var site = new BuildingState { Id = sim.State.NextEntityId++, PlanetId = 1, Kind = BuildingKind.SolarPlant,
             X = x, Y = 5, Inventory = (int[])cost.Clone() };
-        for (int r = 0; r < 6; r++) p.Buildings[0].Inventory[r] -= cost[r];
+        for (int r = 0; r < Definitions.ResourceCount; r++) p.Buildings[0].Inventory[r] -= cost[r];
         p.Buildings.Add(site); return site;
     }
 
