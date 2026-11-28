@@ -209,6 +209,7 @@ namespace PlanetOne.Core
         [DataMember] public int CapacityOverride;
         [DataMember] public double EnergyStored;
         [DataMember] public int ReservedReturnSpace;
+        [DataMember(EmitDefaultValue=false)] public List<long> Couriers;
         [DataMember(EmitDefaultValue=false)] public long NextCourierExitTick;
         [DataMember] public int LegacyCapacityAllowance;
         [DataMember] public bool PowerBlocked;
@@ -240,6 +241,9 @@ namespace PlanetOne.Core
     [DataContract, Serializable]
     public sealed class ShipmentState
     {
+        [DataMember(EmitDefaultValue=false)] public long CourierId;
+        [DataMember(EmitDefaultValue=false)] public long HomeId;
+        [DataMember(EmitDefaultValue=false)] public bool ApproachingSource;
         [DataMember] public long Id;
         [DataMember] public long SourceId;
         [DataMember] public long TargetId;

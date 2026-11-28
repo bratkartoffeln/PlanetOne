@@ -113,7 +113,8 @@ namespace PlanetOne.Runtime
                   Part(root,"Düsenkragen",at+Vector3.up*.057f,new Vector3(.19f,.019f,.19f),Hull,PrimitiveType.Cylinder);
                 Part(root,"Antrieb",at-Vector3.up*.08f,new Vector3(.15f,.10f,.15f),Cyan,PrimitiveType.Sphere);
             }
-            if(!courier && kind==UnitKind.Engineer)Rod(root,"Werkzeugarm",new Vector3(0,.35f,.1f),new Vector3(0,.36f,.58f),.045f,Steel);
+            if(!courier && kind==UnitKind.MobileWorkshop)WorkshopBody(root,color);
+            else if(!courier && kind==UnitKind.Engineer)Rod(root,"Werkzeugarm",new Vector3(0,.35f,.1f),new Vector3(0,.36f,.58f),.045f,Steel);
             else if(!courier)
             {
                 var turret=new GameObject("Turret").transform;turret.SetParent(root,false);turret.localPosition=new Vector3(0,.39f,.05f);

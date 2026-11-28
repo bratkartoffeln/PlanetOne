@@ -346,3 +346,17 @@ Eine Gebäudeausfahrt gibt den nächsten Transporter 0,30 Simulationssekunden na
 Jede Gasriesenkolonie teilt sich einen beim Erzeugen des Systems bestimmten Fördervorrat von 1600 bis 2400 Einheiten Wasserstoff. Ein Gasförderer kostet 16 Metall und 4 Bauteile und benötigt im Betrieb 3 Energie sowie 2 Arbeitskräfte. Bei voller Produktivität liefert ein sechssekündiger Zyklus 2 Einheiten. Beim Start werden sie dem Gasband entnommen und zwei Plätze im Stationsspeicher reserviert. Erst mit Abschluss wird die Charge verfügbar. Rückbau gibt eine unfertige Charge ins Gasband zurück.
 
 Der Stationsspeicher fasst 24 Waren. Bei fehlendem Platz wartet der nächste Zyklus. Reguläre Frachtdrohnen bedienen erreichbare Lager und den konfigurierten Bedarf des Raumhafens. Ein Raumhafen auf einem Gasriesen fordert zunächst 8 Wasserstoff an. Hafenbestand, Exportreserve, Schiffsladung und Handelslieferungen folgen den gemeinsamen Warenregeln.
+
+### LOG-019 · Heimatfahrzeuge und Depotreserve
+
+Jedes fertiggestellte Gebäude besitzt einen eigenen Transporter. Das Kontrollzentrum stellt zusätzlich drei Reservefahrzeuge, ein Lager ein weiteres. Zuerst fährt der Transporter des Versenders. Ist er gebunden, kann der Empfänger die Ware abholen. Sind beide beschäftigt, hilft eine erreichbare Depotreserve. Abholfahrt, Verladung, Lieferung und Rückkehr brauchen tatsächlich Zeit. Material bleibt bis zum Ende der Verladung in der Quelle reserviert. Der Fuhrpark einschließlich Fahrzeugkennungen und Heimatstandorten wird mitgespeichert. Bis zu zwei Fahrzeuge des Kontrollzentrums dürfen gleichzeitig Bauaufträge übernehmen.
+
+Beim Rückbau wechseln die Fahrzeuge des Gebäudes in ein erreichbares eigenes Depot. Ein Transporter, der dort sein Rückbaumaterial ablädt, beendet seine Fahrt. Auf Baustellen bleibt das Modell beim Warenumschlag sichtbar. F3 blendet Typ- und Ladehinweise auf der Oberfläche ein oder aus.
+
+### Bodenverteidigung und Instandsetzung
+
+Eine Toröffnung verbindet zwei gegenüberliegende Hexkanten. Benachbarte eigene Mauern, Tore und Türme bestimmen die Ausrichtung. Geschütztürme schließen an die Mauer an und behalten ihren unabhängigen Geschützaufsatz. Eigene Fußtruppen können beim Bewegen zu einer Wabe drei getrennte Standplätze belegen. Weitere Gruppenmitglieder suchen ein Nachbarfeld.
+
+Panzer bekämpfen auch während eines Marschbefehls sichtbare Gegner in Reichweite. Nach dem Gefecht schwenkt ihr Turm während der Fahrt nach vorn. Bei höchstens 75, 50 und 25 Prozent Struktur sinken Bewegungstempo beziehungsweise Produktionsgeschwindigkeit auf 90, 75 und 55 Prozent. Fußtruppen zeigen einen Verband und einen zunehmend asymmetrischen Gang. Fahrzeuge und Gebäude zeigen je nach Zustand Blechschäden, Funken, Rauch und Feuer.
+
+Die unbewaffnete mobile Werkstatt kostet 10 Metall, 8 Bauteile, 2 Nahrung und bindet 2 Bewohner. Vier der bezahlten Bauteile gehen als Ersatzteile an Bord. Im Stand wählt sie im Umkreis von zwei Feldabständen das anteilig am stärksten beschädigte eigene Fahrzeug. Ein Bauteil repariert bis zu 16 Strukturpunkte. Das Militärdepot füllt ihren Vorrat auf maximal acht Teile. Für gezielte Gebäudereparaturen gibt es den Reparaturbefehl. Ein blinkender Schraubenschlüssel zeigt den Arbeitsort an.

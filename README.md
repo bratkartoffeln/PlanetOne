@@ -1,5 +1,7 @@
 # PlanetOne
 
+**Bodenoperationen in 1.0.23.** Im Fahrzeugwerk lässt sich eine mobile Werkstatt bauen. Im Stand repariert sie beschädigte Fahrzeuge in ihrer Nähe. Panzer können während der Fahrt feuern und hinterlassen kurzlebige Kettenspuren. Die Gebäudeansicht zeigt, wie viele eigene Transporter im Haus oder unterwegs sind. **F3** schaltet auf der Oberfläche Einheitennamen und Ladehinweise ein und aus. [Spielregeln zu Fuhrpark und Gefechtsschäden](docs/GAME_DESIGN.md#log-019--heimatfahrzeuge-und-depotreserve)
+
 **Verkehr und Animationen in 1.0.22.** Transporter verlassen dieselbe Ausfahrt im Abstand von 0,30 Simulationssekunden. Kettenfahrzeuge folgen der Längs- und Querneigung des Bodens. Fußtruppen setzen ihre Füße abwechselnd auf, Ladetüren und Durchfahrtstore reagieren auf Verkehr. Kleine Betriebsleuchten blinken, die Kasernenfahne bewegt sich im Wind. Beobachtete Schüsse, Explosionen und aktive Schiffstriebwerke zeigen Partikel. [Prüfszenario](docs/ACCEPTANCE_TESTS.md#test-045--fahrzeuge-figuren-und-betriebsanimationen)
 
 **Modelle in 1.0.21.** Das Fahrzeugwerk hat ein oranges Montageportal, Frachter tragen einzeln verzurrte Container und Aufklärer haben gepfeilte Flügel. Die Baumenüs zeigen dieselben texturierten 3D-Modelle wie die Spielwelt. [Vorher-nachher-Vergleich aus dem Windows-Player](docs/MODELLE_1_0_21.png)

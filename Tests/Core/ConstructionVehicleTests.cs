@@ -151,7 +151,11 @@ internal static class ConstructionVehicleTests
             "Blocked builder teleported or moved off its actual road.");
         var restored = new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(sim.State)));
         LogisticsBarrier.Restore(p,terrain);LogisticsBarrier.Restore(restored.FindPlanet(1),terrain);
-        sim.Step(700); restored.Step(700);
+        for(int i=0;i<700;i++)
+        {
+            sim.Step();restored.Step();
+            Check(!p.Shipments.Exists(s=>s.SourceId==site.Id && s.Phase==ShipmentPhase.Returning),"Empty salvage courier headed back to demolished site");
+        }
         Check(site.Built && SaveCodec.ToJson(sim.State) == SaveCodec.ToJson(restored.State),
             "Saved blocked builder did not continue exactly after reconnection.");
         Balance(p);
@@ -177,7 +181,11 @@ internal static class ConstructionVehicleTests
         Check(builder.Id == id && builder.Phase == ShipmentPhase.BuilderReturning && builder.Amount == 0 &&
             site.Inventory[2] == 4 && site.Inventory[3] == 1, "Cancellation skipped builder return or wrong paid recovery.");
         var restored = new GameSimulation(SaveCodec.FromJson(SaveCodec.ToJson(sim.State)));
-        sim.Step(700); restored.Step(700);
+        for(int i=0;i<700;i++)
+        {
+            sim.Step();restored.Step();
+            Check(!p.Shipments.Exists(s=>s.SourceId==site.Id && s.Phase==ShipmentPhase.Returning),"Empty salvage courier headed back to demolished site");
+        }
         Check(!p.Buildings.Contains(site) && !p.Shipments.Contains(builder) &&
             p.Buildings[0].Inventory[2] == 96 && p.Buildings[0].Inventory[3] == 39 &&
             SaveCodec.ToJson(sim.State) == SaveCodec.ToJson(restored.State), "Physical recovery or save continuation failed.");

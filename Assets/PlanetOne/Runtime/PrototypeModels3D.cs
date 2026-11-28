@@ -153,6 +153,7 @@ namespace PlanetOne.Runtime
                 Part(root,"Scheinwerfer",new Vector3(side*0.16f,0.24f,0.31f),Vector3.one*0.055f,Cyan,PrimitiveType.Sphere);
             }
             if(courier){Module(root,new Vector3(0,.39f,.18f),new Vector3(.32f,.20f,.20f),Hull);ArmourPanel(root,"Ladebehälter",new Vector3(0,.4f,-.15f),new Vector3(.35f,.22f,.33f),Industrial);return;}
+            if(kind==UnitKind.MobileWorkshop){WorkshopBody(root,faction);return;}
             if(kind==UnitKind.Engineer)
             {HullPart(root,new Vector3(0,.4f,0),new Vector3(.32f,.19f,.35f),faction);Rod(root,"Kranarm",new Vector3(-0.1f,0.4f,-0.2f),new Vector3(-0.1f,0.7f,0.15f),0.07f,Industrial);Rod(root,"Greifer",new Vector3(-0.1f,0.7f,0.15f),new Vector3(-0.1f,0.4f,0.3f),0.04f,Steel);return;}
             var weaponPivot=new GameObject("Turret").transform;weaponPivot.SetParent(root,false);weaponPivot.localPosition=new Vector3(0,.4f,0);

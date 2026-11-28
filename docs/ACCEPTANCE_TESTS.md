@@ -433,3 +433,11 @@ Aktuelle Laufdaten und verbleibende Integrationsprüfungen stehen in [GUI_BEWEGU
 ## TEST-045 · Fahrzeuge, Figuren und Betriebsanimationen
 
 Zwei Kuriere an derselben Ausfahrt losschicken. Nach der ersten Ausfahrt speichern und laden und den Abstand beim zweiten Start prüfen. Im Windows-Player den Abstand beider Modelle im Konvoi und bei Gegenverkehr beobachten. An einem Panzer die vier Aufstandspunkte gegen das tatsächliche Gelände prüfen. Eine Fußtruppe durch ein eigenes Tor bewegen und Bewegung von Hüfte und Knie sowie Öffnen und Schließen der Schranke verfolgen. Eine Leerfahrt muss beide Ladeschleusen betätigen. Das Fahnentuch bewegt sich an der freien Kante, seine Mastkante bleibt fest. Beobachtete Schüsse und Zerstörungen erzeugen Partikel auch im ersten sichtbaren Bild. Der Düsenstrahl eines fliegenden Aufklärers folgt seinen Triebwerken.
+
+## TEST-046 · Heimatfahrzeuge, Instandsetzung und Befestigungen
+
+Drei Lieferungen gleichzeitig an ein Lager bestellen. Eigene Fahrzeugkennung, Abholfahrt und Depotreserve prüfen, den Fuhrpark speichern und laden. Beim Rückbau Material und Fahrzeuge am Depot zählen. Ein leerer Rückbautransporter darf die ehemalige Abholstelle nicht erneut anfahren. Am Bauplatz während des Entladens beobachten, wie der Behälter vom weiter sichtbaren Fahrzeug heruntergehoben wird.
+
+Einen Panzer quer an einem sichtbaren Gegner vorbeifahren lassen. Marschziel, verbrauchte Munition, Ausrichtung und Rückstoß prüfen. Dieselbe Rückstoßkontrolle am Geschützturm durchführen. Bei kritischer Beschädigung Rauch und Feuer, nach der Fahrt zwei verblassende Kettenspuren prüfen. Eine mobile Werkstatt mit begrenztem Teilevorrat abstellen und die reparierten Strukturpunkte gegen die verbrauchten Teile rechnen.
+
+Vier Fußtruppen auf dasselbe Feld schicken und ihre tatsächlichen Endpositionen vergleichen. Ein Tor aus allen sechs Richtungen prüfen. Eine geschlossene Mauer auf unebenem Gelände mit einem Geschützturm ergänzen. Die Auswahl aus verschiedenen Richtungen und in allen drei Oberflächenlayouts testen.

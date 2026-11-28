@@ -53,8 +53,8 @@ namespace PlanetOne.Runtime
             int shape=0;var planet=simulation.FindPlanet(openPlanetId);
             if(kind<0)for(int i=0;i<6;i++)
             {var cell=HexGrid.Neighbor(x,y,i);if(cell.X>=0&&cell.Y>=0&&cell.X<planet.Width&&cell.Y<planet.Height&&planet.Roads[cell.Y*planet.Width+cell.X])shape|=1<<i;}
-            bool wall=kind>=0&&IsFortification((BuildingKind)kind);
-            if(wall)shape=WallShape(planet,x,y,PlayerFactionId);
+            bool wall=kind>=0&&HasWallLinks((BuildingKind)kind);
+            if(wall)shape=WallShape(planet,x,y,PlayerFactionId,!Definitions.IsTower((BuildingKind)kind));
             bool rebuild=placementModel==null || placementModelKind!=kind || (kind<0||wall)&&(placementModelX!=x||placementModelY!=y||placementRoadShape!=shape);
             if(rebuild)
             {
@@ -63,8 +63,12 @@ namespace PlanetOne.Runtime
                 {
                     placementModel=new GameObject("Gebäudevorschau").transform;placementModel.SetParent(ghost,false);
                     if(AtmosphereSurface)BuildFloatingPlatform(placementModel);
-                    if(wall)BuildConnectedWall(placementModel,(BuildingKind)kind,x,y,PlayerFactionId);
-                    else PopulateBuildingModel(placementModel,(BuildingKind)kind);
+                    if(!IsFortification((BuildingKind)kind))PopulateBuildingModel(placementModel,(BuildingKind)kind);
+                    if(wall)
+                    {
+                        var mount=ColonyGroup(placementModel,"Maueranschluss",Vector3.zero);
+                        BuildConnectedWall(mount,(BuildingKind)kind,x,y,PlayerFactionId);
+                    }
                 }
                 else {placementModel=BuildPreviewRoadMesh(x,y);placementModel.SetParent(ghost,false);}
                 foreach(var collider in placementModel.GetComponentsInChildren<Collider>()){collider.enabled=false;Destroy(collider);}
@@ -77,7 +81,8 @@ namespace PlanetOne.Runtime
             {
                 var at=SurfacePosition(x,0,y);float ground=at.y;
                 for(int i=0;i<6;i++){var corner=at+HexCorner(i,.89f);ground=Mathf.Max(ground,ReliefHeight(corner.x,corner.z));}
-                placementModel.localPosition=new Vector3(at.x,ground+.015f,at.z);
+                placementModel.localPosition=new Vector3(at.x,IsFortification((BuildingKind)kind)?at.y:ground+.015f,at.z);
+                if(wall)placementModel.Find("Maueranschluss").localPosition=Vector3.up*(at.y-placementModel.localPosition.y);
             }
             if(validPlacementMaterial==null)
             {

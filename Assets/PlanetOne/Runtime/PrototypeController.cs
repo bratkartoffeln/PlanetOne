@@ -27,7 +27,6 @@ namespace PlanetOne.Runtime
         private readonly Dictionary<int, Transform> planetViews = new Dictionary<int, Transform>();
         private readonly Dictionary<int, Transform> orbitViews = new Dictionary<int, Transform>();
         private readonly Dictionary<long, Transform> buildingViews = new Dictionary<long, Transform>();
-        private readonly Dictionary<int, long> buildingPickIds = new Dictionary<int, long>();
         private readonly Dictionary<long, Transform> shipmentViews = new Dictionary<long, Transform>();
         private readonly Dictionary<Color, Material> materials = new Dictionary<Color, Material>();
         private readonly List<long> obsoleteShipments = new List<long>();
@@ -157,6 +156,7 @@ namespace PlanetOne.Runtime
             foreach(var icon in buildingIcons.Values)Destroy(icon);
             if(domeGlass!=null)Destroy(domeGlass);
             if(trailMaterial!=null)Destroy(trailMaterial);
+            if(smokeMaterial!=null)Destroy(smokeMaterial);
             if(particleMaterial!=null)Destroy(particleMaterial);
             if(reliefMesh!=null)Destroy(reliefMesh);
             if(reliefMap!=null)Destroy(reliefMap);
@@ -164,12 +164,14 @@ namespace PlanetOne.Runtime
             if(panelTexture!=null)Destroy(panelTexture);if(buttonTexture!=null)Destroy(buttonTexture);if(hoverTexture!=null)Destroy(hoverTexture);
         }
 
+        private bool showTerrainLabels;
         public bool HandleShortcut(KeyCode key)
         {
             if(viewFlightActive){if(key==KeyCode.Escape){FinishViewFlight();return true;}return false;}
             if(IsCommandMenuOpen){if(key==KeyCode.Escape){CloseCommandMenu();return true;}return false;}
             if (key==KeyCode.Escape) { if(settingsOpen)CloseSettings(); else if(HandleSessionEscape()){} else if(placement.HasValue || placingRoad || removingRoad || planningSupply || militaryTargetMode.HasValue || spaceMoveTargetMode) {CancelPlacement();militaryTargetMode=null;spaceMoveTargetMode=false;} else if(panelOpen){panelOpen=false;contextOpen=true;} else if(SelectionCardVisible)contextOpen=false; else ShowSessionPage(SessionPage.Home); selectionStart=null; shipSelectionStart=null; return true; }
             if(settingsOpen || menuOpen)return false;
+            if(key==KeyCode.F3 && openPlanetId!=0){showTerrainLabels=!showTerrainLabels;return true;}
             if(key==KeyCode.L && openPlanetId!=0){ToggleSupplyOverlay();return true;}
             if(key==KeyCode.Space){TogglePause();return true;}
             if(key==KeyCode.F5)return SaveGame();
@@ -184,6 +186,7 @@ namespace PlanetOne.Runtime
             HandleOrbitCamera();
             if(Input.GetKeyDown(KeyCode.Space))HandleShortcut(KeyCode.Space);
             if(Input.GetKeyDown(KeyCode.L))HandleShortcut(KeyCode.L);
+            if(Input.GetKeyDown(KeyCode.F3))HandleShortcut(KeyCode.F3);
             if(Input.GetKeyDown(KeyCode.F5))HandleShortcut(KeyCode.F5);
             if(Input.GetKeyDown(KeyCode.F9))HandleShortcut(KeyCode.F9);
             if(Input.GetKeyDown(KeyCode.Tab))HandleShortcut(KeyCode.Tab);
@@ -348,7 +351,6 @@ namespace PlanetOne.Runtime
             ghost = null;
             selectedMarker = null;
             buildingViews.Clear();
-            buildingPickIds.Clear();
             shipmentViews.Clear();
             unitViews.Clear(); selectedUnits.Clear(); militaryTargetMode = null;
             sidebarScroll = Vector2.zero;
@@ -431,12 +433,11 @@ namespace PlanetOne.Runtime
             {
                 obsoleteBuildings.Remove(building.Id);
                 Transform view;
-                if(IsFortification(building.Kind)&&buildingViews.TryGetValue(building.Id,out view))
+                if(HasWallLinks(building.Kind)&&buildingViews.TryGetValue(building.Id,out view))
                 {
-                    int shape=WallShape(planet,building.X,building.Y,GameSimulation.BuildingOwner(planet,building)),old;
+                    int shape=WallShape(planet,building.X,building.Y,GameSimulation.BuildingOwner(planet,building),!Definitions.IsTower(building.Kind)),old;
                     if(!wallShapes.TryGetValue(building.Id,out old)||old!=shape)
                     {
-                        var collider=view.GetComponent<Collider>();if(collider!=null)buildingPickIds.Remove(collider.GetInstanceID());
                         view.gameObject.SetActive(false);Destroy(view.gameObject);buildingViews.Remove(building.Id);
                     }
                 }
@@ -444,7 +445,7 @@ namespace PlanetOne.Runtime
                 {
                     view = BuildBuilding(building);
                     buildingViews[building.Id] = view;
-                    if(IsFortification(building.Kind))wallShapes[building.Id]=WallShape(planet,building.X,building.Y,GameSimulation.BuildingOwner(planet,building));
+                    if(HasWallLinks(building.Kind))wallShapes[building.Id]=WallShape(planet,building.X,building.Y,GameSimulation.BuildingOwner(planet,building),!Definitions.IsTower(building.Kind));
                 }
                 UpdateConstructionVisual(view,building);
                 view.gameObject.SetActive(simulation.IsCellVisible(planet,PlayerFactionId,building.X,building.Y) || GameSimulation.BuildingOwner(planet,building)==PlayerFactionId);
@@ -452,8 +453,6 @@ namespace PlanetOne.Runtime
             foreach (long id in obsoleteBuildings)
             {
                 Transform removed = buildingViews[id];
-                Collider collider = removed.GetComponent<Collider>();
-                if (collider != null) buildingPickIds.Remove(collider.GetInstanceID());
                 Destroy(removed.gameObject);
                 buildingViews.Remove(id);
                 if (selectedBuildingId == id) selectedBuildingId = 0;
@@ -464,11 +463,6 @@ namespace PlanetOne.Runtime
             foreach (ShipmentState shipment in planet.Shipments)
             {
                 Transform view;
-                if(GameSimulation.GroundCourierDocked(shipment))
-                {
-                    if(shipmentViews.TryGetValue(shipment.Id,out view)){view.gameObject.SetActive(false);view.GetComponent<VehicleModelSize>().DisplayOffset=Vector2.zero;}
-                    obsoleteShipments.Remove(shipment.Id);continue;
-                }
                 if (!shipmentViews.TryGetValue(shipment.Id, out view))
                 {
                     view=new GameObject("Gütertransporter").transform;view.SetParent(surfaceRoot,false);
@@ -481,6 +475,7 @@ namespace PlanetOne.Runtime
                 visibleCouriers.Add(shipment);
             }
             SeparateCourierModels();
+            if(!AtmosphereSurface)foreach(var courier in visibleCouriers)StampTracks(shipmentViews[courier.Id]);
             foreach (long id in obsoleteShipments)
             {
                 Destroy(shipmentViews[id].gameObject);
@@ -491,6 +486,7 @@ namespace PlanetOne.Runtime
             if (selected != null) ConformMarker(selectedMarker,selected.X,selected.Y);
             UpdateMilitaryViews(planet);
             UpdateColonyActivity(planet);
+            if(trackField!=null)trackField.Refresh(SurfaceClock);
         }
 
         private Transform BuildBuilding(BuildingState building)
@@ -500,17 +496,20 @@ namespace PlanetOne.Runtime
             root.localPosition = SurfacePosition(building.X, 0, building.Y);
             float ground=root.localPosition.y;
             for(int i=0;i<6;i++){Vector3 corner=root.position+HexCorner(i,0.89f);ground=Mathf.Max(ground,ReliefHeight(corner.x,corner.z));}
-            root.localPosition=new Vector3(root.localPosition.x,ground+0.015f,root.localPosition.z);
+            root.localPosition=new Vector3(root.localPosition.x,IsFortification(building.Kind)?root.localPosition.y:ground+0.015f,root.localPosition.z);
             for(int i=0;i<6&&!IsFortification(building.Kind);i++)
             {Vector3 foot=HexCorner(i,0.79f),world=root.position+foot;float depth=root.position.y-ReliefHeight(world.x,world.z);if(depth>0.05f)Rod(root,"Fundamentstütze",foot-Vector3.up*depth,foot+Vector3.up*0.04f,0.1f,Steel);}
-            BoxCollider pickCollider = root.gameObject.AddComponent<BoxCollider>();
-            pickCollider.center = new Vector3(0, 0.55f, 0);
-            pickCollider.size = new Vector3(0.90f, 1.1f, 0.90f);
-            buildingPickIds[pickCollider.GetInstanceID()] = building.Id;
-
             if(AtmosphereSurface)BuildFloatingPlatform(root);
             if(IsFortification(building.Kind))BuildConnectedWall(root,building.Kind,building.X,building.Y,GameSimulation.BuildingOwner(simulation.FindPlanet(openPlanetId),building));
-            else PopulateBuildingModel(root,building.Kind);
+            else
+            {
+                PopulateBuildingModel(root,building.Kind);
+                if(Definitions.IsTower(building.Kind))
+                {
+                    var collar=ColonyGroup(root,"Maueranschluss",Vector3.up*(SurfacePosition(building.X,0,building.Y).y-root.position.y));
+                    BuildConnectedWall(collar,building.Kind,building.X,building.Y,GameSimulation.BuildingOwner(simulation.FindPlanet(openPlanetId),building));
+                }
+            }
             var activity=root.gameObject.AddComponent<ColonyActivity>();
             activity.Lamps=System.Array.FindAll(root.GetComponentsInChildren<Renderer>(),r=>r.name=="Zugangsanzeige" || r.name=="Torwarnanzeige" ||
                 r.name=="Landebakenanzeige" || r.name=="Betriebsanzeige" || r.name=="Torleuchte");
@@ -767,6 +766,11 @@ namespace PlanetOne.Runtime
             if(factory)DrawRecruitment(building);
             if(building.Built && !building.Deconstructing && building.Kind==BuildingKind.Spaceport)DrawPortProduction(building);
             DrawSupplyControls();
+            if(building.Couriers!=null)
+            {
+                int busy=simulation.FindPlanet(building.PlanetId).Shipments.FindAll(s=>s.HomeId==building.Id).Count;
+                GUILayout.Label("Fuhrpark · "+(building.Couriers.Count-busy)+" im Gebäude · "+busy+" unterwegs",smallStyle);
+            }
             if(!factory)GUILayout.Label(Definitions.Get(building.Kind).Name.ToUpperInvariant(), headingStyle);
             GUILayout.Label(building.Status ?? (building.Built ? "Betriebsbereit" : "Im Bau"), mutedStyle);
             GUILayout.Label("Struktur: " + building.Health.ToString("0") + " / " + Definitions.BuildingHealth(building.Kind), smallStyle);

@@ -1,8 +1,9 @@
 Shader "PlanetOne/ModelParticle" {
+ Properties { _DstBlend ("Destination blend", Float) = 1 }
  SubShader {
   Tags {"Queue"="Transparent" "RenderType"="Transparent" "IgnoreProjector"="True"}
   Pass {
-   Blend SrcAlpha One
+   Blend SrcAlpha [_DstBlend]
    Cull Off ZWrite Off
    CGPROGRAM
    #pragma vertex vert

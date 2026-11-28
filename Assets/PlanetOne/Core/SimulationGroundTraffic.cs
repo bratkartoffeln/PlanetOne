@@ -38,7 +38,7 @@ namespace PlanetOne.Core
         public static double GroundCourierRadius(ShipmentState shipment){return .24;}
         public static SimPoint GroundUnitPosition(UnitState unit){return HexGrid.ToWorld(unit.X,unit.Y);}
         public static bool GroundCourierDocked(ShipmentState shipment)
-        {return shipment.Phase==ShipmentPhase.Loading||shipment.Phase==ShipmentPhase.Unloading||shipment.Traffic!=null&&shipment.Traffic.Docked;}
+        {return shipment.Phase==ShipmentPhase.Loading&&!shipment.ApproachingSource||shipment.Phase==ShipmentPhase.Unloading||shipment.Traffic!=null&&shipment.Traffic.Docked;}
         public static double ShipmentArrivalDistance(ShipmentState shipment)
         {return Math.Max(0,shipment.Path.Count-1-(shipment.Phase==ShipmentPhase.BuilderOutbound||shipment.Phase==ShipmentPhase.Building?.78:0));}
         public static SimPoint GroundCourierPosition(ShipmentState shipment)
@@ -169,6 +169,7 @@ namespace PlanetOne.Core
             if (distance < mover.Radius+other.Radius-GroundTrafficTolerance) return true;
             // Even an off-centre parked unit is at most two hex radii from any point in its cell.
             if (distance > 2*HexGrid.Radius || mover.Unit==null || other.Unit==null) return false;
+            if(FootSoldier(mover.Unit) && FootSoldier(other.Unit))return false;
             return other.Unit.Order==UnitOrder.Hold && !other.Unit.RecenterToCell &&
                 (other.Traffic==null || !other.Traffic.Yielding) && EntersParkedHex(mover.Position,destination,other.Position);
         }
@@ -188,6 +189,21 @@ namespace PlanetOne.Core
         {
             PrepareGroundSweeps();blocker=GroundBlocker(planet,mover,destination);
             if(blocker!=null)return false;
+            if(FootSoldier(mover.Unit))
+            {
+                var cell=HexGrid.FromWorld(destination.X,destination.Y);
+                var start=HexGrid.FromWorld(mover.Position.X,mover.Position.Y);
+                if(start.X!=cell.X || start.Y!=cell.Y)
+                {
+                    int count=0;
+                    foreach(var other in planet.Units)
+                    {
+                        if(other==mover.Unit || other.Destroyed || other.Layer!=TargetLayer.Ground || !FootSoldier(other))continue;
+                        var at=HexGrid.CellAt(other.X,other.Y);
+                        if(at.X==cell.X && at.Y==cell.Y && ++count>=3)return false;
+                    }
+                }
+            }
             // Give a committed cooperative maneuver its complete remaining corridor. Without this,
             // another actor can enter halfway through and two individually safe maneuvers deadlock.
             foreach(var other in GroundAgents(planet))
@@ -254,13 +270,13 @@ namespace PlanetOne.Core
         {
             if(agent.Unit!=null)return CanTraverse(planet,agent.Owner,agent.Unit.Kind,x,y,agent.Id);
             bool rejoining=agent.Traffic!=null&&agent.Traffic.Yielding&&agent.Traffic.YieldForId==agent.Id;
-            return Inside(planet,x,y)&&!PlanetEnvironment.BlocksGround(planet.Terrain[y*planet.Width+x])&&!planet.Buildings.Exists(b=>!b.Destroyed&&b.X==x&&b.Y==y&&!((b.Built||rejoining)&&(b.Id==agent.Shipment.SourceId||b.Id==agent.Shipment.TargetId)))&&!LandingBlocksGround(planet,x,y);
+            return Inside(planet,x,y)&&!PlanetEnvironment.BlocksGround(planet.Terrain[y*planet.Width+x])&&!planet.Buildings.Exists(b=>!b.Destroyed&&b.X==x&&b.Y==y&&!((b.Built||rejoining)&&(b.Id==agent.Shipment.SourceId||b.Id==agent.Shipment.TargetId||b.Id==agent.Shipment.HomeId)))&&!LandingBlocksGround(planet,x,y);
         }
         private bool CourierYieldReachable(PlanetState planet,GroundAgent agent,GridCell cell)
         {
             if(agent.Shipment==null)return true;
-            var shipment=agent.Shipment;bool returning=shipment.Phase==ShipmentPhase.Returning||shipment.Phase==ShipmentPhase.Recovering||shipment.Phase==ShipmentPhase.BuilderReturning;
-            var target=planet.Buildings.Find(b=>b.Id==(returning?shipment.SourceId:shipment.TargetId));
+            var shipment=agent.Shipment;
+            var target=planet.Buildings.Find(b=>b.Id==CourierDestination(shipment));
             return FindPath(planet,new BuildingState{X=cell.X,Y=cell.Y},target)!=null;
         }
         private bool YieldSegmentLegal(PlanetState planet,GroundAgent agent,SimPoint to)
@@ -268,7 +284,7 @@ namespace PlanetOne.Core
             int samples=Math.Max(1,(int)Math.Ceiling(Distance(agent.Position.X,agent.Position.Y,to.X,to.Y)/.15));
             var start=HexGrid.FromWorld(agent.Position.X,agent.Position.Y);
             for(int i=1;i<=samples;i++)
-            {var point=GroundLerp(agent.Position,to,i/(double)samples);var cell=HexGrid.FromWorld(point.X,point.Y);if(cell.X==start.X&&cell.Y==start.Y)continue;if(!YieldCellLegal(planet,agent,cell.X,cell.Y))return false;}
+            {var point=GroundLerp(agent.Position,to,i/(double)samples);var cell=HexGrid.FromWorld(point.X,point.Y);if(cell.X==start.X&&cell.Y==start.Y)continue;if(!GateEdgeOpen(planet,start,cell) || !YieldCellLegal(planet,agent,cell.X,cell.Y))return false;start=cell;}
             return true;
         }
         private bool StartYield(PlanetState planet,GroundAgent requester,GroundAgent blocker,HashSet<long> visited,int depth)
@@ -346,7 +362,7 @@ namespace PlanetOne.Core
             if(traffic.Progress<1)
             {
                 var finish=HexGrid.ToWorld(traffic.GoalX,traffic.GoalY);double length=Distance(traffic.StartX,traffic.StartY,finish.X,finish.Y);
-                double speed=agent.Unit!=null?Definitions.Get(agent.Unit.Kind).Speed:Definitions.CourierSpeed;
+                double speed=agent.Unit!=null?Definitions.GroundSpeed(agent.Unit):Definitions.CourierSpeed;
                 double progress=Math.Min(1,traffic.Progress+speed*Definitions.TickSeconds/Math.Max(.001,length));
                 var next=GroundLerp(new SimPoint(traffic.StartX,traffic.StartY),finish,progress);GroundAgent blocker;
                 if(!YieldSegmentLegal(planet,agent,next))
@@ -355,7 +371,7 @@ namespace PlanetOne.Core
                 {if(blocker!=null&&blocker.Owner==agent.Owner)StartYield(planet,agent,blocker,new HashSet<long>{agent.Id},0);return true;}
                 RecordGroundMove(planet,agent,next);traffic.Progress=progress;
                 if(agent.Unit!=null){SetGroundUnitPosition(agent.Unit,next);agent.Unit.Status="Macht eigener Einheit Platz";}
-                else if(progress>=1&&planet.Buildings.Exists(b=>(b.Id==agent.Shipment.SourceId||b.Id==agent.Shipment.TargetId)&&b.Built&&b.X==traffic.GoalX&&b.Y==traffic.GoalY))traffic.Docked=true;
+                else if(progress>=1&&planet.Buildings.Exists(b=>(b.Id==agent.Shipment.SourceId||b.Id==agent.Shipment.TargetId||b.Id==agent.Shipment.HomeId)&&b.Built&&b.X==traffic.GoalX&&b.Y==traffic.GoalY))traffic.Docked=true;
                 return true;
             }
             if(State.Tick-traffic.YieldSinceTick<12)return true;
@@ -380,11 +396,15 @@ namespace PlanetOne.Core
                 if(!passed&&(traffic.Docked||!GroundYieldCycleLeader(planet,agent)))return true;
             }
             if(agent.Unit!=null)
-            {agent.Unit.Path.Clear();agent.Unit.PathDistance=0;agent.Unit.Status="Setzt ursprünglichen Auftrag fort";}
+            {
+                agent.Unit.Path.Clear();agent.Unit.PathDistance=0;
+                if(agent.Unit.Order==UnitOrder.Hold && agent.Unit.InfantrySlot>0)agent.Unit.Order=UnitOrder.Move;
+                agent.Unit.Status="Setzt ursprünglichen Auftrag fort";
+            }
             else
             {
-                var shipment=agent.Shipment;bool returning=shipment.Phase==ShipmentPhase.Returning||shipment.Phase==ShipmentPhase.Recovering||shipment.Phase==ShipmentPhase.BuilderReturning;
-                var destination=planet.Buildings.Find(b=>b.Id==(returning?shipment.SourceId:shipment.TargetId));
+                var shipment=agent.Shipment;
+                var destination=planet.Buildings.Find(b=>b.Id==CourierDestination(shipment));
                 var path=FindPath(planet,new BuildingState{X=traffic.GoalX,Y=traffic.GoalY},destination);if(path==null)return true;
                 shipment.Path=path;shipment.DistanceTravelled=0;
                 shipment.PassingOffset=0;shipment.RoadEntryCentered=!traffic.Docked;

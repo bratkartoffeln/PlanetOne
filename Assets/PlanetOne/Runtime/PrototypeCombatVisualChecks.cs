@@ -25,8 +25,12 @@ namespace PlanetOne.Runtime
             yield return null;yield return new WaitForSecondsRealtime(.7f);
             var tank=controller.UnitView(source.Id);Quaternion chassis=tank.rotation;
             Require(tank.Find("Turret")!=null && tank.Find("Turret/MuzzlePosition")!=null,"Combat vehicle has a separate turret and physical muzzle");
+            Vector3 turretRest=tank.Find("Turret").localPosition;
+            var hull=tank.Find("Kettenschürze");Vector3 hullRest=hull.localPosition;
             sim.State.Paused=false;sim.Step();sim.State.Paused=true;
             yield return null;yield return null;
+            Require(Vector3.Distance(turretRest,tank.Find("Turret").localPosition)>.05f &&
+                Vector3.Distance(hullRest,hull.localPosition)>.015f,"Real shot recoils both turret and chassis geometry");
             Require(source.Ammunition==3 && target.Health<Definitions.Get(target.Kind).Health,"Visual fixture fired a real round and dealt actual simulation damage");
             Require(controller.ActiveCombatProjectileCount==1 && controller.LastPresentedCombatSequence==sim.CombatPresentationSequence,"Each actual observed round creates one projectile");
             Require(Quaternion.Angle(chassis,tank.rotation)<.01f,"Aiming the gun leaves the vehicle chassis unchanged");
@@ -56,6 +60,36 @@ namespace PlanetOne.Runtime
             Require(controller.ActiveCombatVisualCount==0,"Changing world clears previous effects instead of replaying combat");
             controller.SetView(1);yield return null;
             Require(controller.ActiveCombatVisualCount==0,"Returning to a battlefield does not replay recorded shots");
+
+            // A real powered gun tower fires at a visible fixture unit.
+            controller.StartMilitaryFixture();controller.SetSimulationPaused(true);
+            sim=controller.Simulation;planet=sim.FindPlanet(1);
+            var tower=planet.Buildings.Find(b=>b.Kind==BuildingKind.GunTower);
+            var intruder=planet.Units.Find(u=>u.OwnerId==2);intruder.X=tower.X+1;intruder.Y=tower.Y;
+            tower.Priority=2;tower.Ammunition=6;
+            foreach(var gun in planet.Units)gun.Ammunition=0;
+            yield return null;yield return null;
+            var battery=controller.ConstructionView(tower.Id).Find("Turret");
+            var rest=battery.localPosition;
+            sim.State.Paused=false;sim.Step();sim.State.Paused=true;yield return null;yield return null;
+            Require(tower.Ammunition==5 && (battery.localPosition-rest).magnitude>.05f,"Real defensive tower shot recoils the weapon mount");
+            var damaged=planet.Units.Find(u=>u.OwnerId==1 && u.Kind==UnitKind.Tank);
+            damaged.X=16;damaged.Y=15;damaged.Health=30;tower.Health=32;
+            sim.State.Relations[0].Relation=RelationKind.Peace;
+            controller.SetSurfaceFocus(controller.UnitView(damaged.Id).position);
+            controller.RequestUnitOrder(damaged.Id,CommandKind.MoveUnit,23,15);
+            controller.SetSimulationPaused(false);yield return new WaitForSecondsRealtime(1.3f);
+            controller.SetSimulationPaused(true);
+            var tracks=controller.UnitView(damaged.Id).parent.GetComponentInChildren<TrackField>();
+            Require(tracks!=null && tracks.GetComponent<MeshFilter>().sharedMesh.vertexCount>=8,"Tracked movement leaves paired ground prints");
+            int vehicleParticles=controller.UnitView(damaged.Id).GetComponent<FieldWear>().Particles.particleCount;
+            int towerParticles=controller.ConstructionView(tower.Id).GetComponent<FieldWear>().Particles.particleCount;
+            Require(vehicleParticles>0 && towerParticles>0,"Critical vehicles and buildings emit damage particles: "+vehicleParticles+" / "+towerParticles);
+            controller.SetSurfaceFocus(controller.UnitView(damaged.Id).position);Camera.main.orthographicSize=1.6f;
+            controller.CaptureWorld(System.IO.Path.Combine(outputDirectory,"damaged-tank-tracks.png"));
+            sim.State.Paused=false;sim.Step((int)(20/Definitions.TickSeconds));sim.State.Paused=true;
+            yield return null;yield return null;
+            Require(tracks.GetComponent<MeshFilter>().sharedMesh.vertexCount==0,"Old track impressions have faded from the terrain");
 
             controller.StartAsteroidFixture();controller.SetSimulationPaused(true);controller.CloseContextPanel();yield return null;
             var space=controller.Simulation;

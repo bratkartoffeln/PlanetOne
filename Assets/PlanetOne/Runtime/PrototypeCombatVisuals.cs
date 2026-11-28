@@ -150,6 +150,12 @@ namespace PlanetOne.Runtime
                     if(target && turret!=null)TurnCombatTurret(turret,end,360);
                     var muzzle=turret!=null?turret.Find("MuzzlePosition"):actor.Find("MuzzlePosition");
                     if(muzzle!=null)start=muzzle.position;
+                    if(fact.SourceWorld>0 && turret!=null)
+                    {
+                        var recoil=actor.GetComponent<WeaponRecoil>();
+                        if(recoil==null)recoil=actor.gameObject.AddComponent<WeaponRecoil>();
+                        recoil.Fire(turret,unitViews.ContainsKey(fact.SourceId));
+                    }
                 }
                 CombatImpact(start,.15f,false,.14f,target?(end-start).normalized:actor!=null?actor.forward:Vector3.up);
             }
@@ -216,6 +222,12 @@ namespace PlanetOne.Runtime
                 var p=simulation.FindPlanet(openPlanetId);
                 foreach(var u in p.Units)
                 {
+                    if(!u.Destroyed && u.Kind==UnitKind.Tank && (u.Order==UnitOrder.Move || u.Order==UnitOrder.Retreat) &&
+                        !combatAims.ContainsKey(u.Id) && unitViews.TryGetValue(u.Id,out var view) && view.gameObject.activeSelf)
+                    {
+                        var pivot=view.Find("Turret");
+                        if(pivot!=null)pivot.localRotation=Quaternion.RotateTowards(pivot.localRotation,Quaternion.identity,dt*110);
+                    }
                     if(u.Destroyed || u.Order!=UnitOrder.Attack || !simulation.CanSeeEntity(p,PlayerFactionId,u.Id) || !simulation.CanSeeEntity(p,PlayerFactionId,u.TargetId))continue;
                     var target=CombatActor(u.TargetId,p.Id);if(target!=null)SetCombatAim(u.Id,target.position+Vector3.up*.35f,p.Id,u.TargetId);
                 }

@@ -332,7 +332,7 @@ namespace PlanetOne.Core
                 { if(BuildingOwner(p,a)!=BuildingOwner(p,b))ReturnConstructionVehicle(d); continue; }
                 if(BuildingOwner(p,a)==BuildingOwner(p,b) || d.Phase==ShipmentPhase.Recovering || d.Phase==ShipmentPhase.Returning) continue;
                 b.ReservedIncoming[(int)d.Resource]-=d.Amount;
-                if(d.Phase==ShipmentPhase.Loading) {a.ReservedOutgoing[(int)d.Resource]-=d.Amount;p.Shipments.RemoveAt(i);continue;}
+                if(d.Phase==ShipmentPhase.Loading) {a.ReservedOutgoing[(int)d.Resource]-=d.Amount;RecallCourier(p,d);continue;}
                 a.ReservedReturnSpace-=d.Amount;a.ReservedIncoming[(int)d.Resource]+=d.Amount;d.RecoveryReserved=true;d.Phase=ShipmentPhase.Recovering;
                 d.Path.Reverse();d.DistanceTravelled=d.Path.Count-1-d.DistanceTravelled;d.PhaseProgress=0;d.RouteBlocked=true;
             }
@@ -358,7 +358,7 @@ namespace PlanetOne.Core
             {
                 if(u.Food<4 && h.Food>0) { h.Food--;u.Food++;u.Cooldown=1; }
                 if(u.Ammunition<Definitions.Get(u.Kind).Ammo && h.Parts>0) { h.Parts--;p.ConsumedTotals[3]++;u.Ammunition=Math.Min(Definitions.Get(u.Kind).Ammo,u.Ammunition+Definitions.AmmoPerPart);u.Cooldown=1; }
-                if(u.Kind==UnitKind.Engineer && u.Parts<8 && h.Parts>0) {h.Parts--;u.Parts++;u.Cooldown=1;}
+                if(Definitions.CanRepair(u.Kind) && u.Parts<8 && h.Parts>0) {h.Parts--;u.Parts++;u.Cooldown=1;}
             }
         }
     }

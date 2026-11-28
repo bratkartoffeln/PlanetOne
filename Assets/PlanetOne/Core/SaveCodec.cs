@@ -132,7 +132,7 @@ namespace PlanetOne.Core
                         HexGrid.Adjacent(new GridCell(trail.From%p.Width,trail.From/p.Width),new GridCell(trail.To%p.Width,trail.To/p.Width))&&
                         Finite(trail.Wear)&&trail.Wear>=0&&trail.Wear<=1&&trail.LastTick>=0&&trail.LastTick<=state.Tick&&
                         trailKeys.Add((long)trail.From*p.Terrain.Length+trail.To)&&!PlanetEnvironment.Airborne(p),"Beschädigte Fahrspur.");
-                Require(p.Buildings.Count <= p.Width * p.Height && p.Shipments.Count <= Definitions.CouriersPerColony,
+                Require(p.Buildings.Count <= p.Width * p.Height && p.Shipments.Count <= p.Width*p.Height*8,
                     "Zu viele Gebäude oder Transporte.");
                 var cells = new HashSet<int>();
                 var buildings = new Dictionary<long, BuildingState>();
@@ -175,12 +175,18 @@ namespace PlanetOne.Core
                     expectedOutgoing[delivery.SourceId][(int)delivery.Resource] += delivery.Amount;
                     expectedIncoming[delivery.TargetId][(int)delivery.Resource] += delivery.Amount;
                 }
+                var vehicles=new HashSet<long>();var deployed=new HashSet<long>();
+                foreach(var home in p.Buildings)if(home.Couriers!=null)foreach(long vehicle in home.Couriers)
+                    Require(vehicle>0 && vehicles.Add(vehicle) && entityIds.Add(vehicle),"Doppelte Fahrzeugkennung im Fuhrpark.");
                 int builders = 0;
                 var staffedSites = new HashSet<long>();
                 foreach (var shipment in p.Shipments)
                 {
                     Require(shipment != null && shipment.Id > 0 && entityIds.Add(shipment.Id) &&
                         Enum.IsDefined(typeof(ShipmentPhase), shipment.Phase), "Ungültiger Transport.");
+                    if(shipment.CourierId!=0)Require(deployed.Add(shipment.CourierId) && buildings.ContainsKey(shipment.HomeId) &&
+                        buildings[shipment.HomeId].Couriers!=null && buildings[shipment.HomeId].Couriers.Contains(shipment.CourierId),"Transporter ohne eindeutigen Heimatplatz.");
+                    Require(!shipment.ApproachingSource || shipment.Phase==ShipmentPhase.Loading,"Ungültige Abholfahrt.");
                     bool builder = GameSimulation.IsConstructionVehicle(shipment);
                     DeliveryReferences(buildings, shipment.SourceId, shipment.TargetId, shipment.Resource,
                         shipment.Phase == ShipmentPhase.Returning || builder ? 1 : shipment.Amount);
@@ -210,8 +216,7 @@ namespace PlanetOne.Core
                     }
                     var last = shipment.Path[shipment.Path.Count - 1];
                     Require(!shipment.BuilderTurnPending||shipment.Phase==ShipmentPhase.BuilderReturning,"Ungültiges Wendemanöver des Baufahrzeugs.");
-                    var destination = buildings[shipment.Phase == ShipmentPhase.Returning || shipment.Phase == ShipmentPhase.Recovering || shipment.Phase == ShipmentPhase.BuilderReturning&&!shipment.BuilderTurnPending
-                        ? shipment.SourceId : shipment.TargetId];
+                    var destination = buildings[GameSimulation.CourierDestination(shipment)];
                     Require(shipment.RouteBlocked || (last.X == destination.X && last.Y == destination.Y), "Transportweg passt nicht zum Auftrag.");
                     if (builder)
                     {

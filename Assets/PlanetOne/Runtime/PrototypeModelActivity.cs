@@ -24,6 +24,7 @@ namespace PlanetOne.Runtime
             {
                 if(!b.Built || b.Destroyed || !buildingViews.TryGetValue(b.Id,out var view) || !view.gameObject.activeSelf)continue;
                 var rig=view.GetComponent<ColonyActivity>();
+                UpdateWear(view,Definitions.DamageStage(b.Health,Definitions.BuildingHealth(b.Kind)),null,true);
                 if(rig.Flag!=null)rig.Flag.Wave(time+b.Id%7);
                 bool gate=b.Kind==BuildingKind.Gate;
                 bool open=false;
@@ -128,6 +129,7 @@ namespace PlanetOne.Runtime
 
     internal sealed class InfantryStride:MonoBehaviour
     {
+        internal int Injury;
         internal Transform Torso,Muzzle,BarrelTip;
         internal readonly Transform[] Hips=new Transform[2],Knees=new Transform[2],Feet=new Transform[2],Arms=new Transform[2];
         private Vector3 last;
@@ -141,16 +143,16 @@ namespace PlanetOne.Runtime
             float step=Mathf.Min(travel*18,dt*13);
             phase=Mathf.Repeat(phase+step,2*Mathf.PI);
             weight=Mathf.MoveTowards(weight,step>.0001f?1:0,dt*9);
-            float hipsY=.216f-weight*(.017f+.005f*Mathf.Cos(phase*2));
+            float hipsY=.216f-Injury*.004f-weight*(.017f+.005f*Mathf.Cos(phase*2));
             Torso.localPosition=Vector3.up*(hipsY-.016f);
-            Torso.localRotation=Quaternion.Euler(4*weight,4*weight*Mathf.Cos(phase),0);
+            Torso.localRotation=Quaternion.Euler(4*weight+Injury*3,4*weight*Mathf.Cos(phase),Injury*(2+weight*Mathf.Sin(phase)*2));
             for(int i=0;i<2;i++)
             {
                 float angle=phase+i*Mathf.PI;
                 float swing=Mathf.Sin(angle)*weight;
                 float bend=Mathf.Max(0,Mathf.Cos(angle))*weight;
                 // Solve the two leg links for a planted sole on the stance half of the stride.
-                float reach=.077f*swing,down=hipsY-.016f-.057f*bend;
+                float reach=.077f*swing*(i==0?1-Injury*.21f:1),down=hipsY-.016f-.057f*bend;
                 float halfKnee=Mathf.Acos(Mathf.Clamp01(Mathf.Sqrt(reach*reach+down*down)/.20f))*Mathf.Rad2Deg;
                 float thigh=-Mathf.Atan2(reach,down)*Mathf.Rad2Deg-halfKnee;
                 var hip=Hips[i].localPosition;hip.y=hipsY;Hips[i].localPosition=hip;

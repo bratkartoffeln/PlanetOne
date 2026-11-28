@@ -359,8 +359,8 @@ namespace PlanetOne.Runtime
             controller.SetView(1);
             yield return null;
             Require(controller.RenderedBuildingCount == planet.Buildings.Count, "Advanced economy renders every current building");
-            Require(controller.RenderedShipmentCount == planet.Shipments.FindAll(s=>!GameSimulation.GroundCourierDocked(s)).Count,
-                "Visible couriers match physical traffic; docked couriers remain inside buildings");
+            Require(controller.RenderedShipmentCount == planet.Shipments.Count,
+                "All dispatched couriers remain visible, including during physical goods transfer");
             yield return Capture("surface.png");
             Require(captureFailure == null, captureFailure ?? "Surface screenshot written after simulation advance");
             foreach(InterfaceLayout layout in Enum.GetValues(typeof(InterfaceLayout)))

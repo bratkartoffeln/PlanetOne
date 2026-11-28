@@ -112,12 +112,13 @@ namespace PlanetOne.Core
 
         private void DispatchDeliveries(PlanetState p)
         {
+            foreach(var building in p.Buildings)OpenGarage(building);
             p.Deliveries.Sort((a, b) =>
             {
                 int comparison = DeliveryPriority(p, b).CompareTo(DeliveryPriority(p, a));
                 return comparison != 0 ? comparison : a.Id.CompareTo(b.Id);
             });
-            for (int i = 0; i < p.Deliveries.Count && p.Shipments.Count < Definitions.CouriersPerColony; i++)
+            for (int i = 0; i < p.Deliveries.Count; i++)
             {
                 var order = p.Deliveries[i];
                 var source = p.Buildings.Find(b => b.Id == order.SourceId);
@@ -125,7 +126,12 @@ namespace PlanetOne.Core
                 var path = FindPath(p, source, target);
                 if (path == null) continue;
                 int amount = Math.Min(Definitions.CourierCapacity, order.Amount);
-                p.Shipments.Add(new ShipmentState { Id = State.NextEntityId++, SourceId = source.Id,
+                BuildingState home;
+                long courier=ChooseCourier(p,source,target,out home);
+                if(courier==0)continue;
+                bool collect=home.Id!=source.Id;
+                if(collect){path=FindPath(p,home,source);if(path==null)continue;}
+                p.Shipments.Add(new ShipmentState { Id = State.NextEntityId++, CourierId=courier,HomeId=home.Id,ApproachingSource=collect,SourceId = source.Id,
                     TargetId = target.Id, Resource = order.Resource, Amount = amount, Path = path,
                     Phase = ShipmentPhase.Loading, Airborne=PlanetEnvironment.Airborne(p), Traffic=new GroundTrafficState{Docked=true} });
                 order.Amount -= amount;
@@ -150,14 +156,31 @@ namespace PlanetOne.Core
                 var shipment = p.Shipments[i];
                 var source = p.Buildings.Find(b => b.Id == shipment.SourceId);
                 var target = p.Buildings.Find(b => b.Id == shipment.TargetId);
+                if(shipment.HomeId==0 && shipment.Phase==ShipmentPhase.Returning && source.Deconstructing)
+                {
+                    // An already empty vehicle in transit docks at its surviving receiver.
+                    var depot=!target.Deconstructing && !target.Destroyed ? target :
+                        p.Buildings.Find(b=>b.Built && !b.Deconstructing && !b.Destroyed && IsStorage(b) && BuildingOwner(p,b)==p.OwnerId);
+                    if(depot!=null)
+                    {
+                        shipment.TargetId=source.Id;shipment.SourceId=depot.Id;target=source;source=depot;
+                        ReverseCourierPath(shipment);
+                    }
+                }
                 if(IsConstructionVehicle(shipment)&&(target.Built||target.Deconstructing||target.Destroyed||source.Deconstructing||
                     source.Destroyed||BuildingOwner(p,source)!=BuildingOwner(p,target)))ReturnConstructionVehicle(shipment);
                 if(TickGroundYield(p,CourierAgent(p,shipment)))continue;
                 if (IsConstructionVehicle(shipment))
                 {
-                    if(shipment.BuilderTurnPending&&FindPath(p,target,source)==null)
+                    if(shipment.BuilderTurnPending && (target.Deconstructing || target.Destroyed))
+                    {
+                        shipment.BuilderTurnPending=false;
+                        ReverseCourierPath(shipment);
+                    }
+                    var garage=shipment.HomeId==0?source:p.Buildings.Find(b=>b.Id==shipment.HomeId);
+                    if(shipment.BuilderTurnPending&&FindPath(p,target,garage)==null)
                     {shipment.RouteBlocked=true;continue;}
-                    var depot = shipment.Phase == ShipmentPhase.BuilderReturning&&!shipment.BuilderTurnPending ? source : target;
+                    var depot = shipment.Phase == ShipmentPhase.BuilderReturning&&!shipment.BuilderTurnPending ? garage : target;
                     if (!EnsureShipmentRoute(p, shipment, depot)) continue;
                     if (shipment.Phase == ShipmentPhase.Building) continue;
                     MoveShipment(p,shipment);
@@ -171,7 +194,17 @@ namespace PlanetOne.Core
                 int resource = (int)shipment.Resource;
                 if (shipment.Phase == ShipmentPhase.Recovering && !shipment.RecoveryReserved && FreeSpace(source) >= shipment.Amount)
                 { source.ReservedIncoming[resource] += shipment.Amount; shipment.RecoveryReserved = true; }
-                var destination = shipment.Phase == ShipmentPhase.Returning || shipment.Phase == ShipmentPhase.Recovering ? source : target;
+                var destination=p.Buildings.Find(b=>b.Id==CourierDestination(shipment));
+                if(shipment.ApproachingSource)
+                {
+                    if(!EnsureShipmentRoute(p,shipment,source))continue;
+                    MoveShipment(p,shipment);
+                    if(!AtRouteEnd(shipment))continue;
+                    var outbound=FindPath(p,source,target);if(outbound==null){shipment.RouteBlocked=true;continue;}
+                    shipment.Path=outbound;shipment.DistanceTravelled=0;shipment.PassingOffset=0;
+                    shipment.ApproachingSource=false;shipment.Traffic.Docked=true;shipment.PhaseProgress=0;
+                    continue;
+                }
                 if (!EnsureShipmentRoute(p, shipment, destination)) continue;
                 switch (shipment.Phase)
                 {
@@ -193,7 +226,9 @@ namespace PlanetOne.Core
                         target.Inventory[resource] += shipment.Amount;
                         target.ReservedIncoming[resource] -= shipment.Amount;
                         source.ReservedReturnSpace -= shipment.Amount;
-                        shipment.Amount = 0; shipment.Phase = ShipmentPhase.Returning;
+                        shipment.Amount = 0;
+                        if(shipment.HomeId==target.Id || shipment.HomeId==0 && (source.Deconstructing || source.Destroyed)){p.Shipments.RemoveAt(i);break;}
+                        shipment.Phase = ShipmentPhase.Returning;
                         shipment.Path.Reverse(); shipment.DistanceTravelled = 0; shipment.PhaseProgress = 0;
                         shipment.PassingOffset=0;shipment.RoadEntryCentered=false;
                         // A give-way maneuver may have joined the outbound route halfway along.
@@ -212,7 +247,8 @@ namespace PlanetOne.Core
                         if (shipment.PhaseProgress + 0.000000001 < Definitions.TransferSeconds) break;
                         source.Inventory[resource] += shipment.Amount;
                         source.ReservedIncoming[resource] -= shipment.Amount;
-                        p.Shipments.RemoveAt(i);
+                        if(shipment.HomeId!=0 && shipment.HomeId!=source.Id)RecallCourier(p,shipment);
+                        else p.Shipments.RemoveAt(i);
                         break;
                 }
             }
@@ -260,6 +296,13 @@ namespace PlanetOne.Core
         public static bool IsConstructionVehicle(ShipmentState shipment)
         { return shipment.Phase == ShipmentPhase.BuilderOutbound || shipment.Phase == ShipmentPhase.Building || shipment.Phase == ShipmentPhase.BuilderReturning; }
 
+        private static void ReverseCourierPath(ShipmentState shipment)
+        {
+            shipment.Path.Reverse();
+            shipment.DistanceTravelled=shipment.Path.Count-1-shipment.DistanceTravelled;
+            shipment.RouteBlocked=true;
+        }
+
         private static void ReturnConstructionVehicle(ShipmentState shipment)
         {
             if (shipment.Phase == ShipmentPhase.BuilderReturning) return;
@@ -277,8 +320,8 @@ namespace PlanetOne.Core
             var last = shipment.Path[shipment.Path.Count - 1];
             if (last.X != destination.X || last.Y != destination.Y) routeValid = false;
             int currentIndex = Math.Min((int)shipment.DistanceTravelled, shipment.Path.Count - 1);
-            for (int i = currentIndex + 1; i < shipment.Path.Count - 1; i++)
-                if (!PlanetEnvironment.Airborne(planet) && !CargoCellOpen(planet,shipment.Path[i].X,shipment.Path[i].Y)) routeValid = false;
+            for (int i = currentIndex + 1; i < shipment.Path.Count; i++)
+                if (!PlanetEnvironment.Airborne(planet) && (!GateEdgeOpen(planet,shipment.Path[i-1],shipment.Path[i]) || i<shipment.Path.Count-1 && !CargoCellOpen(planet,shipment.Path[i].X,shipment.Path[i].Y))) routeValid = false;
             if (!routeValid)
             {
                 // Curved movement also depends on the next/previous segment. Preserve the exact world

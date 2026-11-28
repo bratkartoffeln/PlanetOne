@@ -23,7 +23,7 @@ namespace PlanetOne.Core
                 connected.Add(b.Id);
                 if (!b.Built || !b.Enabled || b.Deconstructing) continue;
                 var definition = Definitions.Get(b.Kind);
-                p.EnergyProduced += definition.EnergyProduced;
+                p.EnergyProduced += (int)Math.Round(definition.EnergyProduced * Definitions.ProductionRate(b));
                 p.EnergyStored += b.EnergyStored;
                 p.EnergyCapacity += definition.EnergyStorageCapacity;
             }
@@ -137,14 +137,18 @@ namespace PlanetOne.Core
                 (s.Phase == ShipmentPhase.BuilderOutbound || s.Phase == ShipmentPhase.Building));
             if (builder == null)
             {
-                if (p.Shipments.Count >= Definitions.CouriersPerColony ||
+                if (p.Shipments.FindAll(s=>s.CourierId==0).Count >= Definitions.CouriersPerColony ||
                     p.Shipments.FindAll(IsConstructionVehicle).Count >= Definitions.ConstructionSlotsPerColony)
                 { SetStatus(p, b, "AwaitingBuilder", "Wartet auf freies Baufahrzeug"); return false; }
                 var headquarters = p.Buildings.Find(h => h.Kind == BuildingKind.Headquarters && h.Built &&
                     !h.Deconstructing && !h.Destroyed && BuildingOwner(p, h) == BuildingOwner(p, b));
                 var path = FindPath(p, headquarters, b);
                 if (path == null) { SetStatus(p, b, "BuilderRouteBlocked", "Baufahrzeug: Anfahrt unterbrochen"); return false; }
-                builder = new ShipmentState { Id = State.NextEntityId++, SourceId = headquarters.Id,
+                OpenGarage(headquarters);
+                long vehicle=FreeCourier(p,headquarters,true);
+                if(vehicle==0)vehicle=FreeCourier(p,headquarters,false);
+                if(vehicle==0){SetStatus(p,b,"AwaitingBuilder","Wartet auf freies Baufahrzeug");return false;}
+                builder = new ShipmentState { Id = State.NextEntityId++, CourierId=vehicle,HomeId=headquarters.Id, SourceId = headquarters.Id,
                     TargetId = b.Id, Path = path, Airborne=PlanetEnvironment.Airborne(p), Phase = ShipmentPhase.BuilderOutbound,Traffic=new GroundTrafficState{Docked=true} };
                 p.Shipments.Add(builder);
             }
@@ -205,7 +209,7 @@ namespace PlanetOne.Core
                 b.ProductionReservedSpace = Total(definition.Outputs);
             }
             SetStatus(p, b, "Producing", "Produziert");
-            b.CycleProgress += Definitions.TickSeconds * p.Productivity;
+            b.CycleProgress += Definitions.TickSeconds * p.Productivity * Definitions.ProductionRate(b);
             if (b.CycleProgress + 0.000000001 >= definition.CycleSeconds)
             {
                 for (int r = 0; r < Definitions.ResourceCount; r++)
@@ -282,7 +286,7 @@ namespace PlanetOne.Core
                 if (shipment.Phase == ShipmentPhase.Loading)
                 {
                     p.Buildings.Find(b => b.Id == shipment.SourceId).ReservedOutgoing[(int)shipment.Resource] -= shipment.Amount;
-                    p.Shipments.RemoveAt(i);
+                    RecallCourier(p,shipment);
                 }
                 else
                 {
@@ -304,6 +308,8 @@ namespace PlanetOne.Core
             for (int i = p.Buildings.Count - 1; i >= 0; i--)
             {
                 var b = p.Buildings[i];
+                if(b.Deconstructing)EvacuateGarage(p,b);
+                if(b.Couriers!=null && b.Couriers.Count>0)continue;
                 if ((b.Destroyed && b.Kind==BuildingKind.Headquarters) || !b.Deconstructing || Total(b.Inventory) != 0 || Total(b.ReservedOutgoing) != 0 || Total(b.ReservedIncoming) != 0 || b.ReservedReturnSpace != 0 ||
                     p.Deliveries.Exists(d => d.SourceId == b.Id || d.TargetId == b.Id) ||
                     p.Shipments.Exists(s => s.SourceId == b.Id || s.TargetId == b.Id)) continue;

@@ -44,6 +44,19 @@ namespace PlanetOne.Runtime
         {
             var point=GameSimulation.CourierDisplayPosition(shipment);
             Vector3 position=new Vector3((float)point.X,0,(float)point.Y);
+            if(!GameSimulation.IsConstructionVehicle(shipment) && shipment.Path.Count>1 && (shipment.Traffic==null || !shipment.Traffic.Yielding))
+            {
+                // Vehicles stop on the loading apron in front of the actual endpoint.
+                int last=shipment.Path.Count-1;float d=(float)shipment.DistanceTravelled;
+                float apron=last==1?.38f:.62f;
+                bool start=d<apron;float offset=start?apron-d:apron-(last-d);
+                if(offset>0)
+                {
+                    var dock=shipment.Path[start?0:last];var next=shipment.Path[start?1:last-1];
+                    var a=HexGrid.ToWorld(dock.X,dock.Y);var b=HexGrid.ToWorld(next.X,next.Y);
+                    position+=new Vector3((float)(b.X-a.X),0,(float)(b.Y-a.Y))*offset;
+                }
+            }
             position.y=ReliefHeight(position.x,position.z)+(AtmosphereSurface?.55f:.055f);return position;
         }
         private readonly List<ShipmentState> visibleCouriers=new List<ShipmentState>();
@@ -124,7 +137,15 @@ namespace PlanetOne.Runtime
         private void UpdateShipmentPose(Transform view,ShipmentState shipment)
         {
             var cargo=view.Find(AtmosphereSurface?"Frachtcontainer":"Ladebehälter");
-            if(cargo!=null)cargo.gameObject.SetActive(shipment.Amount>0&&shipment.Phase!=ShipmentPhase.Loading);
+            if(cargo!=null)
+            {
+                if(!cargo.TryGetComponent<CargoTransferPose>(out var load))load=cargo.gameObject.AddComponent<CargoTransferPose>();
+                bool loading=shipment.Phase==ShipmentPhase.Loading && !shipment.ApproachingSource;
+                bool unloading=shipment.Phase==ShipmentPhase.Unloading || shipment.Phase==ShipmentPhase.Recovering && GameSimulation.GroundCourierDocked(shipment);
+                float progress=Mathf.Clamp01((float)(shipment.PhaseProgress/Definitions.TransferSeconds));
+                load.Pose(loading?1-progress:unloading?progress:0);
+                cargo.gameObject.SetActive(shipment.Amount>0 && !shipment.ApproachingSource);
+            }
             Vector3 position=ShipmentRoadPosition(shipment);UpdateSurfaceMotion(view,position);
             if(GameSimulation.IsConstructionVehicle(shipment))
             {
@@ -169,4 +190,15 @@ namespace PlanetOne.Runtime
         internal void SetWorking(bool working,float time)
         {transform.localRotation=Quaternion.AngleAxis(working?Mathf.Sin(time*2)*22:0,Vector3.up)*restRotation;}
     }
+    internal sealed class CargoTransferPose:MonoBehaviour
+    {
+        private Vector3 bed;private bool initialized;
+        internal void Pose(float progress)
+        {
+            if(!initialized){bed=transform.localPosition;initialized=true;}
+            float eased=Mathf.SmoothStep(0,1,progress);
+            transform.localPosition=bed+Vector3.right*(eased*.55f)+Vector3.up*(Mathf.Sin(Mathf.PI*eased)*.39f-eased*.12f);
+        }
+    }
+
 }

@@ -456,3 +456,7 @@ LOG-016 / TEST-041 / D-048 / T-075–077 ersetzen die sichtbaren Straßen durch 
 ### Folgeauftrag: Verbindungsstraßen, Befestigungen und direkte Fahrt
 
 D-049–053 / T-078–081 / LOG-017 / GUI-023 / SURFACE-012 / TEST-042 ergänzen das bestätigte Versorgungsnetz. Schmale Straßen, verbundene schmale Mauern/Tore samt Vorschau, Angriffsanfahrt bis zur Schussposition, transparente auswahlabhängige Bögen, direkte freie Bodenfahrt und Zentrieren bei Auftragswechsel sind implementiert. Die Belegungsplanung nutzt die aktuelle Fahrzeugwabe; tatsächliche Körperabstände bleiben geprüft. Landschaftsklick hebt die Einheitenauswahl auf. Aktuelle Test- und Paketnachweise folgen im GUI-Nachweis; ältere dortige Ergebnisse bleiben historisch.
+
+### Version 1.0.23 · Bodenverteidigung und Gebäudefuhrpark
+
+P06/P07, LOG-019, D-062–064 und TEST-046 ergänzen den laufenden Prototyp um zugeordnete Transporter, Werkstätten, Schadensstufen, Richtungstore und gemeinsame Infanteriestandplätze. `tools/Test-Core.ps1` bestand mit 232 Kernprüfungen einschließlich beider Referenzsiege. Der mit `tools/Unity.ps1 -Action Build` gebaute Windows-Player bestand `tools/Test-Presentation.ps1 -PolishOnly` auf einem isolierten Desktop. Die Aufnahmen `construction-delivery.png` und `damaged-tank-tracks.png` zeigen die Entladung am Bauplatz und den beschädigten Panzer in Fahrt.

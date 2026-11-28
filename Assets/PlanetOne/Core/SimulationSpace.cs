@@ -153,7 +153,7 @@ namespace PlanetOne.Core
                     if (!Pay(p, b, d.Cost)) { b.Status = "Wartet auf Schiffsmaterial"; continue; }
                     p.Population -= d.Crew; p.WorkersTotal = Math.Min(p.WorkersTotal, p.Population); p.WorkersUsed = Math.Min(p.WorkersUsed, p.WorkersTotal); b.ShipBuildPaid = true;
                 }
-                b.ShipBuildProgress += Definitions.TickSeconds * p.Productivity; b.Status = "Schiffsbau " + (int)(100 * b.ShipBuildProgress / d.Seconds) + "%";
+                b.ShipBuildProgress += Definitions.TickSeconds * p.Productivity * Definitions.ProductionRate(b); b.Status = "Schiffsbau " + (int)(100 * b.ShipBuildProgress / d.Seconds) + "%";
                 if (b.ShipBuildProgress + 0.0000001 < d.Seconds) continue;
                 SimPoint pos;
                 if(!TrySpaceSpawn((ShipKind)b.ShipBuildKind,p.OwnerId,GetOrbitPosition(p.Id),out pos))
@@ -170,7 +170,7 @@ namespace PlanetOne.Core
                 if (!b.Operational) { research.Status = "Forschung pausiert: " + b.Status; continue; }
                 var d = Definitions.Technologies[research.Active];
                 if (!research.Paid) { if (!Pay(FindPlanet(b.PlanetId), b, d.Cost)) { research.Status = "Versuchsmaterial wird angeliefert"; continue; } research.Paid = true; }
-                research.Progress += Definitions.TickSeconds * FindPlanet(b.PlanetId).Productivity; research.Status = d.Name + " " + (int)(100 * research.Progress / d.Seconds) + "%";
+                research.Progress += Definitions.TickSeconds * FindPlanet(b.PlanetId).Productivity * Definitions.ProductionRate(b); research.Status = d.Name + " " + (int)(100 * research.Progress / d.Seconds) + "%";
                 if (research.Progress + 0.0000001 < d.Seconds) continue;
                 research.Completed.Add(d.Id); research.Active = -1; research.Paid = false; research.Progress = 0; research.Status = d.Name + " freigeschaltet";
                 Emit(f.Id, b.PlanetId, b.Id, "ResearchCompleted", research.Status);

@@ -407,8 +407,8 @@ namespace PlanetOne.Core
         private static bool PathStillValid(PlanetState p, List<GridCell> path)
         {
             if(PlanetEnvironment.Airborne(p))return true;
-            for (int i = 1; i < path.Count - 1; i++)
-                if (!CargoCellOpen(p,path[i].X,path[i].Y)) return false;
+            for (int i = 1; i < path.Count; i++)
+                if (!GateEdgeOpen(p,path[i-1],path[i]) || i<path.Count-1 && !CargoCellOpen(p,path[i].X,path[i].Y)) return false;
             return true;
         }
 

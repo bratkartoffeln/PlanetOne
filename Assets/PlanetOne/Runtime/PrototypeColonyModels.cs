@@ -301,7 +301,8 @@ namespace PlanetOne.Runtime
         }
         private void ColonyWall(Transform root)
         {
-            WallArm(root,Vector3.left*.42f,Vector3.right*.42f);
+            Part(root,"Mauerfeld",Vector3.up*.21f,new Vector3(.11f,.44f,.84f),Hull).localRotation=Quaternion.Euler(0,90,0);
+            Part(root,"Mauerabschluss",Vector3.up*.45f,new Vector3(.84f,.04f,.14f),Trim);
         }
         private void ColonyGate(Transform root)
         {
