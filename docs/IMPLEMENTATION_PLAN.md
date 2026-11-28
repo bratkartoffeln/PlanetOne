@@ -15,7 +15,7 @@ Die Paketfolge konkretisiert die Erweiterungen aus Abschnitt 16 des [Spielkonzep
 | M14 · P27 Kampagne und Sonderszenarien | M11–M13, Szenariomenü | Zwei verknüpfte Missionen und ein eigenständig startbares Sonderszenario verwenden definierte Startbedingungen und sichtbare Ziele. Sieg schaltet die Folgemission frei. Niederlage, Neustart und Laden mitten in der Mission erhalten den richtigen Kampagnenfortschritt. |
 | M15 · P28 Balance und Plattformabnahme | M14 | Eine vollständige Kampagne und die regulären Siegpfade laufen im gebauten Windows-Player. Laufzeit, Speichern, Bedienung und Installer werden auf dem Zielgerät geprüft. Für Web, Mobilgeräte und Konsolen wird je Ziel die Machbarkeit und der erforderliche Geräte- und Eingabetest dokumentiert. Eine Portierung braucht eine eigene Zielplattformentscheidung. |
 
-M10 ist lokal umgesetzt. Die [Prüfungen und Startbefehle](M10_NACHWEIS.md) dokumentieren den Stand. M11–M15 sind geplant. Nummerierung, Reihenfolge und Paketgrenzen sind in D-058 festgehalten.
+M10 und M11 sind lokal umgesetzt. [M10-Nachweis](M10_NACHWEIS.md) und [M11-Nachweis](M11_NACHWEIS.md) enthalten Abnahmeszenarien und Startbefehle. M12–M15 sind geplant. Nummerierung, Reihenfolge und Paketgrenzen sind in D-058 festgehalten.
 
 ## Vorheriger Ergänzungsauftrag 1.0.18
 
@@ -428,6 +428,10 @@ Automatisierte Prüfungen sichern Bestandsänderungen, Berechtigungen, Sichtgren
 Manuelle Prüfungen beurteilen Bedienbarkeit, Warnungen, räumliche Lesbarkeit, sinnvolle Reaktionszeit und taktische Wahlmöglichkeiten. Ein erfolgreicher automatisierter Test ersetzt keine sichtbare Prüfung eines neuen Spielablaufs.
 
 Leistungsmessungen verwenden ein festgehaltenes Szenario und Hardwareprofil. Ein schneller leerer Prototyp beweist keine ausreichende Leistung bei mehreren Kolonien, KI und gleichzeitigen Gefechten. Umfang und Grenzwerte werden vor der jeweiligen Messung festgelegt.
+
+## Modellgestaltung in 1.0.21
+
+Die grafische Überarbeitung von Kolonie und Flotte betrifft die Darstellung bestehender Spielinhalte aus Aufbau, Logistik und Militär. [Modellgestaltung und Windows-Prüfung](MODELLE_1_0_21.md)
 
 ## Ergänzung 1.0.18: Zweispurige Straßen und Priorität stehender Einheiten
 

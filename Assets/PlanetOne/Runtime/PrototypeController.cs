@@ -647,7 +647,7 @@ namespace PlanetOne.Runtime
         }
 
         private static readonly Color ShortageRed=new Color(1,.34f,.29f);
-        private static readonly HudIcon[] CostIcons={HudIcon.Food,HudIcon.Ore,HudIcon.Metal,HudIcon.Parts,HudIcon.Crystal,HudIcon.Electronics};
+        private static readonly HudIcon[] CostIcons={HudIcon.Food,HudIcon.Ore,HudIcon.Metal,HudIcon.Parts,HudIcon.Crystal,HudIcon.Electronics,HudIcon.Hydrogen};
         private static int[] LocalShortfall(BuildingState site,int[] cost,bool paid)
         {
             var missing=new int[cost.Length];
@@ -780,6 +780,8 @@ namespace PlanetOne.Runtime
                 PlanetState planet = simulation.FindPlanet(building.PlanetId);
                 GUILayout.Label("Erz im Vorkommen: " + planet.OreRemaining[building.Y * planet.Width + building.X], smallStyle);
             }
+            if (building.Kind == BuildingKind.GasExtractor)
+                GUILayout.Label("Förderbarer Wasserstoff im Gasband: "+simulation.FindPlanet(building.PlanetId).AtmosphericHydrogen,smallStyle);
             for (int r = 0; r < building.Inventory.Length; r++)
             {
                 if (building.Inventory[r] == 0 && building.ReservedIncoming[r] == 0) continue;
@@ -836,7 +838,7 @@ namespace PlanetOne.Runtime
             GUILayout.Label(supply, smallStyle);
             GUI.contentColor = previousColor;
             GUILayout.Space(10);
-            for (int r = 0; r < 6; r++)
+            for (int r = 0; r < Definitions.ResourceCount; r++)
             {
                 int total = 0;
                 foreach (BuildingState building in planet.Buildings) total += building.Inventory[r];
@@ -850,7 +852,7 @@ namespace PlanetOne.Runtime
         {
             var planet=simulation.FindPlanet(openPlanetId);if(planet==null)return;
             int columns=ProductionColumns;
-            var stock=new int[6];for(int r=0;r<stock.Length;r++) stock[r]=GameSimulation.FreeBuildingStock(planet,PlayerFactionId,r);
+            var stock=new int[Definitions.ResourceCount];for(int r=0;r<stock.Length;r++) stock[r]=GameSimulation.FreeBuildingStock(planet,PlayerFactionId,r);
 
             int column=0;
             foreach(BuildingKind kind in Enum.GetValues(typeof(BuildingKind)))
@@ -871,7 +873,7 @@ namespace PlanetOne.Runtime
             GUILayout.Space(4);
             if(GUILayout.Button(supplyOverlay?"Logistikansicht aus · L":"Logistikansicht · L",buttonStyle))ToggleSupplyOverlay();
             if(AtmosphereSurface) {
-                GUILayout.Label("LUFTFRACHT · 4 Frachtdrohnen, je 8 Waren. Automatische Flugkorridore zwischen Plattformen. Erz und Metall per Raumhafen importieren.",smallStyle);
+                GUILayout.Label("Vier Frachtdrohnen transportieren je acht Waren. Gasförderer liefern Wasserstoff. Erz und Metall kommen per Raumhafen.",smallStyle);
                 return;
             }
             GUILayout.Space(7);

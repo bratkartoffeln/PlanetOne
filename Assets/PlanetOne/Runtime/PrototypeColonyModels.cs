@@ -14,6 +14,17 @@ namespace PlanetOne.Runtime
                 case BuildingKind.Headquarters:ColonyHeadquarters(root);break;
                 case BuildingKind.Mine:ColonyMine(root,false);break;
                 case BuildingKind.CrystalMine:ColonyMine(root,true);break;
+                case BuildingKind.GasExtractor:
+                    var separator=ColonyGroup(root,"Gasabscheider",Vector3.zero);
+                    ColonyTank(separator,new Vector3(0,.08f,0),.17f,.54f,Cyan);
+                    for(int side=-1;side<=1;side+=2)
+                    {
+                        var intake=new Vector3(side*.30f,.21f,0);
+                        ColonyTank(separator,intake,.13f,.20f,Trim);
+                        Ring(separator,intake+Vector3.up*.22f,.15f,Cyan,12,.025f);
+                        Part(separator,"Ansaugleitung",new Vector3(side*.18f,.27f,0),new Vector3(.22f,.065f,.08f),Steel);
+                    }
+                    break;
                 case BuildingKind.Smelter:ColonySmelter(root);break;
                 case BuildingKind.SolarPlant:ColonySolar(root);break;
                 case BuildingKind.Warehouse:ColonyWarehouse(root);break;
@@ -41,12 +52,15 @@ namespace PlanetOne.Runtime
         {var group=new GameObject(name).transform;group.SetParent(parent,false);group.localPosition=position;return group;}
         private void ColonyHall(Transform root,Vector3 at,Vector3 size,Color accent)
         {
-            Part(root,"Panzerverkleidung",at,size,Hull);
-            Part(root,"Dachpanzer",at+Vector3.up*size.y*.52f,new Vector3(size.x*.91f,.035f,size.z*.91f),Steel);
+            ArmourPanel(root,"Tragrahmen",at,size,Steel);
+            ArmourPanel(root,"Panzerverkleidung",at+Vector3.up*size.y*.10f,new Vector3(size.x*1.035f,size.y*.88f,size.z*1.035f),Hull);
+            ArmourPanel(root,"Dachkassette",at+Vector3.up*size.y*.56f,new Vector3(size.x*.60f,.025f,size.z*.62f),Trim);
             for(int side=-1;side<=1;side+=2)
             {
-                Part(root,"Verkleidungsrahmen",at+new Vector3(side*size.x*.47f,0,0),new Vector3(.04f,size.y*1.08f,size.z*1.04f),accent);
-                Part(root,"Fenster",at+new Vector3(0,size.y*.12f,side*(size.z*.5f+.005f)),new Vector3(size.x*.65f,.045f,.012f),Cyan);
+                ArmourPanel(root,"Seitenwange",at+new Vector3(side*size.x*.47f,0,0),new Vector3(size.x*.15f,size.y*.96f,size.z*.67f),accent);
+                var lintel=at+new Vector3(0,size.y*.13f,side*size.z*.52f);
+                Part(root,"Fensterschacht",lintel,new Vector3(size.x*.65f,size.y*.31f,.018f),Canopy);
+                Part(root,"Fenster",lintel+new Vector3(0,size.y*.035f,side*.011f),new Vector3(size.x*.48f,size.y*.084f,.006f),Cyan);
             }
         }
         private void ColonyTank(Transform root,Vector3 at,float radius,float height,Color stripe)
@@ -55,15 +69,19 @@ namespace PlanetOne.Runtime
             Ring(root,at+Vector3.up*height*.2f,radius*1.02f,Steel,12,.014f);
             Ring(root,at+Vector3.up*height*.78f,radius*1.02f,stripe,12,.018f);
             Part(root,"Tankdeckel",at+Vector3.up*(height+.015f),new Vector3(radius*1.8f,.015f,radius*1.8f),Steel,PrimitiveType.Cylinder);
+            Part(root,"Tankmanschette",at+Vector3.up*height*.68f,new Vector3(radius*2.04f,height*.065f,radius*2.04f),stripe,PrimitiveType.Cylinder);
+            Part(root,"Druckverschluss",at+Vector3.up*(height+.035f),new Vector3(radius,.022f,radius),Hull,PrimitiveType.Cylinder);
+            Rod(root,"Steigleitung",at+new Vector3(radius*.94f,.02f,0),at+new Vector3(radius*.94f,height*.85f,0),.027f,stripe);
         }
         private void ColonyCrate(Transform root,Vector3 at,Vector3 size,Color accent)
         {
-            Part(root,"Frachtkiste",at,size,accent);
+            ArmourPanel(root,"Frachtkiste",at,size,accent);
             for(int i=-1;i<=1;i+=2)Part(root,"Kistenrahmen",at+new Vector3(i*size.x*.37f,.005f,0),new Vector3(.018f,size.y*1.04f,size.z*1.04f),Steel);
         }
         private void ColonyHeadquarters(Transform root)
         {
-            Part(root,"Kommandofundament",new Vector3(0,.12f,0),new Vector3(.7f,.07f,.7f),Hull,PrimitiveType.Cylinder);
+            Part(root,"Kommandofundament",new Vector3(0,.12f,0),new Vector3(.78f,.085f,.78f),Steel,PrimitiveType.Cylinder);
+            MakeHex("Kommandopanzer",root,new Vector3(0,.20f,0),new Vector3(.64f,.13f,.64f),Hull);
             Part(root,"Leitzentrale",new Vector3(0,.29f,0),new Vector3(.48f,.14f,.48f),Hull,PrimitiveType.Cylinder);
             Ring(root,new Vector3(0,.38f,0),.246f,Trim,8,.037f);
             Ring(root,new Vector3(0,.27f,0),.247f,Cyan,8,.014f);
@@ -73,6 +91,12 @@ namespace PlanetOne.Runtime
                 ColonyHall(pod,new Vector3(0,.13f,0),new Vector3(.24f,.2f,.22f),Trim);
             }
             Part(root,"Kommandospitze",new Vector3(0,.56f,0),new Vector3(.17f,.16f,.17f),Hull,PrimitiveType.Cylinder);
+            for(int i=0;i<4;i++)
+            {
+                var mast=ColonyGroup(root,"Mastverkleidung",new Vector3(0,.56f,0));mast.localRotation=Quaternion.Euler(0,90*i,0);
+                Part(mast,"Fensterschacht",new Vector3(0,0,.084f),new Vector3(.058f,.20f,.018f),Steel);
+                Part(mast,"Mastanzeige",new Vector3(0,0,.095f),new Vector3(.018f,.15f,.008f),Cyan);
+            }
             Rod(root,"Antenne",new Vector3(0,.67f,0),new Vector3(0,.98f,0),.023f,Industrial);
             Part(root,"Betriebsanzeige",new Vector3(0,1,0),Vector3.one*.045f,Amber,PrimitiveType.Sphere);
         }
@@ -85,7 +109,7 @@ namespace PlanetOne.Runtime
                 Rod(root,"Solarsäule",new Vector3(x*.225f,.05f,z*.2f),new Vector3(x*.225f,.26f,z*.2f),.034f,Steel);
                 Part(panel,"Solarrahmen",Vector3.zero,new Vector3(.405f,.035f,.335f),Hull);
                 Part(panel,"Solarfläche",new Vector3(0,.024f,0),new Vector3(.37f,.012f,.3f),Color.white);
-                for(int i=-1;i<=1;i++)Part(panel,"Solarunterteilung",new Vector3(i*.092f,.032f,0),new Vector3(.009f,.006f,.3f),new Color(.55f,.64f,.71f));
+                for(int i=-1;i<=1;i++)Part(panel,"Solarunterteilung",new Vector3(i*.092f,.032f,0),new Vector3(.005f,.006f,.3f),Hull);
             }
         }
         private void ColonyFarm(Transform root)
@@ -137,7 +161,13 @@ namespace PlanetOne.Runtime
         private void ColonyWarehouse(Transform root)
         {
             ColonyHall(root,new Vector3(0,.23f,-.04f),new Vector3(.75f,.36f,.54f),Steel);
-            Part(root,"Lagerrolltor",new Vector3(0,.19f,.239f),new Vector3(.42f,.26f,.018f),Steel);
+            // Paired loading bays remain visible on the apron and on the rear service side.
+            for(int end=-1;end<=1;end+=2)for(int bay=-1;bay<=1;bay+=2)
+            {
+                var door=new Vector3(bay*.17f,.18f,-.04f+end*.28f);
+                Part(root,"Motorgitter",door,new Vector3(.23f,.21f,.018f),Steel);
+                Part(root,"Torleuchte",door+new Vector3(0,.125f,end*.008f),new Vector3(.20f,.025f,.022f),Industrial);
+            }
             for(int i=-1;i<=1;i+=2)ColonyCrate(root,new Vector3(i*.27f,.11f,.31f),new Vector3(.17f,.16f,.15f),Industrial);
             for(int i=-1;i<=1;i++)Part(root,"Dachträger",new Vector3(i*.23f,.43f,-.04f),new Vector3(.03f,.04f,.58f),Hull);
         }
@@ -163,6 +193,11 @@ namespace PlanetOne.Runtime
             Part(root,"Ausfahrrampe",new Vector3(0,.07f,.33f),new Vector3(.54f,.04f,.2f),Steel);
             for(int i=-1;i<=1;i+=2)Part(root,"Fahrbahnmarkierung",new Vector3(i*.18f,.097f,.33f),new Vector3(.025f,.008f,.18f),Industrial);
             Part(root,"Hallendach",new Vector3(0,.47f,-.05f),new Vector3(.60f,.055f,.43f),Trim);
+            for(int side=-1;side<=1;side+=2)
+            {
+                ArmourPanel(root,"Portalpfeiler",new Vector3(side*.30f,.21f,.245f),new Vector3(.11f,.36f,.12f),Hull);
+                Part(root,"Torwarnanzeige",new Vector3(side*.30f,.21f,.307f),new Vector3(.033f,.18f,.008f),Industrial);
+            }
             Rod(root,"Kranträger",new Vector3(-.32f,.55f,-.18f),new Vector3(.32f,.55f,-.18f),.04f,Industrial);
         }
         private void ColonyDepot(Transform root)

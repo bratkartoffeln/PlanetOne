@@ -97,6 +97,7 @@ namespace PlanetOne.Core
             if(Count(w,v,BuildingKind.Farm)<Math.Max(1,(w.Population+39)/40))desired.Add(BuildingKind.Farm);
             if(w.EnergyDemand>w.Energy-2 && !w.Buildings.Exists(b=>Own(b,v)&&b.Kind==BuildingKind.SolarPlant&&!b.Built))desired.Add(BuildingKind.SolarPlant);
             if(Count(w,v,BuildingKind.Mine)==0)desired.Add(BuildingKind.Mine);
+            if(w.AtmosphericHydrogen>0 && Count(w,v,BuildingKind.GasExtractor)==0)desired.Add(BuildingKind.GasExtractor);
             if(Count(w,v,BuildingKind.Smelter)>=2 && Count(w,v,BuildingKind.Mine)<2 && Goods(w,v,1)<16)desired.Add(BuildingKind.Mine);
             if(Count(w,v,BuildingKind.Smelter)==0)desired.Add(BuildingKind.Smelter);
             if(Count(w,v,BuildingKind.Workshop)==0)desired.Add(BuildingKind.Workshop);
@@ -120,7 +121,7 @@ namespace PlanetOne.Core
                 foreach(var technology in Definitions.Technologies)
                 {
                     if(v.Research.Completed.Contains(technology.Id))continue;bool ready=true;foreach(var prerequisite in technology.Prerequisites)if(!v.Research.Completed.Contains(prerequisite))ready=false;
-                    for(int r=0;r<6;r++)if(Goods(w,v,r)<technology.Cost[r])ready=false;
+                    for(int r=0;r<Definitions.ResourceCount;r++)if(Goods(w,v,r)<technology.Cost[r])ready=false;
                     if(ready)return Order("Forschung: "+technology.Name,"Voraussetzungen und reale Materialproben vorhanden",new SimCommand {Kind=CommandKind.StartResearch,PlanetId=w.Id,TargetId=lab.Id,IntValue=(int)technology.Id});
                 }
             if(v.Research.Completed.Contains(Technology.CrystalMining) && Array.Exists(w.Terrain,t=>t==3) && Count(w,v,BuildingKind.CrystalMine)==0)

@@ -75,7 +75,7 @@ internal static class OrbitTests
         for(int i=0;i<old.Planets.Count;i++)
         {var p=comparison.Planets[i];p.Kind=old.Planets[i].Kind;p.OrbitPhase=old.Planets[i].OrbitPhase;p.OrbitPeriodSeconds=old.Planets[i].OrbitPeriodSeconds;p.OrbitEccentricity=old.Planets[i].OrbitEccentricity;p.OrbitPeriapsis=old.Planets[i].OrbitPeriapsis;}
         foreach(var planet in comparison.Planets){Check(planet.Trails.Count==0,"Migration invented trail wear");planet.Trails=null;}
-        Check(RawJson(old)==RawJson(comparison),"Migration changed goods, ships, orders or another non-orbital value");
+        Check(PlanetEnvironmentTests.WithEmptyHydrogenSlots(RawJson(old))==RawJson(comparison),"Migration changed goods, ships, orders or another non-orbital value");
     }
     private static void InvalidOrbits()
     {

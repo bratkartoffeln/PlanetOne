@@ -129,7 +129,7 @@ namespace PlanetOne.Core
         {
             if (!b.ConstructionStarted)
             {
-                for (int r = 0; r < 6; r++)
+                for (int r = 0; r < Definitions.ResourceCount; r++)
                     if (b.Inventory[r] < definition.Cost[r])
                     { SetStatus(p, b, "AwaitingConstructionMaterial", "Wartet auf Baumaterial"); return false; }
             }
@@ -152,7 +152,7 @@ namespace PlanetOne.Core
             { SetStatus(p, b, "BuilderEnRoute", "Baufahrzeug unterwegs"); return false; }
             if (!b.ConstructionStarted)
             {
-                for (int r = 0; r < 6; r++)
+                for (int r = 0; r < Definitions.ResourceCount; r++)
                 { b.Inventory[r] -= definition.Cost[r]; p.ConsumedTotals[r] += definition.Cost[r]; }
                 b.ConstructionStarted = true;
             }
@@ -173,14 +173,14 @@ namespace PlanetOne.Core
             if (!b.CycleActive)
             {
                 int missingInput = 0, storedOutput = 0;
-                for (int r = 0; r < 6; r++)
+                for (int r = 0; r < Definitions.ResourceCount; r++)
                 {
                     missingInput += Math.Max(0, definition.Inputs[r] - (b.Inventory[r] - b.ReservedOutgoing[r]));
                     if (definition.Outputs[r] > 0) storedOutput += b.Inventory[r];
                 }
                 if (missingInput > FreeSpace(b) && storedOutput > 0)
                 { SetStatus(p, b, "OutputsBlockingStorage", "Lager voll: Ausgänge abtransportieren"); return; }
-                for (int r = 0; r < 6; r++)
+                for (int r = 0; r < Definitions.ResourceCount; r++)
                     if (b.Inventory[r] - b.ReservedOutgoing[r] < definition.Inputs[r])
                     { SetStatus(p, b, "AwaitingInput", "Wartet auf Rohstoffe"); return; }
                 if (Total(b.Inventory) - Total(definition.Inputs) + Total(b.ReservedIncoming) + b.ReservedReturnSpace + Total(definition.Outputs) > StorageCapacity(b))
@@ -192,7 +192,14 @@ namespace PlanetOne.Core
                     { SetStatus(p, b, "DepositExhausted", "Vorkommen erschöpft"); return; }
                     p.OreRemaining[index] -= definition.Outputs[b.Kind == BuildingKind.CrystalMine ? 4 : 1];
                 }
-                for (int r = 0; r < 6; r++)
+                if (b.Kind == BuildingKind.GasExtractor)
+                {
+                    int batch=definition.Outputs[(int)ResourceKind.Hydrogen];
+                    if(p.AtmosphericHydrogen<batch)
+                    { SetStatus(p,b,"DepositExhausted","Förderbares Gasband erschöpft"); return; }
+                    p.AtmosphericHydrogen-=batch;
+                }
+                for (int r = 0; r < Definitions.ResourceCount; r++)
                 { b.Inventory[r] -= definition.Inputs[r]; p.ConsumedTotals[r] += definition.Inputs[r]; }
                 b.CycleActive = true; b.CycleProgress = 0;
                 b.ProductionReservedSpace = Total(definition.Outputs);
@@ -201,7 +208,7 @@ namespace PlanetOne.Core
             b.CycleProgress += Definitions.TickSeconds * p.Productivity;
             if (b.CycleProgress + 0.000000001 >= definition.CycleSeconds)
             {
-                for (int r = 0; r < 6; r++)
+                for (int r = 0; r < Definitions.ResourceCount; r++)
                 { b.Inventory[r] += definition.Outputs[r]; p.ProducedTotals[r] += definition.Outputs[r]; }
                 p.FoodProducedTotal += definition.Outputs[(int)ResourceKind.Food];
                 b.CycleActive = false; b.CycleProgress = 0; b.ProductionReservedSpace = 0;
@@ -223,14 +230,14 @@ namespace PlanetOne.Core
             if (building.Built || building.ConstructionStarted)
             {
                 double fraction = building.Built ? Definitions.DemolitionRefundFraction : Definitions.ConstructionRefundFraction;
-                for (int r = 0; r < 6; r++) result[r] += (int)Math.Floor(definition.Cost[r] * fraction);
+                for (int r = 0; r < Definitions.ResourceCount; r++) result[r] += (int)Math.Floor(definition.Cost[r] * fraction);
             }
             if (building.CycleActive)
-                for (int r = 0; r < 6; r++) result[r] += definition.Inputs[r];
+                for (int r = 0; r < Definitions.ResourceCount; r++) result[r] += definition.Inputs[r];
             if (building.ShipBuildKind >= 0 && building.ShipBuildPaid && !building.Destroyed)
-            { var cost = Definitions.Ships[building.ShipBuildKind].Cost; for (int r = 0; r < 6; r++) result[r] += cost[r]; }
+            { var cost = Definitions.Ships[building.ShipBuildKind].Cost; for (int r = 0; r < Definitions.ResourceCount; r++) result[r] += cost[r]; }
             if (building.RecruitKind >= 0 && building.RecruitPaid)
-            { var cost = Definitions.Get((UnitKind)building.RecruitKind).Cost; for (int r = 0; r < 6; r++) result[r] += cost[r]; }
+            { var cost = Definitions.Get((UnitKind)building.RecruitKind).Cost; for (int r = 0; r < Definitions.ResourceCount; r++) result[r] += cost[r]; }
             return result;
         }
 
@@ -242,8 +249,10 @@ namespace PlanetOne.Core
             building.RecruitQueue=null;building.RecruitKind = -1; building.RecruitPaid = false; building.RecruitProgress = 0;
             var definition = Definitions.Get(building.Kind);
             building.Deconstructing = true; building.Enabled = false;
-            for (int r = 0; r < 6; r++) p.RecoveredTotals[r] += recovery[r] - building.Inventory[r];
+            for (int r = 0; r < Definitions.ResourceCount; r++) p.RecoveredTotals[r] += recovery[r] - building.Inventory[r];
             building.Inventory = recovery;
+            if(building.CycleActive && building.Kind==BuildingKind.GasExtractor)
+                p.AtmosphericHydrogen+=definition.Outputs[(int)ResourceKind.Hydrogen];
             if (building.CycleActive && (building.Kind == BuildingKind.Mine || building.Kind == BuildingKind.CrystalMine))
                 p.OreRemaining[building.Y * p.Width + building.X] += definition.Outputs[building.Kind == BuildingKind.CrystalMine ? 4 : 1];
             building.CycleActive = false; building.CycleProgress = 0; building.ProductionReservedSpace = 0;
